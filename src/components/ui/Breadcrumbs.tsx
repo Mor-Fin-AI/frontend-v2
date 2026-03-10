@@ -12,12 +12,12 @@ export default function Breadcrumbs() {
   if (!meta) return null;
 
   return (
-    <div className="mb-4">
+    <div className="mb-5">
       <h1 className="font-inter font-bold text-2xl text-white">
         {meta.breadcrumb}
       </h1>
       {meta.subtitle && (
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="font-inter font-medium text-sm text-primary mt-1">
           {meta.subtitle}
         </p>
       )}

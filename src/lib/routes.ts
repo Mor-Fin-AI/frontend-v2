@@ -15,21 +15,21 @@ export const routeMeta: Record<
   "/dao-activities": {
     title: "DAO Activities",
     breadcrumb: "DAO Activities",
-    subtitle: "Track your participation and contributions"
+    subtitle: "Educational rewards, milestones & payout history"
   },
   "/infrastructure-impact": {
     title: "Infrastructure Impact",
     breadcrumb: "Infrastructure Impact",
-    subtitle: "Monitor system health and performance"
+    subtitle: "Roads, drainage, pavements & hubs built through the DAO"
   },
   "/governance": {
     title: "Governance",
     breadcrumb: "Governance",
-    subtitle: "Participate in decision-making processes"
+    subtitle: "View proposals and cast your vote"
   },
   "/audit-logs": {
     title: "Audit Logs",
     breadcrumb: "Audit Logs",
-    subtitle: "Review system activity and history"
+    subtitle: "Read-only reward and DAO activity logs"
   },
 };
