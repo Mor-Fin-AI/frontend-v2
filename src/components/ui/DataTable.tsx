@@ -32,7 +32,7 @@ export default function DataTable<T>({
                             <th
                                 key={index}
                                 className={clsx(
-                                    'py-5 px-4 first:pl-0 last:pr-11 text-left text-base font-medium text-[#6B7280] font-inter whitespace-nowrap',
+                                    'py-5 px-4 first:pl-0 last:pr-0 text-left text-base font-medium text-[#6B7280] font-inter whitespace-nowrap',
                                     column.headerClassName
                                 )}
                             >

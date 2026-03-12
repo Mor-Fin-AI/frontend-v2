@@ -40,6 +40,7 @@ export default function WeeklyRewardChart() {
               verticalAlign="bottom"
               height={20}
               iconType="circle"
+              iconSize={8}
               formatter={(value) => <span className="text-white text-[10px] md:text-sm capitalize">{value}</span>}
             />
             <Bar dataKey="training" stackId="a" fill="#22C38E" radius={[0, 0, 0, 0]} barSize={60} />
