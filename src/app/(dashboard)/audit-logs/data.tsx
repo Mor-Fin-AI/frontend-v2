@@ -47,7 +47,7 @@ export const auditStats: AuditStat[] = [
     icon: EventsIcon,
     iconBg: 'bg-[#30ABE81A]',
     iconColor: 'text-[#30ABE8]',
-    valueColor: 'text-[#F69E23]',
+    valueColor: 'text-[#30ABE8]',
     subtitleColor: 'text-primary',
     variant: 'default',
   },
