@@ -2,16 +2,16 @@
 
 import React, { useState } from 'react';
 import { auditLogs, filterTabs, AuditLog, EventCategory, EventStatus, FilterTab } from '../data';
-import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, CalendarCheck } from 'lucide-react';
+import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, Clock, CalendarCheck, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
-// ─── Badge helpers ────────────────────────────────────────────────────────────
+// ─── Style maps ───────────────────────────────────────────────────────────────
 
 const CATEGORY_STYLES: Record<EventCategory, { label: string; bg: string }> = {
-    Reward:     { label: 'text-[#22C38E]', bg: 'bg-[#22C38E1A]' },
-    Governance: { label: 'text-[#8C47D1]', bg: 'bg-[#8547D11A]' },
-    DAO:        { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
+    Reward: { label: 'text-[#8C47D1]', bg: 'bg-[#8C47D11A]' },
+    Governance: { label: 'text-[#F97316]', bg: 'bg-[#F973161A]' },
+    DAO: { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
 };
 
 const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
@@ -21,25 +21,27 @@ const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
 };
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-    reward:     <Wallet    className="w-4 h-4 text-[#22C38E]" />,
-    governance: <Zap       className="w-4 h-4 text-[#8C47D1]" />,
-    dao:        <FileText  className="w-4 h-4 text-[#30ABE8]" />,
-    warning:    <AlertTriangle className="w-4 h-4 text-[#EF4444]" />,
+    reward: <Wallet className="w-4 h-4 text-[#8C47D1]" />,
+    governance: <Zap className="w-4 h-4 text-[#F97316]" />,
+    dao: <FileText className="w-4 h-4 text-[#30ABE8]" />,
+    training: <BookOpen className="w-4 h-4 text-[#F69E23]" />,
+    warning: <AlertTriangle className="w-4 h-4 text-[#EF4444]" />,
 };
 
 const ICON_BG: Record<string, string> = {
-    reward:     'bg-[#22C38E1A]',
-    governance: 'bg-[#8547D11A]',
-    dao:        'bg-[#30ABE81A]',
-    warning:    'bg-[#EF44441A]',
+    reward: 'bg-[#8C47D11A] ',
+    governance: 'bg-[#F973161A]',
+    dao: 'bg-[#30ABE81A] ',
+    training: 'bg-[#F69E231A] ',
+    warning: 'bg-[#EF44441A] ',
 };
 
-// ─── Sub-components 
+// ─── Badges ───────────────────────────────────────────────────────────────────
 
 function CategoryBadge({ category }: { category: EventCategory }) {
     const s = CATEGORY_STYLES[category];
     return (
-        <span className={clsx('px-2.5 py-0.5 rounded-full text-[11px] font-medium font-inter', s.bg, s.label)}>
+        <span className={clsx('px-2 py-0.5 rounded-full text-[10px] font-medium font-inter leading-4', s.bg, s.label)}>
             {category}
         </span>
     );
@@ -48,10 +50,26 @@ function CategoryBadge({ category }: { category: EventCategory }) {
 function StatusBadge({ status }: { status: EventStatus }) {
     const s = STATUS_STYLES[status];
     return (
-        <div className="flex items-center gap-1.5">
-            <div className={clsx('w-1.5 h-1.5 rounded-full', s.dot)} />
-            <span className={clsx('text-[11px] font-medium font-inter', s.label)}>{status}</span>
+        <div className="flex items-center gap-1">
+            <div className={clsx('w-1.5 h-1.5 rounded-full animate-pulse', s.dot)} />
+            <span className={clsx('text-[10px] font-medium font-inter', s.label)}>{status}</span>
         </div>
+    );
+}
+
+// ─── TXN Badge ────────────────────────────────────────────────────────────────
+
+function TxnBadge({ txnId, category, flagged }: { txnId: string; category: EventCategory; flagged?: boolean }) {
+    const s = CATEGORY_STYLES[category];
+    return (
+        <span className={clsx(
+            'px-2 py-0.5 rounded-full text-[10px] font-medium font-inter ',
+            flagged
+                ? 'bg-[#EF44441A] border-[#EF444433] text-[#EF4444]'
+                : clsx(s.bg, 'border-[#FFFFFF0D]', s.label)
+        )}>
+            {txnId}
+        </span>
     );
 }
 
@@ -59,7 +77,6 @@ function StatusBadge({ status }: { status: EventStatus }) {
 
 function LogRow({ log, index }: { log: AuditLog; index: number }) {
     const hasAmount = !!log.amount;
-    const isAction = log.status === 'Success' && !hasAmount;
 
     return (
         <motion.div
@@ -68,55 +85,56 @@ function LogRow({ log, index }: { log: AuditLog; index: number }) {
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: index * 0.07 }}
             className={clsx(
-                'flex items-start gap-4 p-4 md:p-5 rounded-xl border transition-colors',
+                'flex items-start gap-3 p-2 md:p-4 rounded-xl border transition-colors',
                 log.highlighted
-                    ? 'bg-[#EF44440A] border-[#EF444433]'
-                    : 'bg-transparent border-[#FFFFFF0D]'
+                    ? 'bg-[#EF444424] border-[#EF444480]'
+                    : 'bg-[#1E1B2E33] border-[#FFFFFF0D]'
             )}
         >
             {/* Icon */}
-            <div className={clsx('flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5', ICON_BG[log.iconType])}>
+            <div className={clsx(
+                'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mt-0.5',
+                ICON_BG[log.iconType]
+            )}>
                 {ICON_MAP[log.iconType]}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-                {/* Title row */}
+                {/* Title + Badges */}
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-white text-sm font-bold font-inter">{log.title}</span>
+                    <span className="text-white text-sm md:text-base font-medium font-inter">{log.title}</span>
                     <CategoryBadge category={log.category} />
                     <StatusBadge status={log.status} />
                 </div>
 
                 {/* Description */}
-                <p className="text-[#6B7280] text-xs font-inter leading-5 mb-2">{log.description}</p>
+                <p className="text-[#D1D5DB] font-normal text-xs font-inter leading-5 mb-3.5">{log.description}</p>
 
                 {/* Meta row */}
-                <div className="flex items-center gap-4 flex-wrap">
-                    <span className="px-2 py-0.5 rounded bg-[#FFFFFF0D] text-[#6B7280] text-[10px] font-inter font-medium">
-                        {log.txnId}
-                    </span>
-                    <div className="flex items-center gap-1 text-[#6B7280] text-xs font-inter">
-                        <span>🕐</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <TxnBadge txnId={log.txnId} category={log.category} flagged={log.highlighted} />
+                    <div className="flex items-center gap-1.5 text-[#6B7280] font-normal text-xs font-inter">
+                        <Clock className="w-3 h-3" />
                         <span>{log.timestamp}</span>
                     </div>
-                    <span className="text-[#6B7280] text-xs font-inter">
-                        By: <span className="text-white font-medium">{log.actor}</span>
+                    <span className="text-[#6B7280] text-xs font-inter font-normal">
+                        By: <span className="text-white font-normal text-xs">{log.actor}</span>
                     </span>
                 </div>
             </div>
 
             {/* Right: Amount or actions */}
-            <div className="flex-shrink-0 flex items-center gap-2">
+            <div className="flex-shrink-0 flex items-center self-center">
                 {hasAmount ? (
                     <span className={clsx(
-                        'text-sm font-bold font-inter',
-                        log.amountColor === 'green' ? 'text-[#22C38E]' : 'text-[#EF4444]'
+                        'text-sm font-medium font-inter',
+                        log.amountColor === 'green' ? 'text-[#4ADE80]' : 'text-[#EF4444]'
                     )}>
                         {log.amount}
                     </span>
                 ) : (
-                    <button className="text-[#6B7280] hover:text-white transition-colors">
+                    <button className="text-[#6B7280] hover:text-white transition-colors p-1">
                         <MoreHorizontal className="w-4 h-4" />
                     </button>
                 )}
@@ -125,7 +143,7 @@ function LogRow({ log, index }: { log: AuditLog; index: number }) {
     );
 }
 
-// ── Main EventLog component 
+// ─── Main EventLog component ──────────────────────────────────────────────────
 
 export default function EventLog() {
     const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
@@ -134,8 +152,7 @@ export default function EventLog() {
     const filtered = auditLogs.filter((log) => {
         const matchesFilter =
             activeFilter === 'All' ||
-            log.category.toLowerCase() === activeFilter.toLowerCase() ||
-            (activeFilter === 'Governance' && log.category === 'Governance');
+            log.category.toLowerCase() === activeFilter.toLowerCase();
         const matchesSearch =
             search === '' ||
             log.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -149,7 +166,7 @@ export default function EventLog() {
             {/* Header */}
             <div className="flex items-center gap-2">
                 <div className="w-5 h-5 rounded  flex items-center justify-center">
-                    <CalendarCheck className="w-4 h-4 text-white"/>
+                    <CalendarCheck className="w-4 h-4 text-white" />
                 </div>
                 <p className="text-white text-base md:text-lg font-medium font-inter">Immutable Event Log</p>
             </div>
@@ -175,10 +192,10 @@ export default function EventLog() {
                             key={tab}
                             onClick={() => setActiveFilter(tab)}
                             className={clsx(
-                                'px-3 py-1.5 rounded-lg text-xs font-medium font-inter transition-colors',
+                                'px-4.5 py-2 rounded-full text-[10px] font-normal font-inter transition-colors',
                                 activeFilter === tab
-                                    ? 'bg-[#22C38E] text-white'
-                                    : 'bg-[#FFFFFF0D] text-[#6B7280] hover:bg-[#FFFFFF1A] hover:text-white'
+                                    ? 'bg-[#1FACC61A] text-white'
+                                    : 'bg-[#9797971A] hover:text-[#6B7280] hover:bg-[#FFFFFF1A] text-white'
                             )}
                         >
                             {tab}
