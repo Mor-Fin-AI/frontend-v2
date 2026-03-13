@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { auditLogs, filterTabs, AuditLog, EventCategory, EventStatus, FilterTab } from '../data';
-import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, CalendarCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -34,7 +34,7 @@ const ICON_BG: Record<string, string> = {
     warning:    'bg-[#EF44441A]',
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-components 
 
 function CategoryBadge({ category }: { category: EventCategory }) {
     const s = CATEGORY_STYLES[category];
@@ -55,7 +55,7 @@ function StatusBadge({ status }: { status: EventStatus }) {
     );
 }
 
-// ─── Single log row ───────────────────────────────────────────────────────────
+// ─── Single log row 
 
 function LogRow({ log, index }: { log: AuditLog; index: number }) {
     const hasAmount = !!log.amount;
@@ -125,7 +125,7 @@ function LogRow({ log, index }: { log: AuditLog; index: number }) {
     );
 }
 
-// ─── Main EventLog component ──────────────────────────────────────────────────
+// ── Main EventLog component 
 
 export default function EventLog() {
     const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
@@ -145,26 +145,26 @@ export default function EventLog() {
     });
 
     return (
-        <div className="bg-[#1E1B2E66] rounded-2xl p-4 md:p-6 flex flex-col gap-5">
+        <div className="bg-[#1E1B2E1A] border border-[#FFFFFF0D] rounded-2xl p-3 md:p-6 flex flex-col gap-5">
             {/* Header */}
             <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded bg-[#22C38E1A] flex items-center justify-center">
-                    <FileText className="w-3 h-3 text-[#22C38E]" />
+                <div className="w-5 h-5 rounded  flex items-center justify-center">
+                    <CalendarCheck className="w-4 h-4 text-white"/>
                 </div>
-                <h3 className="text-white text-base font-bold font-inter">Immutable Event Log</h3>
+                <p className="text-white text-base md:text-lg font-medium font-inter">Immutable Event Log</p>
             </div>
 
             {/* Search + Filters */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4.5 bg-[#1E1B2E33] border border-[#FFFFFF1A] rounded-lg">
                 {/* Search */}
                 <div className="relative flex-1 w-full sm:max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8E8E8E]" />
                     <input
                         type="text"
                         placeholder="Search events, IDs, actions..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#FFFFFF0D] border border-[#FFFFFF1A] text-white text-sm font-inter placeholder-[#6B7280] focus:outline-none focus:border-[#22C38E] transition-colors"
+                        className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#58585833]  text-white text-sm font-inter placeholder-[#6B7280] focus:outline-none focus:border-[#22C38E] transition-colors"
                     />
                 </div>
 

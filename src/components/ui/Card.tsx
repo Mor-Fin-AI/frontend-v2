@@ -62,7 +62,7 @@ export default function Card({
   variant = 'default',
   prefix = '',
   suffix = '',
-  bgImage = '/Image/card-background.png',
+  bgImage = '/card-background.png',
   iconBg = 'bg-white/10',
   iconColor = 'text-white',
   trendPosition = 'right',
