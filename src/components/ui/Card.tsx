@@ -79,7 +79,7 @@ export default function Card({
         className
       )}
       style={{
-        backgroundImage: bgImage !== 'none' ? `url('${bgImage}')` : undefined,
+        backgroundImage: bgImage && bgImage !== 'none' ? `url(${bgImage})` : undefined,
       }}
     >
       {/* Left: Content */}
