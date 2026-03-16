@@ -30,8 +30,8 @@ interface CardProps {
   prefix?: string;
   suffix?: string;
 
-  /** background image */
-  bgImage?: string;
+  /** background color */
+  bgColor?: string;
 
   iconBg?: string;
   iconColor?: string;
@@ -62,7 +62,7 @@ export default function Card({
   variant = 'default',
   prefix = '',
   suffix = '',
-  bgImage = '/card-background.png',
+  bgColor = 'bg-[#1E1B2E1A]',
   iconBg = 'bg-white/10',
   iconColor = 'text-white',
   trendPosition = 'right',
@@ -74,16 +74,19 @@ export default function Card({
   return (
     <div
       className={clsx(
-        'relative flex items-start justify-between rounded-2xl p-4 xl:p-5 border border-[#FFFFFF33] bg-no-repeat bg-cover bg-center overflow-hidden',
+        'relative flex items-start justify-between rounded-[16px] p-[20px] border border-[#FFFFFF33] overflow-hidden isolate',
         VARIANT_STYLES[variant],
         className
       )}
-      style={{
-        backgroundImage: bgImage && bgImage !== 'none' ? `url(${bgImage})` : undefined,
-      }}
     >
+      {/* Background layer via absolute positioning */}
+      <div className={clsx('absolute inset-0 pointer-events-none z-0', bgColor)} />
+
+      {/* Purple Glow / Blur effect (Container from Figma) */}
+      <div className="absolute w-[128px] h-[128px] left-[78px] -top-[50px] bg-[rgba(168,85,247,0.1)] blur-[32px] rounded-full pointer-events-none z-0" />
+
       {/* Left: Content */}
-      <div className="flex flex-col gap-1 flex-1 min-w-0 ">
+      <div className="relative z-10 flex flex-col gap-1 flex-1 min-w-0 ">
         {isLoading ? (
           <>
             <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
@@ -150,7 +153,7 @@ export default function Card({
       {/* Right: Icon */}
       <div
         className={clsx(
-          'flex h-10.5 w-10.5 items-center justify-center rounded-lg shrink-0 ml-3',
+          'relative z-10 flex h-10.5 w-10.5 items-center justify-center rounded-lg shrink-0 ml-3',
           iconBg
         )}
       >

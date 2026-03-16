@@ -18,7 +18,7 @@ export default function DashboardLayout({
         <div className="flex-1 flex flex-col overflow-hidden">
           <TopNavigationBar />
 
-          <main className="flex-1 p-3 md:p-5 overflow-y-auto custom-scrollbar ">
+          <main className="flex-1 p-3 md:p-5 overflow-y-auto custom-scrollbar overflow-x-hidden">
             <Breadcrumbs />
             {children}
           </main>
