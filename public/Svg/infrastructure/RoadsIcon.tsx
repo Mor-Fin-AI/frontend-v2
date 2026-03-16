@@ -1,7 +1,7 @@
 export const RoadsIcon = () => {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <g clip-path="url(#clip0_1405_1214)">
+      <g clipPath="url(#clip0_1405_1214)">
         <path
           fillRule="evenodd"
           clipRule="evenodd"
