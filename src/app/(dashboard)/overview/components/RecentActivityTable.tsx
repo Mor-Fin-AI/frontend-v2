@@ -8,7 +8,7 @@ import { motion, Variants } from 'framer-motion';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 
 const badgeStyles = {
-    Reward: 'bg-[#0F292D] text-[#22C38E]',
+    Rewards: 'bg-[#0F292D] text-[#22C38E]',
     Vote: 'bg-[#1B3448] text-[#30ABCE]',
     Training: 'bg-[#231238] text-[#8C47D1]',
     Validation: 'bg-[#312515] text-[#F69E23]',

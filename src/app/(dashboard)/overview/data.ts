@@ -96,14 +96,14 @@ export const milestonesData: MilestoneData[] = [
 
 export interface ActivityData {
     id: string;
-    type: "Reward" | "Vote" | "Training" | "Validation";
+    type: "Rewards" | "Vote" | "Training" | "Validation";
     label: string;
     value?: string;
     time: string;
 }
 
 export const recentActivityData: ActivityData[] = [
-    { id: "1", type: "Reward", label: "Training completion bonus", value: "+$250", time: "2h ago" },
+    { id: "1", type: "Rewards", label: "Training completion bonus", value: "+$250", time: "2h ago" },
     { id: "2", type: "Vote", label: "Infrastructure proposal #12", time: "2h ago" },
     { id: "3", type: "Training", label: "DeFi Fundamentals Module 3", value: "+$50", time: "1d ago" },
     { id: "4", type: "Validation", label: "Road quality assessment", value: "+$120", time: "2d ago" },
