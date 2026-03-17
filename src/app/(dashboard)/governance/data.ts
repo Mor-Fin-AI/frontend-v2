@@ -2,7 +2,7 @@ import { FileText, ScrollText, Vote, TrendingUp, LucideIcon, UsersRound } from '
 import { FileTextIcon } from '../../../../public/Svg/governance/FileTextIcon';
 import { FileIcon } from '../../../../public/Svg/governance/FileIcon';
 
-// ─── Stat Cards ──────────────────────────────────────────────────────────────
+// ─── Stat Cards 
 
 export interface GovernanceStat {
     title: string;

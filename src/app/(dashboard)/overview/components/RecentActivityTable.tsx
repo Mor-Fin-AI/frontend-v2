@@ -51,13 +51,15 @@ export default function RecentActivityTable() {
                     <div key={activity.id}>
                         <div className="flex items-center justify-between py-4">
                             <div className="flex items-center gap-1 md:gap-20 ">
-                                <span
-                                    className={clsx(
-                                        'px-1.5 md:px-3 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-semibold',
-                                        badgeStyles[activity.type]
-                                    )}>
-                                    {activity.type}
-                                </span>
+                                <div className="min-w-[80px] md:min-w-[100px] flex-shrink-0 flex justify-start">
+                                    <span
+                                        className={clsx(
+                                            'px-1.5 md:px-3 py-0.5 md:py-1 rounded-full text-xs md:text-sm font-semibold inline-flex justify-center flex-shrink-0',
+                                            badgeStyles[activity.type]
+                                        )}>
+                                        {activity.type}
+                                    </span>
+                                </div>
 
                                 <span className="text-xs md:text-base text-[#A5A5A5]">{activity.label}</span>
                             </div>

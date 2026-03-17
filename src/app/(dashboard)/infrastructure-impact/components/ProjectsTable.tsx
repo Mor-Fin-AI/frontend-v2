@@ -31,7 +31,7 @@ function ProgressCell({ project }: { project: Project }) {
     const color = PROGRESS_COLORS[project.type];
     return (
         <div className="flex flex-col gap-1.5 max-w-17">
-            <span className="text-[#6B7280] text-xs font-inter text-right">{project.progress}%</span>
+            <span className="text-white text-xs font-inter text-right">{project.progress}%</span>
             <div className="w-full h-1.5 rounded-full bg-[#FFFFFF1A]">
                 <div
                     className="h-1.5 rounded-full transition-all duration-700"
@@ -64,7 +64,7 @@ const columns: Column<Project>[] = [
     {
         header: 'Progress',
         accessor: (item) => <ProgressCell project={item} />,
-        className: 'w-[15%]  ',
+        className: 'w-[15%] font-medium  ',
         headerClassName: 'w-[15%]',
     },
     {

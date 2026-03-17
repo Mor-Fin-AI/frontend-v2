@@ -87,7 +87,7 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
             />
           </div>
 
-          <div className="flex items-center gap-2 text-[#EF4444] text-[12px] font-medium">
+          <div className="flex items-center gap-2 text-[#EF4444]  text-xs font-medium">
             <ThumbsDown size={16} />
             {proposal.votesAgainst}
           </div>

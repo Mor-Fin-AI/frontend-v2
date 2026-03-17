@@ -22,7 +22,7 @@ export default function ActivityChart() {
                 </button>
             </div>
 
-            <div className="w-full h-[300px]">
+            <div className="w-full h-[300px] focus:outline-none [&_*]:focus:outline-none">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={activityChartData}
@@ -35,12 +35,12 @@ export default function ActivityChart() {
                             dataKey="month"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight:'16px' }}
+                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight: '16px' }}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight:'16px' }}
+                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight: '16px' }}
                         />
                         <Tooltip
                             contentStyle={{
@@ -54,16 +54,28 @@ export default function ActivityChart() {
                         <Legend
                             verticalAlign="bottom"
                             height={36}
-                            iconType="circle"
-                            
-                            iconSize={8}
-                            formatter={(value) => (
-                                <span className="text-white text-sm capitalize font-inter">{value}</span>
-                            )}
+                            content={(props: any) => {
+                                const { payload } = props;
+                                return (
+                                    <div className="flex flex-row justify-center items-center p-0 gap-1 md:gap-3 lg:gap-5 w-full">
+                                        {payload?.map((entry: any, index: number) => (
+                                            <div key={`item-${index}`} className="flex flex-row items-center p-0 gap-2">
+                                                <div
+                                                    className="w-2 h-2 rounded-full flex-none"
+                                                    style={{ backgroundColor: entry.color }}
+                                                />
+                                                <span className="font-inter font-medium text-[10px] md:text-sm leading-4 text-white flex items-center">
+                                                    {entry.value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            }}
                         />
-                        <Bar dataKey="roads"    name="Roads"    fill="#22C38E" radius={[6, 6, 0, 0]}  />
+                        <Bar dataKey="roads" name="Roads" fill="#22C38E" radius={[6, 6, 0, 0]} />
                         <Bar dataKey="drainage" name="Drainage" fill="#30ABE8" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="hubs"     name="Hubs"     fill="#F69E23" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="hubs" name="Hubs" fill="#F69E23" radius={[6, 6, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

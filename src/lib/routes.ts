@@ -15,7 +15,7 @@ export const routeMeta: Record<
   "/dao-activities": {
     title: "DAO Activities",
     breadcrumb: "DAO Activities",
-    subtitle: "Educational rewards, milestones & payout history"
+    subtitle: "Trainings, validations & participation history"
   },
   "/infrastructure-impact": {
     title: "Infrastructure Impact",

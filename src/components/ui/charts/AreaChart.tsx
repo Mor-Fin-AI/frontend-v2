@@ -30,7 +30,7 @@ export default function AreaChart({
   gradientTo = 'rgba(34, 211, 238, 0)',
 }: AreaChartProps) {
   return (
-    <div style={{ width: '100%', height }}>
+    <div className="w-full h-[320px] focus:outline-none [&_*]:focus:outline-none">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsAreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
           <defs>

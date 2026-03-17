@@ -39,9 +39,24 @@ export default function WeeklyRewardChart() {
             <Legend
               verticalAlign="bottom"
               height={20}
-              iconType="circle"
-              iconSize={8}
-              formatter={(value) => <span className="text-white text-[10px] md:text-sm capitalize">{value}</span>}
+              content={(props: any) => {
+                const { payload } = props;
+                return (
+                  <div className="flex flex-row justify-center items-center p-0 gap-1 md:gap-2 lg:gap-7.5 w-full mt-2">
+                    {payload?.map((entry: any, index: number) => (
+                      <div key={`item-${index}`} className="flex flex-row items-center p-0 gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full flex-none"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="font-inter font-medium text-[10px] md:text-sm leading-4 text-white flex items-center capitalize">
+                          {entry.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
             />
             <Bar dataKey="training" stackId="a" fill="#22C38E" radius={[0, 0, 0, 0]} barSize={60} />
             <Bar dataKey="milestone" stackId="a" fill="#8C47D1" radius={[0, 0, 0, 0]} />

@@ -14,7 +14,7 @@ const RESULT_STYLES: Record<ValidationResult, { dot: string; label: string; bg: 
 function ResultBadge({ result }: { result: ValidationResult }) {
     const s = RESULT_STYLES[result];
     return (
-        <div className={clsx('flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit', s.bg)}>
+        <div className={clsx('flex items-center justify-center gap-1.5 max-w-24 px-2.5 py-1 rounded-full', s.bg)}>
             <div className={clsx('w-1.5 h-1.5 rounded-full', s.dot)} />
             <span className={clsx('text-[11px] font-medium font-inter', s.label)}>{result}</span>
         </div>
@@ -25,7 +25,7 @@ const columns: Column<Validation>[] = [
     {
         header: 'Project',
         accessor: 'project',
-        className: 'w-[30%] font-medium ',
+        className: 'w-[30%] font-normal',
         headerClassName: 'w-[30%]',
     },
     {

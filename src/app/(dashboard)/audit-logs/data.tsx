@@ -150,7 +150,7 @@ export const auditLogs: AuditLog[] = [
   },
   {
     id: '6',
-    txnId: 'TXN-2844',
+    txnId: 'TXN-2846',
     title: 'Validation Flagged',
     category: 'DAO',
     status: 'Flagged',

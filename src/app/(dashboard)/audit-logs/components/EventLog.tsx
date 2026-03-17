@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { auditLogs, filterTabs, AuditLog, EventCategory, EventStatus, FilterTab } from '../data';
-import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, Clock, CalendarCheck, BookOpen } from 'lucide-react';
+import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, Clock, CalendarCheck, BookOpen, FileCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -23,7 +23,7 @@ const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
 const ICON_MAP: Record<string, React.ReactNode> = {
     reward: <Wallet className="w-4 h-4 text-[#8C47D1]" />,
     governance: <Zap className="w-4 h-4 text-[#F97316]" />,
-    dao: <FileText className="w-4 h-4 text-[#30ABE8]" />,
+    dao: <FileCheck className="w-4 h-4 text-[#30ABE8]" />,
     training: <BookOpen className="w-4 h-4 text-[#F69E23]" />,
     warning: <AlertTriangle className="w-4 h-4 text-[#EF4444]" />,
 };
