@@ -3,8 +3,8 @@ export const routeMeta: Record<
   { title: string; breadcrumb: string; subtitle?: string }
 > = {
   "/overview": {
-    title: "Welcome back, James",
-    breadcrumb: "Welcome back, James",
+    title: "Welcome back, {name}",
+    breadcrumb: "Welcome back, {name}",
     subtitle: "Your personal progress and DAO summary"
   },
   "/my-rewards": {

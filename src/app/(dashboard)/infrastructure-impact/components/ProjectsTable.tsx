@@ -12,9 +12,11 @@ const STATUS_STYLES: Record<ProjectStatus, { dot: string; label: string; bg: str
 };
 
 const PROGRESS_COLORS: Record<ProjectType, string> = {
-    Road:     '#22C38E',
-    Drainage: '#30ABE8',
-    Hub:      '#F69E23',
+    'House Construction':        '#22C38E',
+    'House Modernisation':      '#30ABE8',
+    'Road Kerbs & Pavements':   '#F69E23',
+    'Marketplace Modernisation': '#8C47D1',
+    'Craftsman Workshops':       '#EAB308',
 };
 
 function StatusBadge({ status }: { status: ProjectStatus }) {

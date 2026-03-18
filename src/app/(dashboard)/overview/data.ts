@@ -87,11 +87,11 @@ export interface MilestoneData {
 }
 
 export const milestonesData: MilestoneData[] = [
-    { id: "1", label: "100 Trades Completed", value: 85, goal: 100, reward: "$500", color: "#8C47D1" },
-    { id: "2", label: "$10K Total Volume", value: 100, goal: 100, reward: "$1000", color: "#22C38E" },
-    { id: "3", label: "30-Day Streak", value: 24, goal: 30, reward: "$800", color: "#8C47D1" },
-    { id: "4", label: "First Governance Vote", value: 100, goal: 100, reward: "$150", color: "#22C38E" },
-    { id: "5", label: "30-Day Streak", value: 24, goal: 30, reward: "$800", color: "#8C47D1" },
+    { id: "1", label: "Foundation Laying - Block A", value: 85, goal: 100, reward: "$500", color: "#8C47D1" },
+    { id: "2", label: "Safety Training Module 1", value: 100, goal: 100, reward: "$200", color: "#22C38E" },
+    { id: "3", label: "Site Quality Assessment", value: 24, goal: 30, reward: "$800", color: "#8C47D1" },
+    { id: "4", label: "Sector-4 Site Surveying", value: 100, goal: 100, reward: "$600", color: "#22C38E" },
+    { id: "5", label: "Infrastructure Validation", value: 24, goal: 30, reward: "$800", color: "#30ABE8" },
 ];
 
 export interface ActivityData {

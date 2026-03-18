@@ -21,7 +21,7 @@ export interface ImpactStat {
 
 export const impactStats: ImpactStat[] = [
     {
-        title: 'Roads Built',
+        title: 'Houses Built',
         value: 23,
         subtitle: '8 in progress',
         icon: RoadsIcon,
@@ -32,7 +32,7 @@ export const impactStats: ImpactStat[] = [
         variant: 'success',
     },
     {
-        title: 'Drainage Systems',
+        title: 'Houses Modernised',
         value: 17,
         subtitle: '5 active',
         icon: DropletsIcon,
@@ -43,7 +43,7 @@ export const impactStats: ImpactStat[] = [
         variant: 'default',
     },
     {
-        title: 'Digital Hubs',
+        title: 'Workshops Built',
         value: 10,
         subtitle: '2 planned',
         icon: DigitalIcon,
@@ -69,18 +69,16 @@ export const impactStats: ImpactStat[] = [
 // ─── Activity Chart 
 
 export const activityChartData = [
-    { month: 'Oct', roads: 3, drainage: 2, hubs: 1 },
-    { month: 'Nov', roads: 5, drainage: 1, hubs: 2 },
-    { month: 'Dec', roads: 3, drainage: 4, hubs: 2 },
-    { month: 'Jan', roads: 4, drainage: 4, hubs: 3 },
-    { month: 'Feb', roads: 7, drainage: 2, hubs: 2 },
-    { month: 'Mar', roads: 3, drainage: 5, hubs: 1 },
+    { month: 'Oct', construction: 3, modernisation: 2, workshops: 1 },
+    { month: 'Nov', construction: 5, modernisation: 1, workshops: 2 },
+    { month: 'Dec', construction: 3, modernisation: 4, workshops: 2 },
+    { month: 'Jan', construction: 4, modernisation: 4, workshops: 3 },
+    { month: 'Feb', construction: 7, modernisation: 2, workshops: 2 },
+    { month: 'Mar', construction: 3, modernisation: 5, workshops: 1 },
 ];
-
-// ─── Projects Table 
-
+ 
 export type ProjectStatus = 'Active' | 'Completed' | 'Planning';
-export type ProjectType = 'Road' | 'Drainage' | 'Hub';
+export type ProjectType = 'House Construction' | 'House Modernisation' | 'Road Kerbs & Pavements' | 'Marketplace Modernisation' | 'Craftsman Workshops';
 
 export interface Project {
     id: string;
@@ -93,8 +91,9 @@ export interface Project {
 }
 
 export const projects: Project[] = [
-    { id: '1', name: 'Lagos-Ibadan Expressway Repair', location: 'Ogun State',   type: 'Road',     progress: 68,  status: 'Active',    budget: 45000 },
-    { id: '2', name: 'Lekki Drainage System',          location: 'Lagos Island',  type: 'Drainage', progress: 42,  status: 'Active',    budget: 28000 },
-    { id: '3', name: 'Community Solar Hub',            location: 'Surulere',      type: 'Hub',      progress: 100, status: 'Completed', budget: 15000 },
-    { id: '4', name: 'Ikeja Digital Hub',              location: 'Ikeja',         type: 'Hub',      progress: 10,  status: 'Planning',  budget: 32000 },
+    { id: '1', name: 'Bamburi Housing Project',        location: 'Bamburi',         type: 'House Construction',     progress: 68,  status: 'Active',    budget: 45000 },
+    { id: '2', name: 'Bombolulu Market Upgrade',       location: 'Bombolulu',      type: 'Marketplace Modernisation', progress: 42,  status: 'Active',    budget: 28000 },
+    { id: '3', name: 'Likoni Pavement Installation',   location: 'Likoni',         type: 'Road Kerbs & Pavements', progress: 100, status: 'Completed', budget: 15000 },
+    { id: '4', name: 'Mtwapa Artisan Workshop',        location: 'Mtwapa',         type: 'Craftsman Workshops',     progress: 10,  status: 'Planning',  budget: 32000 },
+    { id: '5', name: 'Shanzu-Nyali House Refurbish',   location: 'Shanzu-Nyali',    type: 'House Modernisation',    progress: 25,  status: 'Active',    budget: 18000 },
 ];
