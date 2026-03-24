@@ -18,7 +18,8 @@ import {
   LayoutDashboard,
   Boxes,
   Crown,
-  BarChart3Icon
+  BarChart3Icon,
+  CircleDollarSign
 } from "lucide-react";
 import { MenuItem } from "../menu";
 import { RewardIcon } from "../../../../public/Svg/sidebar/RewardIcon";
@@ -34,6 +35,7 @@ const iconMap = {
   server: Server,
   bank: Gavel,
   file: FileText,
+  pricing: CircleDollarSign,
 };
 
 export default function AppMenu({ items }: { items: MenuItem[] }) {

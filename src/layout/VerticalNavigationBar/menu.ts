@@ -56,4 +56,10 @@ export const sidebarMenu: MenuItem[] = [
     href: "/audit-logs",
     icon: "file",
   },
+  {
+    id: "pricing",
+    label: "Pricing",
+    href: "/pricing",
+    icon: "pricing",
+  },
 ];

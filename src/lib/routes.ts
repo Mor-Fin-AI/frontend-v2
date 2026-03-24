@@ -32,4 +32,9 @@ export const routeMeta: Record<
     breadcrumb: "Audit Logs",
     subtitle: "Read-only reward and DAO activity logs"
   },
+  "/pricing": {
+    title: "Pricing",
+    breadcrumb: "Pricing",
+    subtitle: "Learn more about the rewards and DAO activities"
+  },
 };
