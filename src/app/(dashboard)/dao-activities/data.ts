@@ -125,10 +125,11 @@ export interface Validation {
 }
 
 export const recentValidations: Validation[] = [
-    { id: '1', project: 'Road Repair - Ikeja',      date: 'Feb 28, 2026', type: 'Quality Check',  result: 'Approved', reward: 120 },
-    { id: '2', project: 'Drainage System - Lekki',  date: 'Feb 25, 2026', type: 'Progress Verify', result: 'Approved', reward: 85 },
-    { id: '3', project: 'Solar Hub - Surulere',      date: 'Feb 20, 2026', type: 'Completion',      result: 'Flagged',  reward: 0 },
-    { id: '4', project: 'Pavement - Victoria Island',date: 'Feb 18, 2026', type: 'Quality Check',  result: 'Approved', reward: 95 },
+    { id: '1', project: 'Bamburi Pavement',          date: 'Feb 28, 2026', type: 'Road Kerbs & Pavements', result: 'Approved', reward: 120 },
+    { id: '2', project: 'Bombolulu Market',          date: 'Feb 25, 2026', type: 'Marketplace Modernisation', result: 'Approved', reward: 85 },
+    { id: '3', project: 'Likoni House #4',           date: 'Feb 20, 2026', type: 'House Construction',      result: 'Flagged',  reward: 0 },
+    { id: '4', project: 'Mtwapa House #12',          date: 'Feb 18, 2026', type: 'House Modernisation',     result: 'Approved', reward: 95 },
+    { id: '5', project: 'Shanzu Craftsman Workshop', date: 'Feb 15, 2026', type: 'Craftsman Workshops',     result: 'Approved', reward: 150 },
 ];
 
 // ─── Participation History ────────────────────────────────────────────────────
