@@ -47,7 +47,7 @@ export function PricingCard({ tier }: { tier: PricingTier }) {
           className="w-9 h-9 flex items-center justify-center rounded-lg text-lg"
           style={{ background: `${tier.accentColor}22` }}
         >
-          {tier.icon}
+          <tier.icon size={20} style={{ color: tier.accentColor }} />
         </div>
       </div>
 
