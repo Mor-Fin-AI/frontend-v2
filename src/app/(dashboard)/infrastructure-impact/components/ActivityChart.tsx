@@ -35,12 +35,12 @@ export default function ActivityChart() {
                             dataKey="month"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight: '16px' }}
+                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter' }}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter', lineHeight: '16px' }}
+                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter' }}
                         />
                         <Tooltip
                             contentStyle={{
