@@ -16,7 +16,7 @@ export default function MilestonesSection() {
 
             <div className="flex-1 flex flex-col items-center gap-8 ">
                 <div className="w-full aspect-square max-h-[210px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>
                             <Pie
                                 data={milestoneChartData}

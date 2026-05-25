@@ -17,7 +17,7 @@ export default function WeeklyRewardChart() {
     <div className="bg-[#1E1B2E66] rounded-2xl p-3 md:p-6 h-100 xl:h-full flex flex-col">
       <h3 className="text-white text-lg font-semibold mb-6">Weekly Reward Breakdown</h3>
       <div className="flex-1 w-full">
-        <ResponsiveContainer width="100%" height="100%" >
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={weeklyRewardData} margin={{ top: 50, right: 0, left: -12, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#FFFFFF1A" />
             <XAxis

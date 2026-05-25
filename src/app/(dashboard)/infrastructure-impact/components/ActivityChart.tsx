@@ -23,7 +23,7 @@ export default function ActivityChart() {
             </div>
 
             <div className="w-full h-[300px] focus:outline-none [&_*]:focus:outline-none">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
                         data={activityChartData}
                         margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
