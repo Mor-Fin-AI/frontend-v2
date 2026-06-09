@@ -10,25 +10,25 @@ export interface MenuItem {
 export const sidebarMenu: MenuItem[] = [
   {
     id: "overview",
-    label: "Overview",
+    label: "Platform Overview ",
     href: "/overview",
     icon: "dashboard",
   },
   {
     id: "rewards",
-    label: "My Rewards",
+    label: "Account Credits",
     href: "/my-rewards",
     icon: "rewards",
   },
   {
     id: "dao",
-    label: "Dao Activities",
+    label: "Protocol Configuration",
     href: "/dao-activities",
     icon: "dao",
   },
   {
     id: "infrastructure",
-    label: "Infrastructure Impact",
+    label: "System Health & Performance",
     href: "/infrastructure-impact",
     icon: "infrastructure",
   },
@@ -52,13 +52,13 @@ export const sidebarMenu: MenuItem[] = [
   },
   {
     id: "audit",
-    label: "Audit Logs",
+    label: "System Activity Logs",
     href: "/audit-logs",
     icon: "file",
   },
   {
     id: "pricing",
-    label: "Pricing",
+    label: "Pricing & Billing",
     href: "/pricing",
     icon: "pricing",
   },
