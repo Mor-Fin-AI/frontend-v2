@@ -18,9 +18,9 @@ export const routeMeta: Record<
     subtitle: "Trainings, validations & participation history"
   },
   "/infrastructure-impact": {
-    title: "Infrastructure Impact",
-    breadcrumb: "Infrastructure Impact",
-    subtitle: "Roads, drainage, pavements & hubs built through the DAO"
+    title: "System Health & Performance",
+    breadcrumb: "System Health & Performance",
+    subtitle: "Platform activity, learning engagement & community participation metrics"
   },
   "/governance": {
     title: "Governance",

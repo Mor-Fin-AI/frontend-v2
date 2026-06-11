@@ -21,7 +21,7 @@ export interface ImpactStat {
 
 export const impactStats: ImpactStat[] = [
     {
-        title: 'Houses Built',
+        title: 'Learning Modules Completed',
         value: 23,
         subtitle: '8 in progress',
         icon: RoadsIcon,
@@ -32,7 +32,7 @@ export const impactStats: ImpactStat[] = [
         variant: 'success',
     },
     {
-        title: 'Houses Modernised',
+        title: 'Community Activities Completed',
         value: 17,
         subtitle: '5 active',
         icon: DropletsIcon,
@@ -43,7 +43,7 @@ export const impactStats: ImpactStat[] = [
         variant: 'default',
     },
     {
-        title: 'Workshops Built',
+        title: 'Training Sessions Conducted',
         value: 10,
         subtitle: '2 planned',
         icon: DigitalIcon,
@@ -54,9 +54,9 @@ export const impactStats: ImpactStat[] = [
         variant: 'warning',
     },
     {
-        title: 'Total Investment',
-        value: '$2.1M',
-        subtitle: '$340K this quarter',
+        title: 'Total Platform Participation',
+        value: '1,250',
+        subtitle: 'Active participants',
         icon: Check,
         iconBg: 'bg-[#8547D11A]',
         iconColor: 'text-[#8C47D1]',
@@ -69,16 +69,16 @@ export const impactStats: ImpactStat[] = [
 // ─── Activity Chart 
 
 export const activityChartData = [
-    { month: 'Oct', construction: 3, modernisation: 2, workshops: 1 },
-    { month: 'Nov', construction: 5, modernisation: 1, workshops: 2 },
-    { month: 'Dec', construction: 3, modernisation: 4, workshops: 2 },
-    { month: 'Jan', construction: 4, modernisation: 4, workshops: 3 },
-    { month: 'Feb', construction: 7, modernisation: 2, workshops: 2 },
-    { month: 'Mar', construction: 3, modernisation: 5, workshops: 1 },
+    { month: 'Oct', learning: 3, community: 2, training: 1 },
+    { month: 'Nov', learning: 5, community: 1, training: 2 },
+    { month: 'Dec', learning: 3, community: 4, training: 2 },
+    { month: 'Jan', learning: 4, community: 4, training: 3 },
+    { month: 'Feb', learning: 7, community: 2, training: 2 },
+    { month: 'Mar', learning: 3, community: 5, training: 1 },
 ];
  
 export type ProjectStatus = 'Active' | 'Completed' | 'Planning';
-export type ProjectType = 'House Construction' | 'House Modernisation' | 'Road Kerbs & Pavements' | 'Marketplace Modernisation' | 'Craftsman Workshops';
+export type ProjectType = 'Program' | 'Series' | 'Initiative' | 'Training' | 'Workshop';
 
 export interface Project {
     id: string;
@@ -87,13 +87,12 @@ export interface Project {
     type: ProjectType;
     progress: number;
     status: ProjectStatus;
-    budget: number;
 }
 
 export const projects: Project[] = [
-    { id: '1', name: 'Bamburi Housing Project',        location: 'Bamburi',         type: 'House Construction',     progress: 68,  status: 'Active',    budget: 45000 },
-    { id: '2', name: 'Bombolulu Market Upgrade',       location: 'Bombolulu',      type: 'Marketplace Modernisation', progress: 42,  status: 'Active',    budget: 28000 },
-    { id: '3', name: 'Likoni Pavement Installation',   location: 'Likoni',         type: 'Road Kerbs & Pavements', progress: 100, status: 'Completed', budget: 15000 },
-    { id: '4', name: 'Mtwapa Artisan Workshop',        location: 'Mtwapa',         type: 'Craftsman Workshops',     progress: 10,  status: 'Planning',  budget: 32000 },
-    { id: '5', name: 'Shanzu-Nyali House Refurbish',   location: 'Shanzu-Nyali',    type: 'House Modernisation',    progress: 25,  status: 'Active',    budget: 18000 },
+    { id: '1', name: 'Infrastructure Fundamentals Program', location: 'Education',         type: 'Program',    progress: 68,  status: 'Active' },
+    { id: '2', name: 'Governance Participation Series',     location: 'Governance',        type: 'Series',     progress: 42,  status: 'Active' },
+    { id: '3', name: 'Community Engagement Initiative',     location: 'Community',         type: 'Initiative', progress: 100, status: 'Completed' },
+    { id: '4', name: 'Safety Certification Training',       location: 'Safety',            type: 'Training',   progress: 10,  status: 'Planning' },
+    { id: '5', name: 'Digital Systems Workshop',             location: 'Digital Systems',   type: 'Workshop',   progress: 25,  status: 'Active' },
 ];

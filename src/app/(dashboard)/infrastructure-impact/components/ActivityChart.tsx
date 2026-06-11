@@ -73,9 +73,9 @@ export default function ActivityChart() {
                                 );
                             }}
                         />
-                        <Bar dataKey="construction" name="Construction" fill="#22C38E" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="modernisation" name="Modernisation" fill="#30ABE8" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="workshops" name="Workshops" fill="#F69E23" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="learning" name="Learning Activities" fill="#22C38E" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="community" name="Community Engagement" fill="#30ABE8" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="training" name="Training Programs" fill="#F69E23" radius={[6, 6, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

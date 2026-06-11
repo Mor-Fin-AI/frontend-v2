@@ -12,11 +12,11 @@ const STATUS_STYLES: Record<ProjectStatus, { dot: string; label: string; bg: str
 };
 
 const PROGRESS_COLORS: Record<ProjectType, string> = {
-    'House Construction':        '#22C38E',
-    'House Modernisation':      '#30ABE8',
-    'Road Kerbs & Pavements':   '#F69E23',
-    'Marketplace Modernisation': '#8C47D1',
-    'Craftsman Workshops':       '#EAB308',
+    Program:    '#22C38E',
+    Series:     '#30ABE8',
+    Initiative: '#F69E23',
+    Training:   '#8C47D1',
+    Workshop:   '#EAB308',
 };
 
 function StatusBadge({ status }: { status: ProjectStatus }) {
@@ -46,51 +46,41 @@ function ProgressCell({ project }: { project: Project }) {
 
 const columns: Column<Project>[] = [
     {
-        header: 'Project',
+        header: 'Activity Overview',
         accessor: 'name',
-        className: 'w-[28%] font-medium text-[#D1D5DB] font-normal text-sm leading-5',
-        headerClassName: 'w-[28%]',
+        className: 'w-[32%] font-medium text-[#D1D5DB] font-normal text-sm leading-5',
+        headerClassName: 'w-[32%]',
     },
     {
-        header: 'Location',
+        header: 'Category',
         accessor: 'location',
-        className: 'w-[18%] text-[#D1D5DB] font-normal text-sm leading-5',
+        className: 'w-[20%] text-[#D1D5DB] font-normal text-sm leading-5',
+        headerClassName: 'w-[20%]',
+    },
+    {
+        header: 'Activity Type',
+        accessor: 'type',
+        className: 'w-[16%] text-[#D1D5DB] font-normal text-sm leading-5',
+        headerClassName: 'w-[16%]',
+    },
+    {
+        header: 'Completion Status',
+        accessor: (item) => <ProgressCell project={item} />,
+        className: 'w-[18%] font-medium  ',
         headerClassName: 'w-[18%]',
     },
     {
-        header: 'Type',
-        accessor: 'type',
-        className: 'w-[12%] text-[#D1D5DB] font-normal text-sm leading-5',
-        headerClassName: 'w-[12%]',
-    },
-    {
-        header: 'Progress',
-        accessor: (item) => <ProgressCell project={item} />,
-        className: 'w-[15%] font-medium  ',
-        headerClassName: 'w-[15%]',
-    },
-    {
-        header: 'Status',
+        header: 'Current Status',
         accessor: (item) => <StatusBadge status={item.status} />,
-        className: 'w-[12%]',
-        headerClassName: 'w-[12%]',
-    },
-    {
-        header: 'Budget',
-        accessor: (item) => (
-            <span className="text-[#22C38E] font-normal font-inter text-sm">
-                ${item.budget.toLocaleString()}
-            </span>
-        ),
-        className: 'w-[8%] text-right',
-        headerClassName: 'w-[8%] text-right',
+        className: 'w-[14%]',
+        headerClassName: 'w-[14%]',
     },
 ];
 
 export default function ProjectsTable() {
     return (
         <div className="bg-[#1E1B2E66] rounded-2xl p-4 md:p-6 flex flex-col">
-            <h3 className="text-white text-lg font-bold font-inter mb-4">Projects</h3>
+            <h3 className="text-white text-lg font-bold font-inter mb-4">Activity Overview</h3>
             <DataTable columns={columns} data={projects} className="table-fixed" />
         </div>
     );

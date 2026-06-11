@@ -14,8 +14,8 @@ const STATUS_STYLES: Record<ProposalStatus, { text: string; bg: string }> = {
 
 const CATEGORY_STYLES: Record<ProposalCategory, { text: string; bg: string }> = {
   Infrastructure: { text: 'text-[#F69E23]', bg: 'bg-[#F69E231A]' },
-  Rewards: { text: 'text-[#22C38E]', bg: 'bg-[#22C38E1A]' },
-  Treasury: { text: 'text-[#F69E23]', bg: 'bg-[#F69E231A]' },
+  Education: { text: 'text-[#22C38E]', bg: 'bg-[#22C38E1A]' },
+  'Platform Resources': { text: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
   Governance: { text: 'text-[#8C47D1]', bg: 'bg-[#8547D11A]' },
 };
 
