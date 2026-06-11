@@ -52,7 +52,7 @@ export const sidebarMenu: MenuItem[] = [
   },
   {
     id: "audit",
-    label: "System Activity Logs",
+    label: "Platform Activity Logs",
     href: "/audit-logs",
     icon: "file",
   },

@@ -28,13 +28,13 @@ export const routeMeta: Record<
     subtitle: "View proposals and cast your vote"
   },
   "/audit-logs": {
-    title: "Audit Logs",
-    breadcrumb: "Audit Logs",
-    subtitle: "Read-only reward and DAO activity logs"
+    title: "Platform Activity Logs",
+    breadcrumb: "Platform Activity Logs",
+    subtitle: "Read-only platform and governance activity logs"
   },
   "/pricing": {
     title: "Pricing",
     breadcrumb: "Pricing",
-    subtitle: "Learn more about the rewards and DAO activities"
+    subtitle: "Explore learning programs and governance"
   },
 };

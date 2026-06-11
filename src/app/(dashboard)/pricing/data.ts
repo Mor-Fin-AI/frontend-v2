@@ -37,19 +37,9 @@ export interface PricingStat {
 
 export const pricingStats: PricingStat[] = [
   {
-    label: "Public Milestone Cap",
-    value: "$2,425",
+    label: "Platform Access",
+    value: "24/7",
     valueColor: "text-[#22C38E]",
-  },
-  {
-    label: "Private Milestone Cap",
-    value: "$3,425",
-    valueColor: "text-[#8C47D1]",
-  },
-  {
-    label: "Payout Methods",
-    value: "MPESA + USDC",
-    valueColor: "text-white",
   },
   {
     label: "Platform Fee",
@@ -70,7 +60,7 @@ export const pricingTiers: PricingTier[] = [
       "Construction workers building roads, houses, and community infrastructure on the ground in Mombasa.",
     price: 99,
     priceSuffix: "/Month",
-    highlight: "Up to $2,425 in milestone bonuses",
+    highlight: "Learn more about membership benefits",
     highlightColor: "text-[#22C38E]",
     sectionLabel: "WHAT YOU GET",
     accentColor: "#22C38E",
@@ -79,14 +69,12 @@ export const pricingTiers: PricingTier[] = [
     ctaLabel: "Join Public Tier",
     ctaHref: "#",
     features: [
-      { text: "Daily Construction Wages Via MPESA" },
-      { text: "10 Milestone Bonuses (Up To $2,425)" },
       { text: "Infrastructure Impact Tracking" },
-      { text: "Referral Rewards ($350 / 5 Members)" },
       { text: "Do-Nou Safety Certification Training" },
-      { text: "Dashboard: Overview, Rewards, DAO" },
+      { text: "Platform Features & Governance" },
       { text: "Skills Upgrade Modules" },
-      { text: "Payout Via MPESA Or USDC" },
+      { text: "Education & Learning Programs" },
+      { text: "Community Engagement" },
     ],
   },
   {
@@ -98,7 +86,7 @@ export const pricingTiers: PricingTier[] = [
       "Coordinators, mentors, surveyors, and supervisors leading the workforce and shaping project direction.",
     price: 999,
     priceSuffix: "/Month",
-    highlight: "Up to $3,425 in Leadership Milestones",
+    highlight: "Learn more about the platform and governance",
     highlightColor: "text-[#8C47D1]",
     sectionLabel: "EVERYTHING IN PUBLIC, PLUS",
     accentColor: "#8C47D1",
@@ -108,13 +96,11 @@ export const pricingTiers: PricingTier[] = [
     ctaHref: "#",
     features: [
       { text: "Leadership Role: Coordinator, Mentor, Or Surveyor" },
-      { text: "8 Leadership Milestones (Up To $3,400)" },
       { text: "Project Management Dashboard" },
       { text: "Quarterly Impact Reporting" },
       { text: "Governance Voting On All Proposals" },
       { text: "Full Audit Log Access" },
       { text: "Team Onboarding + Training Tools" },
-      { text: "Payout Via MPESA, USDC, Or Bank Transfer" },
     ],
   },
 ];

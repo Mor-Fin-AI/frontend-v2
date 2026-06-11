@@ -9,9 +9,9 @@ import clsx from 'clsx';
 // ─── Style maps ───────────────────────────────────────────────────────────────
 
 const CATEGORY_STYLES: Record<EventCategory, { label: string; bg: string }> = {
-    Reward: { label: 'text-[#8C47D1]', bg: 'bg-[#8C47D11A]' },
+    Learning: { label: 'text-[#8C47D1]', bg: 'bg-[#8C47D11A]' },
     Governance: { label: 'text-[#F97316]', bg: 'bg-[#F973161A]' },
-    DAO: { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
+    Participation: { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
 };
 
 const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
@@ -21,17 +21,17 @@ const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
 };
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-    reward: <Wallet className="w-4 h-4 text-[#8C47D1]" />,
+    learning: <BookOpen className="w-4 h-4 text-[#8C47D1]" />,
     governance: <Zap className="w-4 h-4 text-[#F97316]" />,
-    dao: <FileCheck className="w-4 h-4 text-[#30ABE8]" />,
+    participation: <FileCheck className="w-4 h-4 text-[#30ABE8]" />,
     training: <BookOpen className="w-4 h-4 text-[#F69E23]" />,
     warning: <AlertTriangle className="w-4 h-4 text-[#EF4444]" />,
 };
 
 const ICON_BG: Record<string, string> = {
-    reward: 'bg-[#8C47D11A] ',
+    learning: 'bg-[#8C47D11A] ',
     governance: 'bg-[#F973161A]',
-    dao: 'bg-[#30ABE81A] ',
+    participation: 'bg-[#30ABE81A] ',
     training: 'bg-[#F69E231A] ',
     warning: 'bg-[#EF44441A] ',
 };
@@ -57,9 +57,9 @@ function StatusBadge({ status }: { status: EventStatus }) {
     );
 }
 
-// ─── TXN Badge ────────────────────────────────────────────────────────────────
+// ─── Act Badge ────────────────────────────────────────────────────────────────
 
-function TxnBadge({ txnId, category, flagged }: { txnId: string; category: EventCategory; flagged?: boolean }) {
+function ActBadge({ actId, category, flagged }: { actId: string; category: EventCategory; flagged?: boolean }) {
     const s = CATEGORY_STYLES[category];
     return (
         <span className={clsx(
@@ -68,7 +68,7 @@ function TxnBadge({ txnId, category, flagged }: { txnId: string; category: Event
                 ? 'bg-[#EF44441A] border-[#EF444433] text-[#EF4444]'
                 : clsx(s.bg, 'border-[#FFFFFF0D]', s.label)
         )}>
-            {txnId}
+            {actId}
         </span>
     );
 }
@@ -76,8 +76,6 @@ function TxnBadge({ txnId, category, flagged }: { txnId: string; category: Event
 // ─── Single log row 
 
 function LogRow({ log, index }: { log: AuditLog; index: number }) {
-    const hasAmount = !!log.amount;
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -113,7 +111,7 @@ function LogRow({ log, index }: { log: AuditLog; index: number }) {
 
                 {/* Meta row */}
                 <div className="flex items-center gap-2 flex-wrap">
-                    <TxnBadge txnId={log.txnId} category={log.category} flagged={log.highlighted} />
+                    <ActBadge actId={log.actId} category={log.category} flagged={log.highlighted} />
                     <div className="flex items-center gap-1.5 text-[#6B7280] font-normal text-xs font-inter">
                         <Clock className="w-3 h-3" />
                         <span>{log.timestamp}</span>
@@ -124,20 +122,11 @@ function LogRow({ log, index }: { log: AuditLog; index: number }) {
                 </div>
             </div>
 
-            {/* Right: Amount or actions */}
+            {/* Right: actions */}
             <div className="flex-shrink-0 flex items-center self-center">
-                {hasAmount ? (
-                    <span className={clsx(
-                        'text-sm font-medium font-inter',
-                        log.amountColor === 'green' ? 'text-[#4ADE80]' : 'text-[#EF4444]'
-                    )}>
-                        {log.amount}
-                    </span>
-                ) : (
-                    <button className="text-[#6B7280] hover:text-white transition-colors p-1">
-                        <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                )}
+                <button className="text-[#6B7280] hover:text-white transition-colors p-1">
+                    <MoreHorizontal className="w-4 h-4" />
+                </button>
             </div>
         </motion.div>
     );
@@ -156,7 +145,7 @@ export default function EventLog() {
         const matchesSearch =
             search === '' ||
             log.title.toLowerCase().includes(search.toLowerCase()) ||
-            log.txnId.toLowerCase().includes(search.toLowerCase()) ||
+            log.actId.toLowerCase().includes(search.toLowerCase()) ||
             log.description.toLowerCase().includes(search.toLowerCase());
         return matchesFilter && matchesSearch;
     });
@@ -168,7 +157,7 @@ export default function EventLog() {
                 <div className="w-5 h-5 rounded  flex items-center justify-center">
                     <CalendarCheck className="w-4 h-4 text-white" />
                 </div>
-                <p className="text-white text-base md:text-lg font-medium font-inter">Immutable Event Log</p>
+                <p className="text-white text-base md:text-lg font-medium font-inter">Activity Log</p>
             </div>
 
             {/* Search + Filters */}

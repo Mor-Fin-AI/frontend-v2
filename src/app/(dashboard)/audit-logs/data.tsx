@@ -30,7 +30,7 @@ export const auditStats: AuditStat[] = [
     variant: 'success',
   },
   {
-    title: 'Reward Events',
+    title: 'Learning Activities',
     value: 342,
     subtitle: 'Last 30 days',
     icon: Gift,
@@ -41,9 +41,9 @@ export const auditStats: AuditStat[] = [
     variant: 'default',
   },
   {
-    title: 'DAO Events',
+    title: 'Participation Activities',
     value: 89,
-    subtitle: 'Validations & trainings',
+    subtitle: 'Assessments & modules',
     icon: EventsIcon,
     iconBg: 'bg-[#30ABE81A]',
     iconColor: 'text-[#30ABE8]',
@@ -52,7 +52,7 @@ export const auditStats: AuditStat[] = [
     variant: 'default',
   },
   {
-    title: 'Governance Events',
+    title: 'Governance Activities',
     value: 28,
     subtitle: 'Votes & proposals',
     icon: VotesEventIcon,
@@ -66,22 +66,20 @@ export const auditStats: AuditStat[] = [
 
 // ─── Audit Log Entries
 
-export type EventCategory = 'Reward' | 'Governance' | 'DAO';
+export type EventCategory = 'Learning' | 'Governance' | 'Participation';
 export type EventStatus = 'Success' | 'Flagged' | 'Pending';
-export type EventIconType = 'reward' | 'governance' | 'dao' | 'warning';
-export type FilterTab = 'All' | 'Treasury' | 'Agent' | 'Risk' | 'Governance';
+export type EventIconType = 'learning' | 'governance' | 'participation' | 'warning';
+export type FilterTab = 'All' | 'Platform Operations' | 'Agent' | 'Risk' | 'Governance';
 
 export interface AuditLog {
   id: string;
-  txnId: string;
+  actId: string;
   title: string;
   category: EventCategory;
   status: EventStatus;
   description: string;
   timestamp: string;
   actor: string;
-  amount?: string;
-  amountColor?: 'green' | 'red';
   iconType: EventIconType;
   highlighted?: boolean;
 }
@@ -89,79 +87,71 @@ export interface AuditLog {
 export const auditLogs: AuditLog[] = [
   {
     id: '1',
-    txnId: 'TXN-2850',
-    title: 'Reward Distribution',
-    category: 'Reward',
+    actId: 'ACT-2850',
+    title: 'Training Completed',
+    category: 'Learning',
     status: 'Success',
-    description: 'Training completion bonus for DeFi Fundamentals Module 8',
+    description: 'Training Completed: Market Systems Fundamentals Module 8',
     timestamp: '2026-03-03 14:32',
     actor: 'System',
-    amount: '$250',
-    amountColor: 'green',
-    iconType: 'reward',
+    iconType: 'learning',
   },
   {
     id: '2',
-    txnId: 'TXN-2849',
-    title: 'Vote Cast',
+    actId: 'ACT-2849',
+    title: 'Governance Participation',
     category: 'Governance',
     status: 'Success',
-    description: 'Voted FOR on Proposal #045 - Expand Solar Hub Program',
+    description: 'Governance Participation: Proposal #045 - Expand Solar Hub Program',
     timestamp: '2026-03-03 12:15',
     actor: 'User',
     iconType: 'governance',
   },
   {
     id: '3',
-    txnId: 'TXN-2848',
-    title: 'Validation Submitted',
-    category: 'DAO',
+    actId: 'ACT-2848',
+    title: 'Assessment Submitted',
+    category: 'Participation',
     status: 'Success',
-    description: 'Voted FOR on Proposal #045 - Expand Solar Hub Program',
+    description: 'Assessment submitted for Likoni House verification',
     timestamp: '2026-03-03 12:15',
     actor: 'User',
-    amount: '+$120',
-    amountColor: 'green',
-    iconType: 'dao',
+    iconType: 'participation',
   },
   {
     id: '4',
-    txnId: 'TXN-2845',
-    title: 'Training Enrolled',
-    category: 'DAO',
+    actId: 'ACT-2845',
+    title: 'Learning Module Enrolled',
+    category: 'Participation',
     status: 'Success',
     description: 'Enrolled in Infrastructure Assessment training module',
     timestamp: '2026-02-28 11:30',
     actor: 'User',
-    iconType: 'dao',
+    iconType: 'participation',
   },
   {
     id: '5',
-    txnId: 'TXN-2846',
-    title: 'Payout Processed',
-    category: 'Reward',
+    actId: 'ACT-2846',
+    title: 'Certification Issued',
+    category: 'Learning',
     status: 'Success',
-    description: 'Enrolled in Infrastructure Assessment training module',
+    description: 'Infrastructure Assessment certification issued',
     timestamp: '2026-02-28 08:00',
     actor: 'System',
-    amount: '$1,250',
-    amountColor: 'green',
-    iconType: 'reward',
+    iconType: 'learning',
   },
   {
     id: '6',
-    txnId: 'TXN-2846',
-    title: 'Validation Flagged',
-    category: 'DAO',
+    actId: 'ACT-2847',
+    title: 'Assessment Flagged For Review',
+    category: 'Participation',
     status: 'Flagged',
     description: 'Solar Hub - Surulere completion check flagged for review',
     timestamp: '2026-02-28 11:30',
     actor: 'System',
-    amount: '$0',
-    amountColor: 'red',
     iconType: 'warning',
     highlighted: true,
   },
 ];
 
-export const filterTabs: FilterTab[] = ['All', 'Treasury', 'Agent', 'Risk', 'Governance'];
+export const filterTabs: FilterTab[] = ['All', 'Platform Operations', 'Agent', 'Risk', 'Governance'];

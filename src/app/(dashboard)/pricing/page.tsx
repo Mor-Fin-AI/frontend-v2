@@ -50,12 +50,12 @@ export default function PricingPage() {
 
         <motion.p variants={fadeUp} className="text-[#7880A4] text-sm sm:text-base leading-7">
           Join the Do-Nou Infrastructure Project in Mombasa. Pick the role that matches your
-          contribution — all fees flow back to the MorFinance Treasury to fund real infrastructure.
+          contribution and explore learning programs and governance.
         </motion.p>
       </motion.section>
 
       {/* Stats bar */}
-      <motion.section
+      {/* <motion.section
         ref={statsAnim.ref}
         initial="hidden"
         animate={statsAnim.controls}
@@ -70,7 +70,7 @@ export default function PricingPage() {
             <StatItem key={stat.label} stat={stat} />
           ))}
         </div>
-      </motion.section>
+      </motion.section> */}
 
       {/* Pricing cards grid */}
       <section className="mx-auto max-w-6xl grid grid-cols-1 xl:grid-cols-2 gap-6">
