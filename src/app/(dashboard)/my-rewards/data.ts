@@ -19,7 +19,7 @@ export interface RewardStat {
 
 export const rewardStats: RewardStat[] = [
     {
-        title: 'Total Learning Progress',
+        title: 'Learning Progress',
         value: 84,
         suffix: '%',
         subtitle: '+12% this month',
@@ -42,7 +42,7 @@ export const rewardStats: RewardStat[] = [
         variant: 'warning',
     },
     {
-        title: 'Learning Milestones Completed',
+        title: 'Learning Milestones',
         value: '8/12',
         subtitle: '67% complete',
         icon: MilestoneIcon,
