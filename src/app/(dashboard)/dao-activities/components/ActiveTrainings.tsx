@@ -90,11 +90,6 @@ function TrainingRow({ training, index }: { training: Training; index: number })
         total={training.totalModules}
         status={training.status}
       />
-
-      {/* Reward */}
-      <span className="text-[#4ADE80] font-inter text-xs leading-7 font-medium text-right">
-        ${training.reward}
-      </span>
     </motion.div>
   );
 }

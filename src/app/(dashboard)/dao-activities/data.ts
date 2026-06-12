@@ -29,7 +29,7 @@ export const activityStats: ActivityStat[] = [
         variant: 'default',
     },
     {
-        title: 'Validations Done',
+        title: 'Assessments Completed',
         value: 18,
         subtitle: '3 this week',
         icon: Check,
@@ -51,7 +51,7 @@ export const activityStats: ActivityStat[] = [
         variant: 'default',
     },
     {
-        title: 'Certificates Earned',
+        title: 'Certifications Earned',
         value: 3,
         subtitle: '1 pending',
         icon: CertificateIcon,
@@ -73,41 +73,36 @@ export interface Training {
     status: TrainingStatus;
     modulesCompleted: number;
     totalModules: number;
-    reward: number;
 }
 
 export const activeTrainings: Training[] = [
     {
         id: '1',
-        title: 'DeFi Fundamentals',
+        title: 'Market Systems Fundamentals',
         status: 'InProgress',
         modulesCompleted: 8,
         totalModules: 10,
-        reward: 200,
     },
     {
         id: '2',
-        title: 'Smart Contract Basics',
+        title: 'Digital Infrastructure Basics',
         status: 'Completed',
         modulesCompleted: 5,
         totalModules: 5,
-        reward: 150,
     },
     {
         id: '3',
-        title: 'DAO Governance 101',
+        title: 'Governance Fundamentals',
         status: 'InProgress',
         modulesCompleted: 3,
         totalModules: 6,
-        reward: 180,
     },
     {
         id: '4',
-        title: 'Infrastructure Assessment',
+        title: 'Infrastructure Review Training',
         status: 'Not Started',
         modulesCompleted: 0,
         totalModules: 4,
-        reward: 180,
     },
 ];
 
@@ -121,15 +116,15 @@ export interface Validation {
     date: string;
     type: string;
     result: ValidationResult;
-    reward: number;
+    status: 'Approved' | 'Flagged' | 'Completed';
 }
 
 export const recentValidations: Validation[] = [
-    { id: '1', project: 'Bamburi Pavement',          date: 'Feb 28, 2026', type: 'Road Kerbs & Pavements', result: 'Approved', reward: 120 },
-    { id: '2', project: 'Bombolulu Market',          date: 'Feb 25, 2026', type: 'Marketplace Modernisation', result: 'Approved', reward: 85 },
-    { id: '3', project: 'Likoni House #4',           date: 'Feb 20, 2026', type: 'House Construction',      result: 'Flagged',  reward: 0 },
-    { id: '4', project: 'Mtwapa House #12',          date: 'Feb 18, 2026', type: 'House Modernisation',     result: 'Approved', reward: 95 },
-    { id: '5', project: 'Shanzu Craftsman Workshop', date: 'Feb 15, 2026', type: 'Craftsman Workshops',     result: 'Approved', reward: 150 },
+    { id: '1', project: 'Bamburi Pavement',          date: 'Feb 28, 2026', type: 'Road Kerbs & Pavements', result: 'Approved', status: 'Completed' },
+    { id: '2', project: 'Bombolulu Market',          date: 'Feb 25, 2026', type: 'Marketplace Modernisation', result: 'Approved', status: 'Completed' },
+    { id: '3', project: 'Likoni House #4',           date: 'Feb 20, 2026', type: 'House Construction',      result: 'Flagged',  status: 'Flagged' },
+    { id: '4', project: 'Mtwapa House #12',          date: 'Feb 18, 2026', type: 'House Modernisation',     result: 'Approved', status: 'Completed' },
+    { id: '5', project: 'Shanzu Craftsman Workshop', date: 'Feb 15, 2026', type: 'Craftsman Workshops',     result: 'Approved', status: 'Completed' },
 ];
 
 // ─── Participation History ────────────────────────────────────────────────────

@@ -8,14 +8,14 @@ export const routeMeta: Record<
     subtitle: "Your personal progress and DAO summary"
   },
   "/my-rewards": {
-    title: "My Rewards",
-    breadcrumb: "My Rewards",
-    subtitle: "Educational rewards, milestones & payout history"
+    title: "Learning Progress",
+    breadcrumb: "Learning Progress",
+    subtitle: "Learning activity, achievements & participation history"
   },
   "/dao-activities": {
-    title: "DAO Activities",
-    breadcrumb: "DAO Activities",
-    subtitle: "Trainings, validations & participation history"
+    title: "Learning & Participation",
+    breadcrumb: "Learning & Participation",
+    subtitle: "Learning modules, assessments & participation history"
   },
   "/infrastructure-impact": {
     title: "System Health & Performance",

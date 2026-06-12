@@ -19,10 +19,10 @@ export interface RewardStat {
 
 export const rewardStats: RewardStat[] = [
     {
-        title: 'Total Earned',
-        value: 4280,
-        prefix: '$',
-        subtitle: '+$650 this month',
+        title: 'Total Learning Progress',
+        value: 84,
+        suffix: '%',
+        subtitle: '+12% this month',
         icon: DollarIcon,
         iconBg: 'bg-[#4ADE801A]',
         iconColor: 'text-[#22C38E]',
@@ -31,10 +31,9 @@ export const rewardStats: RewardStat[] = [
         variant: 'success',
     },
     {
-        title: 'Pending Rewards',
-        value: 320,
-        prefix: '$',
-        subtitle: '3 pending',
+        title: 'Pending Activities',
+        value: 3,
+        subtitle: '3 in progress',
         icon: Clock,
         iconBg: 'bg-[#F69E231A]',
         iconColor: 'text-[#F69E23]',
@@ -43,7 +42,7 @@ export const rewardStats: RewardStat[] = [
         variant: 'warning',
     },
     {
-        title: 'Milestones Hit',
+        title: 'Learning Milestones Completed',
         value: '8/12',
         subtitle: '67% complete',
         icon: MilestoneIcon,
@@ -54,9 +53,9 @@ export const rewardStats: RewardStat[] = [
         variant: 'default',
     },
     {
-        title: 'Reward Multiplier',
-        value: '1.5x',
-        subtitle: 'Gold tier',
+        title: 'Participation Level',
+        value: 'Gold',
+        subtitle: 'Active contributor',
         icon: TrendingUp,
         iconBg: 'bg-[#30ABE81A]',
         iconColor: 'text-[#30ABE8]',
@@ -67,32 +66,37 @@ export const rewardStats: RewardStat[] = [
 ];
 
 export const weeklyRewardData = [
-    { name: 'Mon', training: 100, milestone: 0, referral: 50 },
-    { name: 'Tue', training: 200, milestone: 300, referral: 50 },
-    { name: 'Wed', training: 80, milestone: 0, referral: 40 },
-    { name: 'Thu', training: 100, milestone: 40, referral: 60 },
-    { name: 'Fri', training: 110, milestone: 440, referral: 60 },
-    { name: 'Sat', training: 60, milestone: 0, referral: 30 },
-    { name: 'Sun', training: 130, milestone: 0, referral: 30 },
+    { name: 'Mon', learningModules: 3, achievements: 0, communityParticipation: 1 },
+    { name: 'Tue', learningModules: 4, achievements: 2, communityParticipation: 1 },
+    { name: 'Wed', learningModules: 2, achievements: 0, communityParticipation: 1 },
+    { name: 'Thu', learningModules: 3, achievements: 1, communityParticipation: 2 },
+    { name: 'Fri', learningModules: 3, achievements: 3, communityParticipation: 1 },
+    { name: 'Sat', learningModules: 1, achievements: 0, communityParticipation: 1 },
+    { name: 'Sun', learningModules: 2, achievements: 0, communityParticipation: 1 },
 ];
 
 export const milestoneChartData = [
-    { name: 'Traning', value: 42, color: '#22C38E' },
-    { name: 'Milestone', value: 18, color: '#8C47D1' },
-    { name: 'Referral', value: 12, color: '#30ABE8' },
+    { name: 'Learning Modules', value: 42, color: '#22C38E' },
+    { name: 'Achievements', value: 18, color: '#8C47D1' },
+    { name: 'Community Participation', value: 12, color: '#30ABE8' },
 ];
 
-export interface PayoutHistory {
+export interface ParticipationActivity {
     id: string;
     date: string;
-    amount: number;
-    method: string;
-    status: 'Completed' | 'Pending' | 'Failed';
+    activity: string;
+    category: string;
+    status: 'Completed' | 'In Progress' | 'Pending';
 }
 
-export const payoutHistoryData: PayoutHistory[] = [
-    { id: 'PAY-001', date: 'Mar 1, 2026', amount: 1250, method: 'USDC', status: 'Completed' },
-    { id: 'PAY-002', date: 'Feb 1, 2026', amount: 950, method: 'USDC', status: 'Completed' },
-    { id: 'PAY-003', date: 'Jan 15, 2026', amount: 1150, method: 'ETH', status: 'Completed' },
-    { id: 'PAY-004', date: 'Jan 1, 2026', amount: 750, method: 'USDC', status: 'Completed' },
+export const participationActivityData: ParticipationActivity[] = [
+    { id: 'ACT-001', date: 'Mar 1, 2026',  activity: 'Infrastructure Fundamentals Completed', category: 'Learning Module', status: 'Completed' },
+    { id: 'ACT-002', date: 'Feb 1, 2026',  activity: 'Governance Participation',               category: 'Governance',      status: 'Completed' },
+    { id: 'ACT-003', date: 'Jan 15, 2026', activity: 'Safety Certification',                   category: 'Training',        status: 'Completed' },
+    { id: 'ACT-004', date: 'Jan 1, 2026',  activity: 'Community Engagement Activity',           category: 'Participation',   status: 'Completed' },
 ];
+
+// Keep legacy export alias for backward compat during transition
+export type PayoutHistory = ParticipationActivity;
+export const payoutHistoryData = participationActivityData;
+

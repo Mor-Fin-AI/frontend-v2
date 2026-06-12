@@ -16,13 +16,13 @@ export const sidebarMenu: MenuItem[] = [
   },
   {
     id: "rewards",
-    label: "Account Credits",
+    label: "Learning Progress",
     href: "/my-rewards",
     icon: "rewards",
   },
   {
     id: "dao",
-    label: "Protocol Configuration",
+    label: "Learning & Participation",
     href: "/dao-activities",
     icon: "dao",
   },

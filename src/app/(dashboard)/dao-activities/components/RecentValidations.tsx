@@ -47,10 +47,10 @@ const columns: Column<Validation>[] = [
         headerClassName: 'w-[15%]',
     },
     {
-        header: 'Reward',
+        header: 'Status',
         accessor: (item) => (
-            <span className={item.reward > 0 ? 'text-[#4ADE80] font-normal' : 'text-[#D1D5DB]'}>
-                {item.reward > 0 ? `+$${item.reward}` : '$0'}
+            <span className={item.status === 'Completed' ? 'text-[#4ADE80] font-normal' : 'text-[#EF4444]'}>
+                {item.status}
             </span>
         ),
         className: 'w-[15%] text-right',
@@ -61,7 +61,7 @@ const columns: Column<Validation>[] = [
 export default function RecentValidations() {
     return (
         <div className="bg-[#1E1B2E33] border border-[#FFFFFF0D] rounded-2xl p-3 md:p-6 flex flex-col">
-            <h3 className="text-white text-lg font-medium font-inter mb-6">Recent Validations</h3>
+            <h3 className="text-white text-lg font-medium font-inter mb-6">Recent Assessments</h3>
             <DataTable columns={columns} data={recentValidations} className="table-fixed" />
         </div>
     );

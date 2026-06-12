@@ -15,7 +15,7 @@ import { weeklyRewardData } from '../data';
 export default function WeeklyRewardChart() {
   return (
     <div className="bg-[#1E1B2E66] rounded-2xl p-3 md:p-6 h-100 xl:h-full flex flex-col">
-      <h3 className="text-white text-lg font-semibold mb-6">Weekly Reward Breakdown</h3>
+      <h3 className="text-white text-lg font-semibold mb-6">Weekly Learning Activity Breakdown</h3>
       <div className="flex-1 w-full">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={weeklyRewardData} margin={{ top: 50, right: 0, left: -12, bottom: 5 }}>
@@ -58,9 +58,9 @@ export default function WeeklyRewardChart() {
                 );
               }}
             />
-            <Bar dataKey="training" stackId="a" fill="#22C38E" radius={[0, 0, 0, 0]} barSize={60} />
-            <Bar dataKey="milestone" stackId="a" fill="#8C47D1" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="referral" stackId="a" fill="#30ABE8" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="learningModules" name="Learning Modules" stackId="a" fill="#22C38E" radius={[0, 0, 0, 0]} barSize={60} />
+            <Bar dataKey="achievements" name="Achievements" stackId="a" fill="#8C47D1" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="communityParticipation" name="Community Participation" stackId="a" fill="#30ABE8" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

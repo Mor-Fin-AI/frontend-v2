@@ -20,9 +20,9 @@ export interface StatCardData {
 export const statCardsData: StatCardData[] = [
     {
         id: "total-rewards",
-        title: "Total Rewards Earned",
-        value: 4280,
-        valuePrefix: "$",
+        title: "Learning Progress",
+        value: 84,
+        valueSuffix: "%",
         subtitle: "+12.4% this month",
         icon: ShieldIcon,
         iconBg: "bg-[#0F292D]",
@@ -31,7 +31,7 @@ export const statCardsData: StatCardData[] = [
     },
     {
         id: "dao-activities",
-        title: "DAO Activities",
+        title: "Governance Participation",
         value: 24,
         subtitle: "8 this week",
         icon: GlobeIcon,
@@ -41,7 +41,7 @@ export const statCardsData: StatCardData[] = [
     },
     {
         id: "impact-score",
-        title: "Impact Score",
+        title: "Community Impact Score",
         value: 847,
         subtitle: "+12.4% this month",
         icon: TrendingUp,
@@ -51,7 +51,7 @@ export const statCardsData: StatCardData[] = [
     },
     {
         id: "active-streak",
-        title: "Active Streak",
+        title: "Learning Streak",
         value: 12,
         valueSuffix: " days",
         subtitle: "Best: 30 Days",
@@ -62,19 +62,19 @@ export const statCardsData: StatCardData[] = [
     },
 ];
 
-export interface RewardEarningData {
+export interface LearningActivityData {
     day: string;
-    amount: number;
+    count: number;
 }
 
-export const rewardEarningsData: RewardEarningData[] = [
-    { day: "Mon", amount: 85 },
-    { day: "Tue", amount: 130 },
-    { day: "Wed", amount: 110 },
-    { day: "Thurs", amount: 180 },
-    { day: "Fri", amount: 255 },
-    { day: "Sat", amount: 170 },
-    { day: "Sun", amount: 340 },
+export const rewardEarningsData: LearningActivityData[] = [
+    { day: "Mon", count: 3 },
+    { day: "Tue", count: 5 },
+    { day: "Wed", count: 4 },
+    { day: "Thurs", count: 7 },
+    { day: "Fri", count: 9 },
+    { day: "Sat", count: 6 },
+    { day: "Sun", count: 11 },
 ];
 
 export interface MilestoneData {
@@ -82,29 +82,30 @@ export interface MilestoneData {
     label: string;
     value: number;
     goal: number;
-    reward: string;
+    status: string;
     color: string;
 }
 
 export const milestonesData: MilestoneData[] = [
-    { id: "1", label: "Foundation Laying - Block A", value: 85, goal: 100, reward: "$500", color: "#8C47D1" },
-    { id: "2", label: "Safety Training Module 1", value: 100, goal: 100, reward: "$200", color: "#22C38E" },
-    { id: "3", label: "Site Quality Assessment", value: 24, goal: 30, reward: "$800", color: "#8C47D1" },
-    { id: "4", label: "Sector-4 Site Surveying", value: 100, goal: 100, reward: "$600", color: "#22C38E" },
-    { id: "5", label: "Infrastructure Validation", value: 24, goal: 30, reward: "$800", color: "#30ABE8" },
+    { id: "1", label: "Infrastructure Fundamentals",   value: 85,  goal: 100, status: "In Progress", color: "#8C47D1" },
+    { id: "2", label: "Safety Certification Module 1", value: 100, goal: 100, status: "Completed",   color: "#22C38E" },
+    { id: "3", label: "Quality Assessment Training",   value: 24,  goal: 30,  status: "In Progress", color: "#8C47D1" },
+    { id: "4", label: "Site Surveying Module",         value: 100, goal: 100, status: "Completed",   color: "#22C38E" },
+    { id: "5", label: "Infrastructure Review Module",  value: 24,  goal: 30,  status: "In Progress", color: "#30ABE8" },
 ];
 
 export interface ActivityData {
     id: string;
-    type: "Rewards" | "Vote" | "Training" | "Validation";
+    type: "Learning" | "Vote" | "Training" | "Assessment";
     label: string;
-    value?: string;
+    status?: string;
     time: string;
 }
 
 export const recentActivityData: ActivityData[] = [
-    { id: "1", type: "Rewards", label: "Training completion bonus", value: "+$250", time: "2h ago" },
-    { id: "2", type: "Vote", label: "Infrastructure proposal #12", time: "2h ago" },
-    { id: "3", type: "Training", label: "DeFi Fundamentals Module 3", value: "+$50", time: "1d ago" },
-    { id: "4", type: "Validation", label: "Road quality assessment", value: "+$120", time: "2d ago" },
+    { id: "1", type: "Training",   label: "Training Completion",                  status: "Completed", time: "2h ago" },
+    { id: "2", type: "Vote",       label: "Governance Proposal #12",               status: "Voted",     time: "2h ago" },
+    { id: "3", type: "Learning",   label: "Market Systems Fundamentals Module 3",  status: "Completed", time: "1d ago" },
+    { id: "4", type: "Assessment", label: "Quality Assessment Review",             status: "Submitted", time: "2d ago" },
 ];
+

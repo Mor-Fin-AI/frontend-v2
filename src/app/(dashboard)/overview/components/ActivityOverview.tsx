@@ -24,10 +24,10 @@ export default function ActivityOverview() {
       initial="hidden"
       animate={controls}
       className="grid grid-cols-1 md:grid-cols-12 gap-4 ">
-      <div className='md:col-span-7'>
+      <div className='md:col-span-6'>
         <RewardEarningsChart />
       </div>
-      <div className='md:col-span-5'>
+      <div className='md:col-span-6'>
         <MilestonesList />
       </div>
     </motion.div>

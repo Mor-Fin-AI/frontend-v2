@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ArrowUp } from 'lucide-react';
@@ -8,10 +7,10 @@ import { motion, Variants } from 'framer-motion';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 
 const badgeStyles = {
-    Rewards: 'bg-[#0F292D] text-[#22C38E]',
+    Learning: 'bg-[#0F292D] text-[#22C38E]',
     Vote: 'bg-[#1B3448] text-[#30ABCE]',
     Training: 'bg-[#231238] text-[#8C47D1]',
-    Validation: 'bg-[#312515] text-[#F69E23]',
+    Assessment: 'bg-[#312515] text-[#F69E23]',
 };
 
 const variants: Variants = {
@@ -35,7 +34,7 @@ export default function RecentActivityTable() {
             className="bg-[#1E1B2E66] rounded-2xl p-3 md:p-6 flex flex-col gap-7">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h3 className="text-base md:text-lg font-medium text-white">Recent Activity</h3>
+                <h3 className="text-base md:text-lg font-medium text-white">Recent Activity Log</h3>
 
                 <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#4ADE801A] text-[#22C38E] text-sm font-medium">
                     View all
@@ -67,10 +66,9 @@ export default function RecentActivityTable() {
                             <div className="flex items-center gap-6">
                                 <span
                                     className={clsx(
-                                        'text-xs md:text-sm',
-                                        activity.value?.includes('+') ? 'text-[#22C38E]' : 'text-[#6B7280]'
+                                        'text-xs md:text-sm text-[#22C38E]'
                                     )}>
-                                    {activity.value || '--'}
+                                    {activity.status || '--'}
                                 </span>
 
                                 <span className="text-xs md:text-sm text-white">{activity.time}</span>

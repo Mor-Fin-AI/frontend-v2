@@ -8,7 +8,7 @@ export default function MilestonesSection() {
     return (
         <div className="bg-[#1E1B2E66] rounded-2xl p-3 md:p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-8">
-                <h3 className="text-white text-lg font-bold font-inter leading-7">Milestones</h3>
+                <h3 className="text-white text-lg font-bold font-inter leading-7">Achievements & Participation</h3>
                 <button className="text-[#22C38E] text-xs leading-4 font-medium hover:underline">
                     View All
                 </button>
