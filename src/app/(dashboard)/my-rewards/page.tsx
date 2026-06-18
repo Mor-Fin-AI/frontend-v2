@@ -36,11 +36,12 @@ export default function MyRewardsPage() {
           hidden: { opacity: 0, y: 20 },
         }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 xl:grid-cols-12  gap-6">
-        <div className="xl:col-span-7">
+        className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12"
+      >
+        <div className="h-full xl:col-span-7">
           <WeeklyRewardChart />
         </div>
-        <div className="xl:col-span-5">
+        <div className="h-full xl:col-span-5">
           <MilestonesSection />
         </div>
       </motion.div>

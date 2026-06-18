@@ -1,6 +1,6 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-import { Users, Shield, UsersRound } from "lucide-react";
+import { People24Regular, Shield24Regular } from "@fluentui/react-icons";
 
 export interface PricingFeature {
   text: string;
@@ -39,12 +39,12 @@ export const pricingStats: PricingStat[] = [
   {
     label: "Platform Access",
     value: "24/7",
-    valueColor: "text-[#22C38E]",
+    valueColor: "text-[var(--action-green)]",
   },
   {
     label: "Platform Fee",
     value: "1%",
-    valueColor: "text-white",
+    valueColor: "text-foreground",
   },
 ];
 
@@ -55,17 +55,17 @@ export const pricingTiers: PricingTier[] = [
     id: "public",
     label: "Public",
     badge: "PUBLIC TIER",
-    icon: UsersRound,
+    icon: People24Regular,
     description:
       "Construction workers building roads, houses, and community infrastructure on the ground in Mombasa.",
     price: 99,
     priceSuffix: "/Month",
     highlight: "Learn more about membership benefits",
-    highlightColor: "text-[#22C38E]",
+    highlightColor: "text-[var(--action-green)]",
     sectionLabel: "WHAT YOU GET",
-    accentColor: "#22C38E",
-    badgeBg: "bg-[#22C38E1A]",
-    badgeText: "text-[#22C38E]",
+    accentColor: "var(--action-green)",
+    badgeBg: "bg-[var(--action-green)]/10",
+    badgeText: "text-[var(--action-green)]",
     ctaLabel: "Join Public Tier",
     ctaHref: "#",
     features: [
@@ -81,17 +81,17 @@ export const pricingTiers: PricingTier[] = [
     id: "private",
     label: "Private",
     badge: "PRIVATE TIER",
-    icon: Shield,
+    icon: Shield24Regular,
     description:
       "Coordinators, mentors, surveyors, and supervisors leading the workforce and shaping project direction.",
     price: 999,
     priceSuffix: "/Month",
     highlight: "Learn more about the platform and governance",
-    highlightColor: "text-[#8C47D1]",
+    highlightColor: "text-primary",
     sectionLabel: "EVERYTHING IN PUBLIC, PLUS",
-    accentColor: "#8C47D1",
-    badgeBg: "bg-[#8C47D11A]",
-    badgeText: "text-[#8C47D1]",
+    accentColor: "var(--primary)",
+    badgeBg: "bg-primary/10",
+    badgeText: "text-primary",
     ctaLabel: "Join Private Tier",
     ctaHref: "#",
     features: [

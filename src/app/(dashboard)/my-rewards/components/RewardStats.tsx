@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@/components/ui/Card';
+import StatCardsSkeleton from '@/components/ui/skeletons/StatCardsSkeleton';
 import { rewardStats } from '../data';
 import { motion } from 'framer-motion';
 
@@ -19,7 +20,11 @@ const item = {
     show: { opacity: 1, y: 0 },
 };
 
-export default function RewardStats() {
+export default function RewardStats({ isLoading = false }: { isLoading?: boolean }) {
+    if (isLoading) {
+        return <StatCardsSkeleton aria-label="Loading reward stats" />;
+    }
+
     return (
         <motion.div
             variants={container}
@@ -37,11 +42,6 @@ export default function RewardStats() {
                         icon={stat.icon}
                         prefix={stat.prefix}
                         suffix={stat.suffix}
-                        iconBg={stat.iconBg}
-                        iconColor={stat.iconColor}
-                        valueColor={stat.valueColor}
-                        subtitleColor={stat.subtitleColor}
-                        variant={stat.variant}
                     />
                 </motion.div>
             ))}

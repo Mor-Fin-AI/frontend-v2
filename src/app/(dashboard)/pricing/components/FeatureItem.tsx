@@ -1,16 +1,10 @@
-import { Check} from "lucide-react";
+import { Checkmark24Regular } from "@fluentui/react-icons";
 
-export function FeatureItem({ text, accentColor }: { text: string; accentColor: string }) {
+export function FeatureItem({ text }: { text: string }) {
   return (
-    <li className="flex items-start gap-2 text-sm font-inter font-normal text-[#7880A4]">
-      <Check 
-        className="w-4 h-4 mt-0.5 shrink-0 rounded-full p-1" 
-        style={{
-          color: accentColor,
-          backgroundColor: `${accentColor}0D`
-        }}
-      />
-      <span>{text}</span>
+    <li className="flex items-start gap-2 text-sm font-normal text-muted-foreground">
+      <Checkmark24Regular className="mt-0.5 h-4 w-4 shrink-0 text-[var(--action-green)]" />
+      {text}
     </li>
   );
 }

@@ -1,164 +1,191 @@
-'use client';
+"use client";
 
-import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
-import CountUp from 'react-countup';
-import clsx from 'clsx';
-
-type Variant = 'default' | 'success' | 'warning' | 'danger';
+import {
+  Card as FluentCard,
+  Caption1,
+  CardFooter,
+  CardHeader,
+  Text,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from "@fluentui/react-components";
+import {
+  ArrowTrending24Regular,
+  ArrowTrendingDown24Regular,
+} from "@fluentui/react-icons";
+import CountUp from "react-countup";
+import clsx from "clsx";
+import AppBadge from "@/components/ui/AppBadge";
+import StatCardSkeleton from "@/components/ui/skeletons/StatCardSkeleton";
+import {
+  CARD_APPEARANCE,
+  CARD_FOCUS_MODE,
+  useCardShellStyles,
+} from "@/components/ui/cardShell";
 
 interface CardProps {
   title: string;
   value: React.ReactNode;
   valueColor?: string;
-
-  /** optional subtitle / trend label shown below the value */
   subtitle?: string;
   subtitleColor?: string;
-
   icon: React.ElementType;
-
-  /** states */
   isLoading?: boolean;
-
-  /** numeric trend percentage – renders a badge */
   trend?: number;
-
-  /** variant */
-  variant?: Variant;
-
-  /** formatting for CountUp (only when value is number) */
   prefix?: string;
   suffix?: string;
-
-  /** background color */
-  bgColor?: string;
-
   iconBg?: string;
   iconColor?: string;
-
-  /** trend layout and styling */
-  trendPosition?: 'right' | 'bottom';
-  trendVariant?: 'badge' | 'text';
-
+  trendPosition?: "right" | "bottom";
+  trendVariant?: "badge" | "text";
   className?: string;
+  size?: "small" | "medium" | "large";
 }
 
-const VARIANT_STYLES: Record<Variant, string> = {
-  default: 'border-[#FFFFFF1A]',
-  success: 'border-[#22C55E33]',
-  warning: 'border-[#F9731633]',
-  danger: 'border-[#EF444433]',
-};
+const useStyles = makeStyles({
+  card: {
+    position: "relative",
+    overflow: "hidden",
+  },
+  value: {
+    fontSize: tokens.fontSizeHero800,
+    fontWeight: tokens.fontWeightBold,
+    lineHeight: tokens.lineHeightHero800,
+    color: tokens.colorNeutralForeground1,
+  },
+  trend: {
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  subtitle: {
+    fontSize: tokens.fontSizeBase100,
+    fontWeight: tokens.fontWeightMedium,
+  },
+});
+
+function TrendBadge({
+  trend,
+  variant,
+}: {
+  trend: number;
+  variant: "badge" | "text";
+}) {
+  const styles = useStyles();
+  const isPositive = trend > 0;
+  const icon = isPositive ? (
+    <ArrowTrending24Regular className="h-4 w-4" />
+  ) : (
+    <ArrowTrendingDown24Regular className="h-4 w-4" />
+  );
+
+  if (variant === "text") {
+    return (
+      <span
+        className={clsx(
+          styles.trend,
+          isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+        )}
+      >
+        {icon}
+        {Math.abs(trend)}%
+      </span>
+    );
+  }
+
+  return (
+    <AppBadge
+      className={styles.trend}
+      appearance="tint"
+      tone={isPositive ? "success" : "danger"}
+      size="small"
+      icon={icon}
+    >
+      {Math.abs(trend)}%
+    </AppBadge>
+  );
+}
 
 export default function Card({
   title,
   value,
-  valueColor = 'text-white',
   subtitle,
-  subtitleColor = 'text-emerald-400',
+  subtitleColor = "text-muted-foreground",
   icon: Icon,
   isLoading = false,
   trend,
-  variant = 'default',
-  prefix = '',
-  suffix = '',
-  bgColor = 'bg-[#1E1B2E1A]',
-  iconBg = 'bg-white/10',
-  iconColor = 'text-white',
-  trendPosition = 'right',
-  trendVariant = 'badge',
+  prefix = "",
+  suffix = "",
+  iconBg,
+  iconColor,
+  trendPosition = "right",
+  trendVariant = "badge",
   className,
+  size = "medium",
 }: CardProps) {
-  const isPositive = typeof trend === 'number' && trend > 0;
+  const styles = useStyles();
+  const shell = useCardShellStyles();
+
+  const valueContent =
+    typeof value === "number" ? (
+      <CountUp
+        end={value}
+        duration={1.2}
+        separator=","
+        prefix={prefix}
+        suffix={suffix}
+      />
+    ) : (
+      value
+    );
+
+  const trendNode =
+    typeof trend === "number" ? (
+      <TrendBadge trend={trend} variant={trendVariant} />
+    ) : null;
 
   return (
-    <div
-      className={clsx(
-        'relative flex items-start justify-between rounded-[16px] p-[20px] border border-[#FFFFFF33] overflow-hidden isolate',
-        VARIANT_STYLES[variant],
-        className
-      )}
+    <FluentCard
+      appearance={CARD_APPEARANCE}
+      size={size}
+      focusMode={CARD_FOCUS_MODE}
+      className={mergeClasses(shell.shell, styles.card, className)}
     >
-      {/* Background layer via absolute positioning */}
-      <div className={clsx('absolute inset-0 pointer-events-none z-0', bgColor)} />
+      {isLoading ? (
+        <div aria-busy="true">
+          <StatCardSkeleton aria-label={`Loading ${title}`} />
+        </div>
+      ) : (
+        <>
+          <CardHeader
+            image={
+              <div className={mergeClasses(shell.iconWrap, iconBg)}>
+                <Icon className={clsx("h-5 w-5", iconColor)} />
+              </div>
+            }
+            header={
+              <Text className={styles.value} style={{ margin: 0 }}>
+                {valueContent}
+              </Text>
+            }
+            description={<Caption1 className={shell.caption}>{title}</Caption1>}
+            action={trendPosition === "right" ? trendNode : undefined}
+          />
 
-      {/* Purple Glow / Blur effect (Container from Figma) */}
-      <div className="absolute w-[128px] h-[128px] left-[78px] -top-[50px] bg-[rgba(168,85,247,0.1)] blur-[32px] rounded-full pointer-events-none z-0" />
-
-      {/* Left: Content */}
-      <div className="relative z-10 flex flex-col gap-1 flex-1 min-w-0 ">
-        {isLoading ? (
-          <>
-            <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-            <div className="h-7 w-32 rounded bg-white/10 animate-pulse mt-1" />
-            <div className="h-3 w-20 rounded bg-white/10 animate-pulse mt-1" />
-          </>
-        ) : (
-          <>
-            {/* Title */}
-            <span className="text-sm font-medium text-white font-inter">
-              {title}
-            </span>
-
-            {/* Value row */}
-            <div className={clsx(
-              "flex mt-1",
-              trendPosition === 'right' ? "items-center gap-2" : "flex-col gap-2.5"
-            )}>
-              <span className={clsx('text-2xl font-bold font-inter leading-8', valueColor)}>
-                {typeof value === 'number' ? (
-                  <CountUp
-                    end={value}
-                    duration={1.2}
-                    separator=","
-                    prefix={prefix}
-                    suffix={suffix}
-                  />
-                ) : (
-                  value
-                )}
-              </span>
-
-              {/* Numeric trend badge/text */}
-              {typeof trend === 'number' && (
-                <span
-                  className={clsx(
-                    'flex items-center gap-1.5 text-xs font-medium transition-all font-inter leading-4',
-                    trendVariant === 'badge' ? 'rounded-full px-2 py-0.5 border' : '',
-                    isPositive
-                      ? clsx('text-[#4ADE80]', trendVariant === 'badge' && 'bg-emerald-500/10 border-emerald-500/20')
-                      : clsx('text-[#EF4444]', trendVariant === 'badge' && 'bg-red-500/10 border-red-500/20')
-                  )}
-                >
-                  {isPositive ? (
-                    <TrendingUp className="h-4 w-4" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4" />
-                  )}
-                  {Math.abs(trend)}%
-                </span>
+          {(subtitle || (trendPosition === "bottom" && trendNode)) && (
+            <CardFooter className="!justify-between">
+              {subtitle ? (
+                <Caption1 className={clsx(styles.subtitle, subtitleColor)}>
+                  {subtitle}
+                </Caption1>
+              ) : (
+                <span />
               )}
-            </div>
-
-            {/* Subtitle */}
-            {subtitle && (
-              <span className={clsx('text-[10px] font-inter font-medium mt-0', subtitleColor)}>
-                {subtitle}
-              </span>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Right: Icon */}
-      <div
-        className={clsx(
-          'relative z-10 flex h-10.5 w-10.5 items-center justify-center rounded-lg shrink-0 ml-3',
-          iconBg
-        )}
-      >
-        <Icon className={clsx('h-5.5 w-5.5', iconColor)} />
-      </div>
-    </div>
+              {trendPosition === "bottom" ? trendNode : null}
+            </CardFooter>
+          )}
+        </>
+      )}
+    </FluentCard>
   );
 }

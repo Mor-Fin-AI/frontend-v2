@@ -1,4 +1,5 @@
-import { Network, Droplets, Cpu, DollarSign, LucideIcon, Check } from 'lucide-react';
+import type React from 'react';
+import { Checkmark24Regular } from '@fluentui/react-icons';
 import { RoadsIcon } from '../../../../public/Svg/infrastructure/RoadsIcon';
 import { DropletsIcon } from '../../../../public/Svg/infrastructure/DropletsIcon';
 import { DigitalIcon } from '../../../../public/Svg/infrastructure/DigitalIcon';
@@ -9,7 +10,7 @@ export interface ImpactStat {
     title: string;
     value: number | string;
     subtitle: string;
-    icon: LucideIcon | any;
+    icon: React.ComponentType<{ className?: string }> | any;
     iconBg: string;
     iconColor: string;
     valueColor: string;
@@ -57,7 +58,7 @@ export const impactStats: ImpactStat[] = [
         title: 'Total Platform Participation',
         value: '1,250',
         subtitle: 'Active participants',
-        icon: Check,
+        icon: Checkmark24Regular,
         iconBg: 'bg-[#8547D11A]',
         iconColor: 'text-[#8C47D1]',
         valueColor: 'text-[#8C47D1]',

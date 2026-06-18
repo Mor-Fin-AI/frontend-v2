@@ -1,4 +1,5 @@
-import { FileText, ScrollText, Vote, TrendingUp, LucideIcon, UsersRound } from 'lucide-react';
+import type React from 'react';
+import { DocumentText24Regular, DocumentBulletList24Regular, Vote24Regular, ArrowTrending24Regular, PeopleTeam24Regular } from '@fluentui/react-icons';
 import { FileTextIcon } from '../../../../public/Svg/governance/FileTextIcon';
 import { FileIcon } from '../../../../public/Svg/governance/FileIcon';
 
@@ -8,7 +9,7 @@ export interface GovernanceStat {
     title: string;
     value: number | string;
     subtitle: string;
-    icon: LucideIcon | any;
+    icon: React.ComponentType<{ className?: string }> | any;
     iconBg: string;
     iconColor: string;
     valueColor: string;
@@ -43,7 +44,7 @@ export const governanceStats: GovernanceStat[] = [
         title: 'Your Votes Cast',
         value: 18,
         subtitle: '40% participation',
-        icon: UsersRound,
+        icon: PeopleTeam24Regular,
         iconBg: 'bg-[#30ABE81A]',
         iconColor: 'text-[#30ABE8]',
         valueColor: 'text-[#30ABE8]',
@@ -54,7 +55,7 @@ export const governanceStats: GovernanceStat[] = [
         title: 'Participation Score',
         value: '1,250',
         subtitle: 'Based on platform participation',
-        icon: TrendingUp,
+        icon: ArrowTrending24Regular,
         iconBg: 'bg-[#F69E231A]',
         iconColor: 'text-[#F69E23]',
         valueColor: 'text-[#F69E23]',

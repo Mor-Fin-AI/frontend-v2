@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@/components/ui/Card';
+import StatCardsSkeleton from '@/components/ui/skeletons/StatCardsSkeleton';
 import { impactStats } from '../data';
 import { motion } from 'framer-motion';
 
@@ -14,7 +15,11 @@ const item = {
     show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export default function ImpactStats() {
+export default function ImpactStats({ isLoading = false }: { isLoading?: boolean }) {
+    if (isLoading) {
+        return <StatCardsSkeleton aria-label="Loading impact stats" />;
+    }
+
     return (
         <motion.div
             variants={container}
@@ -32,11 +37,6 @@ export default function ImpactStats() {
                         icon={stat.icon}
                         prefix={stat.prefix}
                         suffix={stat.suffix}
-                        iconBg={stat.iconBg}
-                        iconColor={stat.iconColor}
-                        valueColor={stat.valueColor}
-                        subtitleColor={stat.subtitleColor}
-                        variant={stat.variant}
                     />
                 </motion.div>
             ))}

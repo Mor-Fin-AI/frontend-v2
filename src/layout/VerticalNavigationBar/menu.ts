@@ -4,62 +4,44 @@ export interface MenuItem {
   id: string;
   label: string;
   href: string;
-  icon?: string; 
+  icon?: string;
 }
 
 export const sidebarMenu: MenuItem[] = [
   {
-    id: "overview",
-    label: "Platform Overview ",
+    id: "treasury-flow",
+    label: "Treasury Flow",
     href: "/overview",
     icon: "dashboard",
   },
   {
-    id: "rewards",
-    label: "Learning Progress",
-    href: "/my-rewards",
+    id: "arbitrage-monitor",
+    label: "Arbitrage Monitor",
+    href: "/arbitrage-monitor",
+    icon: "arbitrage",
+  },
+  {
+    id: "dao-education-rewards",
+    label: "DAO Education Rewards",
+    href: "/dao-education-rewards",
     icon: "rewards",
   },
   {
-    id: "dao",
-    label: "Learning & Participation",
-    href: "/dao-activities",
-    icon: "dao",
-  },
-  {
-    id: "infrastructure",
-    label: "System Health & Performance",
-    href: "/infrastructure-impact",
-    icon: "infrastructure",
-  },
-//   {
-//     id: "dao",
-//     label: "DAO & Rewards",
-//     href: "/dao-rewards",
-//     icon: "gift",
-//   },
-//   {
-//     id: "infrastructure",
-//     label: "Infrastructure",
-//     href: "/infrastructure",
-//     icon: "server",
-//   },
-  {
-    id: "governance",
-    label: "Governance",
-    href: "/governance",
+    id: "lending-debt-discharge",
+    label: "Lending & Debt Discharge",
+    href: "/lending-debt-discharge",
     icon: "bank",
   },
   {
-    id: "audit",
-    label: "Platform Activity Logs",
-    href: "/audit-logs",
-    icon: "file",
+    id: "infrastructure-deployment",
+    label: "Infrastructure Tracker",
+    href: "/infrastructure-deployment",
+    icon: "infrastructure",
   },
   {
-    id: "pricing",
-    label: "Pricing & Billing",
-    href: "/pricing",
+    id: "fee-integration",
+    label: "Fee Integration",
+    href: "/fee-integration",
     icon: "pricing",
   },
 ];

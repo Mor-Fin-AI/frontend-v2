@@ -3,38 +3,51 @@ export const routeMeta: Record<
   { title: string; breadcrumb: string; subtitle?: string }
 > = {
   "/overview": {
-    title: "Welcome back, {name}",
-    breadcrumb: "Welcome back, {name}",
-    subtitle: "Your personal progress and DAO summary"
+    title: "Treasury Flow",
+    breadcrumb: "Treasury Flow",
   },
-  "/my-rewards": {
-    title: "Learning Progress",
-    breadcrumb: "Learning Progress",
-    subtitle: "Learning activity, achievements & participation history"
+  "/arbitrage-monitor": {
+    title: "Arbitrage Screen Monitor",
+    breadcrumb: "Arbitrage Monitor",
   },
-  "/dao-activities": {
-    title: "Learning & Participation",
-    breadcrumb: "Learning & Participation",
-    subtitle: "Learning modules, assessments & participation history"
+  "/dao-education-rewards": {
+    title: "DAO Education Rewards",
+    breadcrumb: "DAO Education Rewards",
   },
-  "/infrastructure-impact": {
-    title: "System Health & Performance",
-    breadcrumb: "System Health & Performance",
-    subtitle: "Platform activity, learning engagement & community participation metrics"
+  "/lending-debt-discharge": {
+    title: "Lending & Debt Discharge",
+    breadcrumb: "Lending & Debt Discharge",
   },
-  "/governance": {
-    title: "Governance",
-    breadcrumb: "Governance",
-    subtitle: "View proposals and cast your vote"
+  "/infrastructure-deployment": {
+    title: "Infrastructure Deployment Tracker",
+    breadcrumb: "Infrastructure Tracker",
   },
-  "/audit-logs": {
-    title: "Platform Activity Logs",
-    breadcrumb: "Platform Activity Logs",
-    subtitle: "Read-only platform and governance activity logs"
+  "/fee-integration": {
+    title: "Fee Integration Module",
+    breadcrumb: "Fee Integration",
   },
-  "/pricing": {
-    title: "Pricing",
-    breadcrumb: "Pricing",
-    subtitle: "Explore learning programs and governance"
+  "/settings": {
+    title: "Settings",
+    breadcrumb: "Settings",
+    subtitle: "Appearance, notifications, and dashboard preferences",
+  },
+  "/sign-in": {
+    title: "Sign in",
+    breadcrumb: "Sign in",
+    subtitle: "",
+  },
+  "/register": {
+    title: "Create account",
+    breadcrumb: "Register",
+    subtitle: "",
   },
 };
+
+export function resolveRouteMeta(pathname: string) {
+  const normalized =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  return routeMeta[normalized];
+}

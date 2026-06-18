@@ -1,68 +1,175 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { Building24Regular } from '@fluentui/react-icons';
 import DataTable, { Column } from '@/components/ui/DataTable';
-import { recentValidations, Validation, ValidationResult } from '../data';
-import clsx from 'clsx';
+import PanelCard, { PanelCardBody, PanelCardHeader } from '@/components/ui/PanelCard';
+import TableFilterToolbar, { TableEmptyState } from '@/components/ui/TableFilterToolbar';
+import AppBadge from '@/components/ui/AppBadge';
+import { validationResultTone } from '@/lib/badgeTones';
+import { TABLE_ICON_CLASS } from '@/lib/tableUi';
+import { recentValidations, Validation } from '../data';
+import {
+  compareDates,
+  matchesDateRange,
+  matchesSearch,
+  matchesTags,
+  type TableSortOption,
+} from '@/lib/tableFilters';
 
-const RESULT_STYLES: Record<ValidationResult, { dot: string; label: string; bg: string }> = {
-    Approved:  { dot: 'bg-[#4ADE80]', label: 'text-[#4ADE80]', bg: 'bg-[#22C55E1A]' },
-    Flagged:   { dot: 'bg-[#EF4444]', label: 'text-[#EF4444]', bg: 'bg-[#EF44441A]' },
-    Pending:   { dot: 'bg-[#F69E23]', label: 'text-[#F69E23]', bg: 'bg-[#F69E231A]' },
-};
+const resultOptions = ['Approved', 'Flagged', 'Pending'];
+const statusOptions = ['Completed', 'Flagged'];
 
-function ResultBadge({ result }: { result: ValidationResult }) {
-    const s = RESULT_STYLES[result];
-    return (
-        <div className={clsx('flex items-center justify-center gap-1.5 max-w-24 px-2.5 py-1 rounded-full', s.bg)}>
-            <div className={clsx('w-1.5 h-1.5 rounded-full', s.dot)} />
-            <span className={clsx('text-[11px] font-medium font-inter', s.label)}>{result}</span>
-        </div>
-    );
-}
-
-const columns: Column<Validation>[] = [
-    {
-        header: 'Project',
-        accessor: 'project',
-        className: 'w-[30%] font-normal',
-        headerClassName: 'w-[30%]',
-    },
-    {
-        header: 'Date',
-        accessor: 'date',
-        className: 'w-[20%]',
-        headerClassName: 'w-[20%]',
-    },
-    {
-        header: 'Type',
-        accessor: 'type',
-        className: 'w-[20%]',
-        headerClassName: 'w-[20%]',
-    },
-    {
-        header: 'Result',
-        accessor: (item) => <ResultBadge result={item.result} />,
-        className: 'w-[15%]',
-        headerClassName: 'w-[15%]',
-    },
-    {
-        header: 'Status',
-        accessor: (item) => (
-            <span className={item.status === 'Completed' ? 'text-[#4ADE80] font-normal' : 'text-[#EF4444]'}>
-                {item.status}
-            </span>
-        ),
-        className: 'w-[15%] text-right',
-        headerClassName: 'w-[15%] text-right',
-    },
+const validationSortOptions: TableSortOption[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'project', label: 'Project (A–Z)' },
+  { value: 'type', label: 'Type (A–Z)' },
+  { value: 'result', label: 'Result (A–Z)' },
+  { value: 'status', label: 'Status (A–Z)' },
 ];
 
-export default function RecentValidations() {
-    return (
-        <div className="bg-[#1E1B2E33] border border-[#FFFFFF0D] rounded-2xl p-3 md:p-6 flex flex-col">
-            <h3 className="text-white text-lg font-medium font-inter mb-6">Recent Assessments</h3>
-            <DataTable columns={columns} data={recentValidations} className="table-fixed" />
-        </div>
-    );
+const columns: Column<Validation>[] = [
+  {
+    columnId: 'project',
+    header: 'Project',
+    accessor: 'project',
+    media: () => <Building24Regular className={TABLE_ICON_CLASS} />,
+    className: 'w-[30%] font-normal',
+    headerClassName: 'w-[30%]',
+  },
+  {
+    columnId: 'date',
+    header: 'Date',
+    accessor: 'date',
+    className: 'w-[20%]',
+    headerClassName: 'w-[20%]',
+  },
+  {
+    columnId: 'type',
+    header: 'Type',
+    accessor: 'type',
+    className: 'w-[20%]',
+    headerClassName: 'w-[20%]',
+  },
+  {
+    columnId: 'result',
+    header: 'Result',
+    accessor: (item) => (
+      <AppBadge tone={validationResultTone[item.result] ?? 'neutral'} appearance="tint" size="table">
+        {item.result}
+      </AppBadge>
+    ),
+    className: 'w-[15%]',
+    headerClassName: 'w-[15%]',
+  },
+  {
+    columnId: 'status',
+    header: 'Status',
+    accessor: (item) => (
+      <AppBadge
+        tone={item.status === 'Completed' ? 'success' : 'danger'}
+        appearance="tint"
+        size="table"
+      >
+        {item.status}
+      </AppBadge>
+    ),
+    className: 'w-[15%] text-right',
+    headerClassName: 'w-[15%] text-right',
+  },
+];
+
+export default function RecentValidations({ isLoading = false }: { isLoading?: boolean }) {
+  const [search, setSearch] = useState('');
+  const [selectedResults, setSelectedResults] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState('newest');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  const filtered = useMemo(() => {
+    const rows = recentValidations.filter((item) => {
+      const matchesResult = matchesTags(selectedResults, item.result);
+      const matchesStatus = matchesTags(selectedStatuses, item.status);
+      const matchesQuery = matchesSearch(search, [
+        item.project,
+        item.date,
+        item.type,
+        item.result,
+        item.status,
+      ]);
+      const matchesDates = matchesDateRange(item.date, startDate, endDate);
+      return matchesResult && matchesStatus && matchesQuery && matchesDates;
+    });
+
+    return [...rows].sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return compareDates(a.date, b.date);
+        case 'project':
+          return a.project.localeCompare(b.project);
+        case 'type':
+          return a.type.localeCompare(b.type);
+        case 'result':
+          return a.result.localeCompare(b.result);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'newest':
+        default:
+          return compareDates(b.date, a.date);
+      }
+    });
+  }, [search, selectedResults, selectedStatuses, sortBy, startDate, endDate]);
+
+  return (
+    <PanelCard aria-busy={isLoading}>
+      <PanelCardHeader title="Recent Assessments" description="Project validation outcomes" />
+      <PanelCardBody>
+        <TableFilterToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search project, type, result..."
+          searchAriaLabel="Search recent assessments"
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortOptions={validationSortOptions}
+          sortAriaLabel="Sort recent assessments"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          tagOptions={[...resultOptions, ...statusOptions]}
+          selectedTags={[...selectedResults, ...selectedStatuses]}
+          onTagsChange={(tags) => {
+            setSelectedResults(tags.filter((tag) => resultOptions.includes(tag)));
+            setSelectedStatuses(tags.filter((tag) => statusOptions.includes(tag)));
+          }}
+          tagAriaLabel="Selected assessment filters"
+          tagButtonAriaLabel="Filter by result or status"
+        />
+
+        {isLoading ? (
+          <DataTable
+            columns={columns}
+            data={[]}
+            className="table-fixed"
+            getRowId={(item) => item.id}
+            isLoading
+            loadingLabel="Loading recent assessments"
+            loadingRowCount={5}
+          />
+        ) : filtered.length > 0 ? (
+          <DataTable
+            columns={columns}
+            data={filtered}
+            className="table-fixed"
+            getRowId={(item) => item.id}
+          />
+        ) : (
+          <TableEmptyState message="No assessments found." />
+        )}
+      </PanelCardBody>
+    </PanelCard>
+  );
 }

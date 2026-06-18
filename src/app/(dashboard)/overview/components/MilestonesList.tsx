@@ -1,36 +1,79 @@
 "use client";
 
 import { milestonesData } from "../data";
+import MilestonesListSkeleton from "@/components/ui/skeletons/MilestonesListSkeleton";
+import PanelCard, {
+  PanelCardBody,
+  PanelCardHeader,
+  PanelCardHeaderLink,
+} from "@/components/ui/PanelCard";
+import AppProgressBar from "@/components/ui/AppProgressBar";
+import AppBadge from "@/components/ui/AppBadge";
+import { milestoneStatusTone } from "@/lib/badgeTones";
+import { makeStyles, tokens } from "@fluentui/react-components";
 
-export default function MilestonesList() {
-    return (
-        <div className="bg-[#1E1B2E66]  rounded-2xl p-6 flex flex-col w-full h-full ">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-white font-inter leading-7">Learning Milestones</h3>
-                <button className="text-xs text-[#22C38E] font-inter font-medium leading-4 hover:underline">View All</button>
+const useStyles = makeStyles({
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.spacingVerticalXL,
+  },
+  item: {
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.spacingVerticalS,
+  },
+  itemHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.spacingHorizontalM,
+    fontSize: tokens.fontSizeBase300,
+  },
+  label: {
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground1,
+  },
+});
+
+export default function MilestonesList({ isLoading = false }: { isLoading?: boolean }) {
+  const styles = useStyles();
+
+  return (
+    <PanelCard className="h-full" aria-busy={isLoading}>
+      <PanelCardHeader
+        title="Learning Milestones"
+        description="Module completion progress"
+        action={<PanelCardHeaderLink>View all</PanelCardHeaderLink>}
+      />
+      <PanelCardBody className="flex-1">
+        {isLoading ? (
+          <MilestonesListSkeleton aria-label="Loading learning milestones" />
+        ) : (
+        <div className={styles.list}>
+          {milestonesData.slice(0, 5).map((milestone) => (
+            <div key={milestone.id} className={styles.item}>
+              <div className={styles.itemHeader}>
+                <span className={styles.label}>{milestone.label}</span>
+                <AppBadge
+                  tone={milestoneStatusTone[milestone.status] ?? "neutral"}
+                  appearance="tint"
+                  size="table"
+                >
+                  {milestone.status}
+                </AppBadge>
+              </div>
+              <AppProgressBar
+                percent={(milestone.value / milestone.goal) * 100}
+                color={milestone.color}
+                shape="rounded"
+                thickness="large"
+              />
             </div>
-            <div className="space-y-8">
-                {milestonesData.slice(0, 5).map((milestone) => (
-                    <div key={milestone.id} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-white font-medium leading-5">{milestone.label}</span>
-                            <span className="font-semibold" style={{ color: milestone.color }}>
-                                {milestone.status}
-                            </span>
-                        </div>
-                        <div className="h-2 bg-zinc-800/50 rounded-full overflow-hidden">
-                            <div
-                                className="h-full rounded-full transition-all duration-1000"
-                                style={{
-                                    width: `${(milestone.value / milestone.goal) * 100}%`,
-                                    backgroundColor: milestone.color,
-                                    boxShadow: `0 0 10px ${milestone.color}40`,
-                                }}
-                            />
-                        </div>
-                    </div>
-                ))}
-            </div>
+          ))}
         </div>
-    );
+        )}
+      </PanelCardBody>
+    </PanelCard>
+  );
 }

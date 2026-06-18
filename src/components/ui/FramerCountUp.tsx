@@ -10,6 +10,7 @@ interface FramerCountUpProps {
     delay?: number;
     prefix?: string;
     suffix?: string;
+    decimals?: number;
     className?: string;
 }
 
@@ -20,11 +21,14 @@ export default function FramerCountUp({
     delay = 0,
     prefix = "",
     suffix = "",
+    decimals = 0,
     className = "",
 }: FramerCountUpProps) {
     const count = useMotionValue(from);
     const rounded = useTransform(count, (latest) => {
-        return prefix + Math.round(latest).toLocaleString() + suffix;
+        const formatted =
+            decimals > 0 ? latest.toFixed(decimals) : Math.round(latest).toLocaleString();
+        return prefix + formatted + suffix;
     });
 
     useEffect(() => {

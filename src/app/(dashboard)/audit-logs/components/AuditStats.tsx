@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@/components/ui/Card';
+import StatCardsSkeleton from '@/components/ui/skeletons/StatCardsSkeleton';
 import { auditStats } from '../data';
 import { motion } from 'framer-motion';
 
@@ -13,7 +14,11 @@ const item = {
     show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export default function AuditStats() {
+export default function AuditStats({ isLoading = false }: { isLoading?: boolean }) {
+    if (isLoading) {
+        return <StatCardsSkeleton aria-label="Loading audit stats" />;
+    }
+
     return (
         <motion.div
             variants={container}
@@ -30,11 +35,6 @@ export default function AuditStats() {
                         subtitle={stat.subtitle}
                         icon={stat.icon}
                         prefix={stat.prefix}
-                        iconBg={stat.iconBg}
-                        iconColor={stat.iconColor}
-                        valueColor={stat.valueColor}
-                        subtitleColor={stat.subtitleColor}
-                        variant={stat.variant}
                     />
                 </motion.div>
             ))}

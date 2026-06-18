@@ -1,78 +1,190 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import clsx from "clsx";
-// import { MenuItem } from "@/types";
-import { useSidebar } from "@/context/SidebarContext";
-
+import { Link, useLocation } from "react-router-dom";
 import {
-     
-  Landmark,     
-  Zap,          
-  BarChart3,      
-  Server,       
-  FileText,      
-  Vote,
-  Gavel,
-  LayoutDashboard,
-  Boxes,
-  Crown,
-  BarChart3Icon,
-  CircleDollarSign
-} from "lucide-react";
+  Tooltip,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from "@fluentui/react-components";
+import { useSidebar } from "@/context/SidebarContext";
+import { useIsLargeScreen } from "@/hooks/useMediaQuery";
+import {
+  ArrowSwap24Regular,
+  Board24Regular,
+  Box24Regular,
+  BuildingBank24Regular,
+  DocumentText24Regular,
+  Money24Regular,
+  Server24Regular,
+} from "@fluentui/react-icons";
 import { MenuItem } from "../menu";
 import { RewardIcon } from "../../../../public/Svg/sidebar/RewardIcon";
 import { DaoIcon } from "../../../../public/Svg/sidebar/DaoIcon";
-import { InfrastructureIcon } from "../../../../public/Svg/sidebar/InfrastructureIcon";
 
 const iconMap = {
-  dashboard: LayoutDashboard,
+  dashboard: Board24Regular,
+  arbitrage: ArrowSwap24Regular,
   rewards: RewardIcon,
   dao: DaoIcon,
-  infrastructure: Boxes,
-  gift: Vote,
-  server: Server,
-  bank: Gavel,
-  file: FileText,
-  pricing: CircleDollarSign,
+  infrastructure: Box24Regular,
+  server: Server24Regular,
+  bank: BuildingBank24Regular,
+  file: DocumentText24Regular,
+  pricing: Money24Regular,
 };
 
-export default function AppMenu({ items }: { items: MenuItem[] }) {
-  const pathname = usePathname();
-  const { close } = useSidebar();
+const useStyles = makeStyles({
+  nav: {
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.spacingVerticalS,
+  },
+  navCollapsed: {
+    gap: tokens.spacingVerticalM,
+  },
+  link: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    borderRadius: tokens.borderRadiusMedium,
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground3,
+    textDecoration: "none",
+    transitionProperty: "color, background-color",
+    transitionDuration: "200ms",
+    ":hover": {
+      color: tokens.colorNeutralForeground1,
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  linkExpanded: {
+    gap: tokens.spacingHorizontalM,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+  },
+  linkCollapsed: {
+    justifyContent: "center",
+    padding: tokens.spacingVerticalS,
+    width: "40px",
+    height: "40px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  linkActive: {
+    backgroundColor: tokens.colorNeutralBackground1Selected,
+    color: tokens.colorNeutralForeground1,
+    ":hover": {
+      backgroundColor: tokens.colorNeutralBackground1Selected,
+      color: tokens.colorNeutralForeground1,
+    },
+  },
+  icon: {
+    width: "20px",
+    height: "20px",
+    flexShrink: 0,
+  },
+  iconActive: {
+    color: tokens.colorBrandBackground,
+  },
+  activeDot: {
+    marginLeft: "auto",
+    width: "6px",
+    height: "6px",
+    borderRadius: tokens.borderRadiusCircular,
+    backgroundColor: tokens.colorBrandBackground,
+    boxShadow: `0 0 8px ${tokens.colorBrandBackground}`,
+    flexShrink: 0,
+  },
+  activeBar: {
+    position: "absolute",
+    left: 0,
+    top: "50%",
+    transform: "translateY(-50%)",
+    height: "20px",
+    width: "4px",
+    borderTopRightRadius: tokens.borderRadiusCircular,
+    borderBottomRightRadius: tokens.borderRadiusCircular,
+    backgroundColor: tokens.colorBrandBackground,
+    boxShadow: `0 0 8px ${tokens.colorBrandBackground}`,
+  },
+});
+
+function MenuLink({
+  item,
+  isActive,
+  collapsed,
+  onNavigate,
+}: {
+  item: MenuItem;
+  isActive: boolean;
+  collapsed: boolean;
+  onNavigate: () => void;
+}) {
+  const styles = useStyles();
+  const Icon = item.icon ? iconMap[item.icon as keyof typeof iconMap] : null;
 
   return (
-    <nav className="space-y-2">
+    <Link
+      to={item.href}
+      onClick={onNavigate}
+      aria-label={collapsed ? item.label : undefined}
+      title={collapsed ? undefined : item.label}
+      className={mergeClasses(
+        styles.link,
+        collapsed ? styles.linkCollapsed : styles.linkExpanded,
+        isActive && styles.linkActive
+      )}
+    >
+      {isActive && collapsed && <span className={styles.activeBar} />}
+
+      {Icon && (
+        <Icon
+          className={mergeClasses(styles.icon, isActive && styles.iconActive)}
+        />
+      )}
+
+      {!collapsed && <span className="truncate">{item.label}</span>}
+
+      {isActive && !collapsed && <span className={styles.activeDot} />}
+    </Link>
+  );
+}
+
+export default function AppMenu({ items }: { items: MenuItem[] }) {
+  const pathname = useLocation().pathname;
+  const { collapsed, close } = useSidebar();
+  const isLargeScreen = useIsLargeScreen();
+  const isCollapsed = collapsed && isLargeScreen;
+  const styles = useStyles();
+
+  return (
+    <nav className={mergeClasses(styles.nav, isCollapsed && styles.navCollapsed)}>
       {items.map((item) => {
         const isActive = pathname === item.href;
-        const Icon = item.icon
-          ? iconMap[item.icon as keyof typeof iconMap]
-          : null;
+        const link = (
+          <MenuLink
+            item={item}
+            isActive={isActive}
+            collapsed={isCollapsed}
+            onNavigate={close}
+          />
+        );
+
+        if (!isCollapsed) {
+          return <div key={item.id}>{link}</div>;
+        }
 
         return (
-          <Link
+          <Tooltip
             key={item.id}
-            href={item.href}
-            onClick={close}
-            className={clsx(
-              "flex items-center gap-3 px-1 py-3 rounded-lg transition-all duration-200 text-sm font-medium",
-              isActive
-                ? "text-white"
-                : "text-sidebar-primary hover:text-white hover:bg-white/5"
-            )}
+            content={item.label}
+            relationship="label"
+            positioning="after"
+            withArrow
           >
-            {Icon && (
-              <Icon
-                size={20}
-                className={clsx(isActive ? "text-[#C084FC]" : "text-current")}
-              />
-            )}
-            <span>{item.label}</span>
-            {isActive && (
-              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#C084FC] shadow-[0_0_8px_#a855f7]" />
-            )}
-          </Link>
+            {link}
+          </Tooltip>
         );
       })}
     </nav>

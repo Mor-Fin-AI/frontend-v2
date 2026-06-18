@@ -1,56 +1,141 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { milestoneChartData } from '../data';
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { milestoneChartData } from "../data";
+import ChartSkeleton from "@/components/ui/skeletons/ChartSkeleton";
+import PanelCard, {
+  PanelCardBody,
+  PanelCardHeader,
+  PanelCardHeaderLink,
+} from "@/components/ui/PanelCard";
+import { makeStyles, Skeleton, SkeletonItem, tokens } from "@fluentui/react-components";
 
-export default function MilestonesSection() {
-    return (
-        <div className="bg-[#1E1B2E66] rounded-2xl p-3 md:p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-                <h3 className="text-white text-lg font-bold font-inter leading-7">Achievements & Participation</h3>
-                <button className="text-[#22C38E] text-xs leading-4 font-medium hover:underline">
-                    View All
-                </button>
-            </div>
+const useStyles = makeStyles({
+  content: {
+    display: "flex",
+    minHeight: "320px",
+    height: "100%",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    gap: tokens.spacingVerticalL,
+  },
+  chartWrap: {
+    display: "flex",
+    width: "100%",
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "220px",
+    maxHeight: "280px",
+  },
+  legend: {
+    display: "flex",
+    width: "100%",
+    flexDirection: "column",
+    gap: tokens.spacingVerticalM,
+  },
+  legendRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.spacingHorizontalM,
+  },
+  legendLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: tokens.spacingHorizontalM,
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground2,
+  },
+  swatch: {
+    width: "12px",
+    height: "12px",
+    borderRadius: tokens.borderRadiusCircular,
+    flexShrink: 0,
+  },
+  value: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground1,
+  },
+  legendSkeletonLabel: {
+    width: "140px",
+    maxWidth: "70%",
+  },
+  legendSkeletonValue: {
+    width: "40px",
+  },
+});
 
-            <div className="flex-1 flex flex-col items-center gap-8 ">
-                <div className="w-full aspect-square max-h-[210px]">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                        <PieChart>
-                            <Pie
-                                data={milestoneChartData}
-                                innerRadius={75}
-                                outerRadius={105}
-                                paddingAngle={0}
-                                dataKey="value"
-                                stroke="none"
-                            >
-                                {milestoneChartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                        </PieChart>
-                    </ResponsiveContainer>
+type MilestonesSectionProps = {
+  isLoading?: boolean;
+};
+
+export default function MilestonesSection({ isLoading = false }: MilestonesSectionProps) {
+  const styles = useStyles();
+
+  return (
+    <PanelCard className="h-full" aria-busy={isLoading}>
+      <PanelCardHeader
+        title="Achievements & Participation"
+        description="Progress across learning areas"
+        action={<PanelCardHeaderLink>View all</PanelCardHeaderLink>}
+      />
+
+      <PanelCardBody className="flex-1">
+        {isLoading ? (
+          <div className={styles.content}>
+            <ChartSkeleton minHeight={240} showLegend={false} aria-label="Loading achievements chart" />
+            <Skeleton aria-label="Loading participation breakdown">
+              <div className={styles.legend}>
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className={styles.legendRow}>
+                    <SkeletonItem size={16} shape="rectangle" className={styles.legendSkeletonLabel} />
+                    <SkeletonItem size={16} shape="rectangle" className={styles.legendSkeletonValue} />
+                  </div>
+                ))}
+              </div>
+            </Skeleton>
+          </div>
+        ) : (
+        <div className={styles.content}>
+          <div className={styles.chartWrap}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={220}>
+              <PieChart>
+                <Pie
+                  data={milestoneChartData}
+                  innerRadius={75}
+                  outerRadius={105}
+                  paddingAngle={0}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {milestoneChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className={styles.legend}>
+            {milestoneChartData.map((item, index) => (
+              <div key={index} className={styles.legendRow}>
+                <div className={styles.legendLabel}>
+                  <span
+                    className={styles.swatch}
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {item.name}
                 </div>
-
-                <div className="w-full flex flex-col gap-4">
-                    {milestoneChartData.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: item.color }}
-                                />
-                                <span className="text-primary text-xs font-inter font-medium leading-5 md:text-sm">{item.name}</span>
-                            </div>
-                            <span className="text-white md:text-sm text-[10.2px]  font-medium leading-4">
-                                {item.value}%
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                <span className={styles.value}>{item.value}%</span>
+              </div>
+            ))}
+          </div>
         </div>
-    );
+        )}
+      </PanelCardBody>
+    </PanelCard>
+  );
 }

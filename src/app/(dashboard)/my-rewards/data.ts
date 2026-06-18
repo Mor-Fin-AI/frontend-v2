@@ -1,4 +1,5 @@
-import { TrendingUp, Clock, Flag, LayoutGrid, LucideIcon } from 'lucide-react';
+import type React from 'react';
+import { ArrowTrending24Regular, Clock24Regular, Flag24Regular, Grid24Regular } from '@fluentui/react-icons';
 import { DollarIcon } from '../../../../public/Svg/rewards/DollarIcon';
 import { MilestoneIcon } from '../../../../public/Svg/rewards/MilestoneIcon';
 
@@ -6,7 +7,7 @@ export interface RewardStat {
     title: string;
     value: number | string;
     subtitle: string;
-    icon: LucideIcon | any;
+    icon: React.ComponentType<{ className?: string }> | any;
     trend?: number;
     prefix?: string;
     suffix?: string;
@@ -34,7 +35,7 @@ export const rewardStats: RewardStat[] = [
         title: 'Pending Activities',
         value: 3,
         subtitle: '3 in progress',
-        icon: Clock,
+        icon: Clock24Regular,
         iconBg: 'bg-[#F69E231A]',
         iconColor: 'text-[#F69E23]',
         valueColor: 'text-[#F69E23]',
@@ -56,7 +57,7 @@ export const rewardStats: RewardStat[] = [
         title: 'Participation Level',
         value: 'Gold',
         subtitle: 'Active contributor',
-        icon: TrendingUp,
+        icon: ArrowTrending24Regular,
         iconBg: 'bg-[#30ABE81A]',
         iconColor: 'text-[#30ABE8]',
         valueColor: 'text-[#30ABE8]',

@@ -8,7 +8,7 @@ export function StatItem({ stat }: { stat: PricingStat }) {
         {stat.value}
       </span>
 
-      <span className="mt-1 text-[10px] sm:text-xs uppercase tracking-wider text-[#737B9C]">
+      <span className="mt-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground">
         {stat.label}
       </span>
 

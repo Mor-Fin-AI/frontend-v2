@@ -1,4 +1,4 @@
-import { ShieldCheck, Globe, TrendingUp, Calendar } from "lucide-react";
+import { ShieldCheckmark24Regular, Globe24Regular, ArrowTrending24Regular, Calendar24Regular } from "@fluentui/react-icons";
 import { ShieldIcon } from "../../../../public/Svg/oveview/ShieldIcon";
 import { GlobeIcon } from "../../../../public/Svg/oveview/GlobeIcon";
 import { CalendarIcon } from "../../../../public/Svg/oveview/CalenderIcon";
@@ -44,7 +44,7 @@ export const statCardsData: StatCardData[] = [
         title: "Community Impact Score",
         value: 847,
         subtitle: "+12.4% this month",
-        icon: TrendingUp,
+        icon: ArrowTrending24Regular,
         iconBg: "bg-[#312515]",
         iconColor: "text-[#F69E23]",
         valueColor: "text-[#F69E23]",

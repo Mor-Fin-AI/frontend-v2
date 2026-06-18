@@ -2,46 +2,121 @@
 
 import React from 'react';
 import { Proposal, ProposalStatus, ProposalCategory } from '../data';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbLike24Regular, ThumbDislike24Regular } from '@fluentui/react-icons';
+import {
+  Card,
+  CardFooter,
+  CardHeader,
+  Caption1,
+  Text,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from '@fluentui/react-components';
+import NeuButton from '@/components/ui/NeuButton';
+import AppProgressBar from '@/components/ui/AppProgressBar';
+import AppBadge from '@/components/ui/AppBadge';
+import PanelCard, { PanelCardBody, PanelCardHeader } from '@/components/ui/PanelCard';
+import { proposalCategoryTone, proposalStatusTone } from '@/lib/badgeTones';
+import { CARD_APPEARANCE, CARD_FOCUS_MODE, useCardShellStyles } from '@/components/ui/cardShell';
 import { motion } from 'framer-motion';
-import clsx from 'clsx';
 
-const STATUS_STYLES: Record<ProposalStatus, { text: string; bg: string }> = {
-  Active: { text: 'text-[#4ADE80]', bg: 'bg-[#22C55E1A]' },
-  Executed: { text: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
-  Defeated: { text: 'text-[#EF4444]', bg: 'bg-[#EF44441A]' },
-};
+const VOTE_FOR_COLOR = '#22C38E';
 
-const CATEGORY_STYLES: Record<ProposalCategory, { text: string; bg: string }> = {
-  Infrastructure: { text: 'text-[#F69E23]', bg: 'bg-[#F69E231A]' },
-  Education: { text: 'text-[#22C38E]', bg: 'bg-[#22C38E1A]' },
-  'Platform Resources': { text: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
-  Governance: { text: 'text-[#8C47D1]', bg: 'bg-[#8547D11A]' },
-};
+const useStyles = makeStyles({
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalL,
+  },
+  proposalCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+    width: '100%',
+  },
+  metaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+  },
+  badgeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+  },
+  proposalId: {
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground3,
+  },
+  timeLeft: {
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorNeutralForeground3,
+    whiteSpace: 'nowrap',
+  },
+  votesRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+    flexWrap: 'wrap',
+  },
+  voteFor: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorPaletteGreenForeground1,
+  },
+  voteAgainst: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightMedium,
+    color: tokens.colorPaletteRedForeground1,
+  },
+  progressWrap: {
+    flex: '1 1 160px',
+    minWidth: '120px',
+  },
+  author: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    marginLeft: tokens.spacingHorizontalS,
+    whiteSpace: 'nowrap',
+  },
+  footer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap',
+  },
+});
 
-function Badge({ label, styles }: { label: string; styles: { text: string; bg: string } }) {
+function ProposalBadge({ label }: { label: string }) {
+  const resolvedTone =
+    proposalStatusTone[label as ProposalStatus] ??
+    proposalCategoryTone[label as ProposalCategory] ??
+    'neutral';
+
   return (
-    <span
-      className={clsx(
-        'flex items-center px-2 py-1 rounded-full text-[11px] font-medium font-inter',
-        styles.bg,
-        styles.text
-      )}>
+    <AppBadge tone={resolvedTone} appearance="tint" size="small">
       {label}
-    </span>
-  );
-}
-
-function TimeLabel({ timeLeft }: { timeLeft?: string }) {
-  return (
-    <span className="px-3 py-1.5 rounded-lg bg-[#FFFFFF1A] text-sm font-medium text-white font-inter">
-      {timeLeft || 'Closed'}
-    </span>
+    </AppBadge>
   );
 }
 
 function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }) {
   const isActive = proposal.status === 'Active';
+  const styles = useStyles();
+  const shell = useCardShellStyles();
 
   return (
     <motion.div
@@ -49,74 +124,89 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.08 }}
-      className="flex flex-col gap-5 p-2 md:p-4 rounded-2xl
-      bg-[#A4FFC608]
-      border border-[#FFFFFF0D]
-      backdrop-blur-md">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs md:text-sm text-[#9CA3AF] font-medium font-inter">{proposal.id}</span>
-
-          <Badge label={proposal.status} styles={STATUS_STYLES[proposal.status]} />
-
-          <Badge label={proposal.category} styles={CATEGORY_STYLES[proposal.category]} />
+    >
+      <Card
+        appearance={CARD_APPEARANCE}
+        size="large"
+        focusMode={CARD_FOCUS_MODE}
+        className={mergeClasses(shell.shell, styles.proposalCard)}
+      >
+        <div className={styles.metaRow}>
+          <div className={styles.badgeRow}>
+            <span className={styles.proposalId}>{proposal.id}</span>
+            <ProposalBadge label={proposal.status} />
+            <ProposalBadge label={proposal.category} />
+          </div>
+          {proposal.timeLeft ? (
+            <span className={styles.timeLeft}>{proposal.timeLeft}</span>
+          ) : null}
         </div>
 
-        <TimeLabel timeLeft={proposal.timeLeft} />
-      </div>
+        <CardHeader
+          header={
+            <Text as="h5" weight="semibold" style={{ margin: 0 }}>
+              {proposal.title}
+            </Text>
+          }
+          description={
+            <Caption1 className={shell.caption}>{proposal.description}</Caption1>
+          }
+        />
 
-      <div className="flex flex-col gap-1">
-        <h3 className="text-[15px] font-medium text-white leading-7 font-inter">
-          {proposal.title}
-        </h3>
-
-        <p className="text-[12px] text-[#9CA3AF] leading-5 font-inter">{proposal.description}</p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-[#4ADE80] text-[12px] font-medium">
-            <ThumbsUp size={16} />
+        <div className={styles.votesRow}>
+          <span className={styles.voteFor}>
+            <ThumbLike24Regular className="h-4 w-4" aria-hidden />
             {proposal.votesFor}
-          </div>
+          </span>
 
-          <div className="flex-1 h-2.25 bg-[#FFFFFF1A] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#C084FC] rounded-full transition-all duration-700"
-              style={{ width: `${proposal.forPercent}%` }}
+          <div className={styles.progressWrap}>
+            <AppProgressBar
+              percent={proposal.forPercent}
+              color={VOTE_FOR_COLOR}
+              shape="rounded"
+              thickness="large"
             />
           </div>
 
-          <div className="flex items-center gap-2 text-[#EF4444]  text-xs font-medium">
-            <ThumbsDown size={16} />
+          <span className={styles.voteAgainst}>
+            <ThumbDislike24Regular className="h-4 w-4" aria-hidden />
             {proposal.votesAgainst}
-          </div>
+          </span>
 
-          <span className="text-sm font-semibold text-white ml-2">by {proposal.author}</span>
+          <span className={styles.author}>by {proposal.author}</span>
         </div>
 
-        {isActive && (
-          <div className="flex items-center gap-3 pt-2">
-            <button className="px-4 py-2 rounded-lg bg-[#4ADE80] text-white text-sm font-medium hover:bg-[#39c96c] transition">
+        {isActive ? (
+          <CardFooter className={styles.footer}>
+            <NeuButton variant="success" size="sm">
               Vote For
-            </button>
-
-            <button className="px-4 py-2 rounded-lg bg-[#FFFFFF1A] text-white text-sm font-medium hover:bg-[#FFFFFF26] transition">
+            </NeuButton>
+            <NeuButton variant="secondary" size="sm">
               Vote Against
-            </button>
-          </div>
-        )}
-      </div>
+            </NeuButton>
+          </CardFooter>
+        ) : null}
+      </Card>
     </motion.div>
   );
 }
 
 export default function ProposalList({ proposals }: { proposals: Proposal[] }) {
+  const styles = useStyles();
+
   return (
-    <div className="flex flex-col gap-5">
-      {proposals.map((proposal, index) => (
-        <ProposalCard key={proposal.id} proposal={proposal} index={index} />
-      ))}
-    </div>
+    <PanelCard>
+      <PanelCardHeader
+        title="Governance Proposals"
+        description="Active and recent community proposals"
+      />
+      <PanelCardBody>
+        <div className={styles.list}>
+          {proposals.map((proposal, index) => (
+            <ProposalCard key={proposal.id} proposal={proposal} index={index} />
+          ))}
+        </div>
+      </PanelCardBody>
+    </PanelCard>
   );
 }

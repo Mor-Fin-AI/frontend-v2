@@ -1,29 +1,29 @@
-// import VerticalNavigationBar from "@/layout/VerticalNavigationBar";
-// import TopNavigationBar from "@/layout/TopNavigationBar";
+import { Outlet } from "react-router-dom";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import WalletUserSync from "@/components/wallet/WalletUserSync";
 import { SidebarProvider } from "@/context/SidebarContext";
 import { UserProvider } from "@/context/UserContext";
 import TopNavigationBar from "@/layout/TopNavigatoionBar";
 import VerticalNavigationBar from "@/layout/VerticalNavigationBar";
+import SupportChat from "@/components/support/SupportChat";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout() {
   return (
     <UserProvider>
+      <WalletUserSync />
       <SidebarProvider>
-        <div className="flex h-screen overflow-hidden bg-background ">
+        <div className="flex h-screen overflow-hidden bg-background">
           <VerticalNavigationBar />
 
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="relative flex flex-1 flex-col overflow-hidden">
             <TopNavigationBar />
 
-            <main className="flex-1 p-3 md:p-5 overflow-y-auto custom-scrollbar overflow-x-hidden">
+            <main className="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5">
               <Breadcrumbs />
-              {children}
+              <Outlet />
             </main>
+
+            <SupportChat />
           </div>
         </div>
       </SidebarProvider>

@@ -10,18 +10,30 @@ import {
     ResponsiveContainer,
     Legend,
 } from 'recharts';
+import { useFluentThemeColors } from '@/hooks/useFluentThemeColors';
 import { activityChartData } from '../data';
+import ChartSkeleton from '@/components/ui/skeletons/ChartSkeleton';
+import PanelCard, { PanelCardBody, PanelCardHeader } from '@/components/ui/PanelCard';
+import NeuButton from '@/components/ui/NeuButton';
 
-export default function ActivityChart() {
+export default function ActivityChart({ isLoading = false }: { isLoading?: boolean }) {
+    const theme = useFluentThemeColors();
+
     return (
-        <div className="bg-[#1E1B2E1A] border-[1.4px] border-[#FFFFFF0D] rounded-2xl p-3 md:p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-white text-base md:text-lg font-medium font-inter leading-7">Active Trainings</h3>
-                <button className="flex items-center gap-1 px-3 py-2 rounded-md bg-[#16212C] text-[#4ADE80] text-sm font-medium font-inter leading-6 hover:bg-[#FFFFFF1A] transition-colors">
-                    Last 6 Months
-                </button>
-            </div>
+        <PanelCard aria-busy={isLoading}>
+            <PanelCardHeader
+                title="Active Trainings"
+                action={
+                    <NeuButton variant="secondary" size="sm">
+                        Last 6 Months
+                    </NeuButton>
+                }
+            />
 
+            <PanelCardBody>
+            {isLoading ? (
+                <ChartSkeleton minHeight={300} aria-label="Loading activity chart" />
+            ) : (
             <div className="w-full h-[300px] focus:outline-none [&_*]:focus:outline-none">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
@@ -30,24 +42,24 @@ export default function ActivityChart() {
                         barGap={6}
                         barCategoryGap="10%"
                     >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#FFFFFF1A" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colorNeutralStroke2} />
                         <XAxis
                             dataKey="month"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter' }}
+                            tick={{ fill: theme.colorNeutralForeground3, fontSize: 10, fontFamily: 'Inter' }}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#6B7280', fontSize: 10, fontFamily: 'Inter' }}
+                            tick={{ fill: theme.colorNeutralForeground3, fontSize: 10, fontFamily: 'Inter' }}
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#1C1C24',
-                                borderColor: '#FFFFFF1A',
+                                backgroundColor: theme.colorNeutralBackground2,
+                                borderColor: theme.colorNeutralStroke2,
                                 borderRadius: '8px',
-                                color: '#fff',
+                                color: theme.colorNeutralForeground1,
                             }}
                             cursor={{ fill: 'transparent' }}
                         />
@@ -64,7 +76,7 @@ export default function ActivityChart() {
                                                     className="w-2 h-2 rounded-full flex-none"
                                                     style={{ backgroundColor: entry.color }}
                                                 />
-                                                <span className="font-inter font-medium text-[10px] md:text-sm leading-4 text-white flex items-center">
+                                                <span className="font-inter font-medium text-[10px] md:text-sm leading-4 text-foreground flex items-center">
                                                     {entry.value}
                                                 </span>
                                             </div>
@@ -79,6 +91,8 @@ export default function ActivityChart() {
                     </BarChart>
                 </ResponsiveContainer>
             </div>
-        </div>
+            )}
+            </PanelCardBody>
+        </PanelCard>
     );
 }

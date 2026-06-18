@@ -1,4 +1,5 @@
-import { Clock, Gift, Activity, Shield, LucideIcon } from 'lucide-react';
+import type React from 'react';
+import { Clock24Regular, Gift24Regular, Pulse24Regular, Shield24Regular } from '@fluentui/react-icons';
 import { ClockIcon } from '../../../../public/Svg/audit-log/ClockIcon';
 import { EventsIcon } from '../../../../public/Svg/audit-log/EventsIcon';
 import VotesEventIcon from '../../../../public/Svg/audit-log/VotesEventIcon';
@@ -7,7 +8,7 @@ export interface AuditStat {
   title: string;
   value: number | string;
   subtitle: string;
-  icon: LucideIcon | any;
+  icon: React.ComponentType<{ className?: string }> | any;
   iconBg: string;
   iconColor: string;
   valueColor: string;
@@ -33,7 +34,7 @@ export const auditStats: AuditStat[] = [
     title: 'Learning Activities',
     value: 342,
     subtitle: 'Last 30 days',
-    icon: Gift,
+    icon: Gift24Regular,
     iconBg: 'bg-[#8547D11A]',
     iconColor: 'text-[#8C47D1]',
     valueColor: 'text-[#8C47D1]',
@@ -155,3 +156,18 @@ export const auditLogs: AuditLog[] = [
 ];
 
 export const filterTabs: FilterTab[] = ['All', 'Platform Operations', 'Agent', 'Risk', 'Governance'];
+
+export const categoryFilterOptions: EventCategory[] = [
+  'Learning',
+  'Governance',
+  'Participation',
+];
+
+export type ActivitySortOption = 'newest' | 'oldest' | 'category' | 'status';
+
+export const activitySortOptions: { value: ActivitySortOption; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'category', label: 'Category (A–Z)' },
+  { value: 'status', label: 'Status (A–Z)' },
+];

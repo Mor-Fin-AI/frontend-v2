@@ -1,208 +1,269 @@
 'use client';
 
-import React, { useState } from 'react';
-import { auditLogs, filterTabs, AuditLog, EventCategory, EventStatus, FilterTab } from '../data';
-import { Search, Wallet, Zap, FileText, AlertTriangle, MoreHorizontal, Clock, CalendarCheck, BookOpen, FileCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
-import clsx from 'clsx';
-
-// ─── Style maps ───────────────────────────────────────────────────────────────
-
-const CATEGORY_STYLES: Record<EventCategory, { label: string; bg: string }> = {
-    Learning: { label: 'text-[#8C47D1]', bg: 'bg-[#8C47D11A]' },
-    Governance: { label: 'text-[#F97316]', bg: 'bg-[#F973161A]' },
-    Participation: { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
-};
-
-const STATUS_STYLES: Record<EventStatus, { dot: string; label: string }> = {
-    Success: { dot: 'bg-[#22C38E]', label: 'text-[#22C38E]' },
-    Flagged: { dot: 'bg-[#EF4444]', label: 'text-[#EF4444]' },
-    Pending: { dot: 'bg-[#F69E23]', label: 'text-[#F69E23]' },
-};
+import React, { useMemo, useState } from 'react';
+import {
+  auditLogs,
+  categoryFilterOptions,
+  activitySortOptions,
+  type ActivitySortOption,
+  type AuditLog,
+  type EventCategory,
+} from '../data';
+import {
+  Flash24Regular,
+  DocumentCheckmark24Regular,
+  Book24Regular,
+  Warning24Regular,
+  CalendarCheckmark24Regular,
+  Clock24Regular,
+} from '@fluentui/react-icons';
+import {
+  Persona,
+  makeStyles,
+  presenceAvailableRegular,
+  presenceAwayRegular,
+  presenceOfflineRegular,
+  tokens,
+} from '@fluentui/react-components';
+import PanelCard, {
+  PanelCardBody,
+  PanelCardHeader,
+  PanelCardTopBar,
+  PanelCardTopIcon,
+} from '@/components/ui/PanelCard';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import TableFilterToolbar, { TableEmptyState } from '@/components/ui/TableFilterToolbar';
+import AppBadge from '@/components/ui/AppBadge';
+import { auditCategoryTone, auditStatusTone } from '@/lib/badgeTones';
+import { TABLE_ICON_CLASS } from '@/lib/tableUi';
+import {
+  matchesDateRange,
+  matchesSearch,
+  matchesTags,
+  parseIsoTimestamp,
+} from '@/lib/tableFilters';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-    learning: <BookOpen className="w-4 h-4 text-[#8C47D1]" />,
-    governance: <Zap className="w-4 h-4 text-[#F97316]" />,
-    participation: <FileCheck className="w-4 h-4 text-[#30ABE8]" />,
-    training: <BookOpen className="w-4 h-4 text-[#F69E23]" />,
-    warning: <AlertTriangle className="w-4 h-4 text-[#EF4444]" />,
+  learning: <Book24Regular className={TABLE_ICON_CLASS} />,
+  governance: <Flash24Regular className={TABLE_ICON_CLASS} />,
+  participation: <DocumentCheckmark24Regular className={TABLE_ICON_CLASS} />,
+  training: <Book24Regular className={TABLE_ICON_CLASS} />,
+  warning: <Warning24Regular className={TABLE_ICON_CLASS} />,
 };
 
-const ICON_BG: Record<string, string> = {
-    learning: 'bg-[#8C47D11A] ',
-    governance: 'bg-[#F973161A]',
-    participation: 'bg-[#30ABE81A] ',
-    training: 'bg-[#F69E231A] ',
-    warning: 'bg-[#EF44441A] ',
-};
+const AwayIcon = presenceAwayRegular.small;
+const AvailableIcon = presenceAvailableRegular.small;
+const OfflineIcon = presenceOfflineRegular.small;
 
-// ─── Badges ───────────────────────────────────────────────────────────────────
+const usePersonaStyles = makeStyles({
+  statusAway: {
+    color: tokens.colorPaletteMarigoldBackground3,
+  },
+  statusOffline: {
+    color: tokens.colorNeutralForeground3,
+  },
+});
 
-function CategoryBadge({ category }: { category: EventCategory }) {
-    const s = CATEGORY_STYLES[category];
+function ActorPersona({ name }: { name: string }) {
+  const personaStyles = usePersonaStyles();
+
+  if (name === 'System') {
     return (
-        <span className={clsx('px-2 py-0.5 rounded-full text-[10px] font-medium font-inter leading-4', s.bg, s.label)}>
-            {category}
-        </span>
+      <Persona
+        size="small"
+        name={name}
+        presence={{
+          status: 'away',
+          icon: <AwayIcon />,
+          className: personaStyles.statusAway,
+        }}
+      />
     );
+  }
+
+  if (name === 'User') {
+    return (
+      <Persona
+        size="small"
+        name={name}
+        presence={{
+          status: 'available',
+          icon: <AvailableIcon />,
+        }}
+      />
+    );
+  }
+
+  return (
+    <Persona
+      size="small"
+      name={name}
+      presence={{
+        status: 'offline',
+        icon: <OfflineIcon />,
+        className: personaStyles.statusOffline,
+      }}
+    />
+  );
 }
 
-function StatusBadge({ status }: { status: EventStatus }) {
-    const s = STATUS_STYLES[status];
-    return (
-        <div className="flex items-center gap-1">
-            <div className={clsx('w-1.5 h-1.5 rounded-full animate-pulse', s.dot)} />
-            <span className={clsx('text-[10px] font-medium font-inter', s.label)}>{status}</span>
-        </div>
-    );
-}
+const columns: Column<AuditLog>[] = [
+  {
+    columnId: 'event',
+    header: 'Event',
+    accessor: 'title',
+    description: (log) => log.description,
+    media: (log) => ICON_MAP[log.iconType],
+  },
+  {
+    columnId: 'category',
+    header: 'Category',
+    accessor: (log) => (
+      <AppBadge tone={auditCategoryTone[log.category] ?? 'neutral'} appearance="tint" size="table">
+        {log.category}
+      </AppBadge>
+    ),
+  },
+  {
+    columnId: 'status',
+    header: 'Status',
+    accessor: (log) => (
+      <AppBadge tone={auditStatusTone[log.status] ?? 'neutral'} appearance="tint" size="table">
+        {log.status}
+      </AppBadge>
+    ),
+  },
+  {
+    columnId: 'actId',
+    header: 'Act ID',
+    accessor: (log) => (
+      <AppBadge
+        tone={log.highlighted ? 'danger' : (auditCategoryTone[log.category] ?? 'neutral')}
+        appearance={log.highlighted ? 'outline' : 'tint'}
+        size="table"
+      >
+        {log.actId}
+      </AppBadge>
+    ),
+  },
+  {
+    columnId: 'timestamp',
+    header: 'Last updated',
+    accessor: 'timestamp',
+    media: () => <Clock24Regular className={TABLE_ICON_CLASS} />,
+  },
+  {
+    columnId: 'actor',
+    header: 'Author',
+    accessor: (log) => <ActorPersona name={log.actor} />,
+  },
+];
 
-// ─── Act Badge ────────────────────────────────────────────────────────────────
+export default function EventLog({ isLoading = false }: { isLoading?: boolean }) {
+  const [search, setSearch] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>([]);
+  const [sortBy, setSortBy] = useState<ActivitySortOption>('newest');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
-function ActBadge({ actId, category, flagged }: { actId: string; category: EventCategory; flagged?: boolean }) {
-    const s = CATEGORY_STYLES[category];
-    return (
-        <span className={clsx(
-            'px-2 py-0.5 rounded-full text-[10px] font-medium font-inter ',
-            flagged
-                ? 'bg-[#EF44441A] border-[#EF444433] text-[#EF4444]'
-                : clsx(s.bg, 'border-[#FFFFFF0D]', s.label)
-        )}>
-            {actId}
-        </span>
-    );
-}
+  const filtered = useMemo(() => {
+    const matches = auditLogs.filter((log) => {
+      const matchesCategory = matchesTags(selectedCategories, log.category);
+      const matchesQuery = matchesSearch(search, [
+        log.title,
+        log.actId,
+        log.description,
+        log.category,
+        log.status,
+        log.actor,
+      ]);
+      const matchesDates = matchesDateRange(
+        log.timestamp,
+        startDate,
+        endDate,
+        (value) => parseIsoTimestamp(value),
+      );
 
-// ─── Single log row 
-
-function LogRow({ log, index }: { log: AuditLog; index: number }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35, delay: index * 0.07 }}
-            className={clsx(
-                'flex items-start gap-3 p-2 md:p-4 rounded-xl border transition-colors',
-                log.highlighted
-                    ? 'bg-[#EF444424] border-[#EF444480]'
-                    : 'bg-[#1E1B2E33] border-[#FFFFFF0D]'
-            )}
-        >
-            {/* Icon */}
-            <div className={clsx(
-                'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mt-0.5',
-                ICON_BG[log.iconType]
-            )}>
-                {ICON_MAP[log.iconType]}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-                {/* Title + Badges */}
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-white text-sm md:text-base font-medium font-inter">{log.title}</span>
-                    <CategoryBadge category={log.category} />
-                    <StatusBadge status={log.status} />
-                </div>
-
-                {/* Description */}
-                <p className="text-[#D1D5DB] font-normal text-xs font-inter leading-5 mb-3.5">{log.description}</p>
-
-                {/* Meta row */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    <ActBadge actId={log.actId} category={log.category} flagged={log.highlighted} />
-                    <div className="flex items-center gap-1.5 text-[#6B7280] font-normal text-xs font-inter">
-                        <Clock className="w-3 h-3" />
-                        <span>{log.timestamp}</span>
-                    </div>
-                    <span className="text-[#6B7280] text-xs font-inter font-normal">
-                        By: <span className="text-white font-normal text-xs">{log.actor}</span>
-                    </span>
-                </div>
-            </div>
-
-            {/* Right: actions */}
-            <div className="flex-shrink-0 flex items-center self-center">
-                <button className="text-[#6B7280] hover:text-white transition-colors p-1">
-                    <MoreHorizontal className="w-4 h-4" />
-                </button>
-            </div>
-        </motion.div>
-    );
-}
-
-// ─── Main EventLog component ──────────────────────────────────────────────────
-
-export default function EventLog() {
-    const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
-    const [search, setSearch] = useState('');
-
-    const filtered = auditLogs.filter((log) => {
-        const matchesFilter =
-            activeFilter === 'All' ||
-            log.category.toLowerCase() === activeFilter.toLowerCase();
-        const matchesSearch =
-            search === '' ||
-            log.title.toLowerCase().includes(search.toLowerCase()) ||
-            log.actId.toLowerCase().includes(search.toLowerCase()) ||
-            log.description.toLowerCase().includes(search.toLowerCase());
-        return matchesFilter && matchesSearch;
+      return matchesCategory && matchesQuery && matchesDates;
     });
 
-    return (
-        <div className="bg-[#1E1B2E1A] border border-[#FFFFFF0D] rounded-2xl p-3 md:p-6 flex flex-col gap-5">
-            {/* Header */}
-            <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded  flex items-center justify-center">
-                    <CalendarCheck className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-white text-base md:text-lg font-medium font-inter">Activity Log</p>
-            </div>
+    return [...matches].sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return (
+            parseIsoTimestamp(a.timestamp).getTime() -
+            parseIsoTimestamp(b.timestamp).getTime()
+          );
+        case 'category':
+          return a.category.localeCompare(b.category);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'newest':
+        default:
+          return (
+            parseIsoTimestamp(b.timestamp).getTime() -
+            parseIsoTimestamp(a.timestamp).getTime()
+          );
+      }
+    });
+  }, [search, selectedCategories, sortBy, startDate, endDate]);
 
-            {/* Search + Filters */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4.5 bg-[#1E1B2E33] border border-[#FFFFFF1A] rounded-lg">
-                {/* Search */}
-                <div className="relative flex-1 w-full sm:max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8E8E8E]" />
-                    <input
-                        type="text"
-                        placeholder="Search events, IDs, actions..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#58585833]  text-white text-sm font-inter placeholder-[#6B7280] focus:outline-none focus:border-[#22C38E] transition-colors"
-                    />
-                </div>
+  return (
+    <PanelCard aria-busy={isLoading}>
+      <PanelCardTopBar>
+        <PanelCardTopIcon>
+          <CalendarCheckmark24Regular className={`h-5 w-5 ${TABLE_ICON_CLASS}`} />
+        </PanelCardTopIcon>
+      </PanelCardTopBar>
+      <PanelCardHeader
+        title="Activity Log"
+        description="Platform events, governance, and learning activity"
+      />
 
-                {/* Filter tabs */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    {filterTabs.map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveFilter(tab)}
-                            className={clsx(
-                                'px-4.5 py-2 rounded-full text-[10px] font-normal font-inter transition-colors',
-                                activeFilter === tab
-                                    ? 'bg-[#1FACC61A] text-white'
-                                    : 'bg-[#9797971A] hover:text-[#6B7280] hover:bg-[#FFFFFF1A] text-white'
-                            )}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-            </div>
+      <PanelCardBody>
+        <TableFilterToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search events, IDs, actions..."
+          searchAriaLabel="Search activity log"
+          sortBy={sortBy}
+          onSortChange={(value) => setSortBy(value as ActivitySortOption)}
+          sortOptions={activitySortOptions}
+          sortAriaLabel="Sort activity log"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          tagOptions={categoryFilterOptions}
+          selectedTags={selectedCategories}
+          onTagsChange={(tags) => setSelectedCategories(tags as EventCategory[])}
+          tagAriaLabel="Selected categories"
+          tagButtonAriaLabel="Filter by category"
+        />
 
-            {/* Log entries */}
-            <div className="flex flex-col gap-3">
-                {filtered.length > 0 ? (
-                    filtered.map((log, index) => (
-                        <LogRow key={log.id} log={log} index={index} />
-                    ))
-                ) : (
-                    <p className="text-[#6B7280] text-sm font-inter text-center py-8">No events found.</p>
-                )}
-            </div>
-        </div>
-    );
+        {isLoading ? (
+          <DataTable
+            aria-label="Audit activity log"
+            columns={columns}
+            data={[]}
+            getRowId={(item) => item.id}
+            selectionMode="multiselect"
+            isLoading
+            loadingLabel="Loading audit activity log"
+            loadingRowCount={6}
+          />
+        ) : filtered.length > 0 ? (
+          <DataTable
+            aria-label="Audit activity log"
+            columns={columns}
+            data={filtered}
+            getRowId={(item) => item.id}
+            selectionMode="multiselect"
+          />
+        ) : (
+          <TableEmptyState message="No events found." />
+        )}
+      </PanelCardBody>
+    </PanelCard>
+  );
 }

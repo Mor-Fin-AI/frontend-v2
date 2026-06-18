@@ -1,74 +1,161 @@
 'use client';
 
-import React from 'react';
-import { participationHistory, ParticipationEvent, EventCategory, ParticipationStatus } from '../data';
-import { motion } from 'framer-motion';
-import clsx from 'clsx';
+import React, { useMemo, useState } from 'react';
+import {
+  Book24Regular,
+  CalendarLtr24Regular,
+  CheckboxChecked24Regular,
+  DocumentCheckmark24Regular,
+  PeopleTeam24Regular,
+} from '@fluentui/react-icons';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import { participationHistory, ParticipationEvent } from '../data';
+import PanelCard, { PanelCardBody, PanelCardHeader } from '@/components/ui/PanelCard';
+import TableFilterToolbar, { TableEmptyState } from '@/components/ui/TableFilterToolbar';
+import AppBadge from '@/components/ui/AppBadge';
+import { participationStatusTone } from '@/lib/badgeTones';
+import { TABLE_ICON_CLASS } from '@/lib/tableUi';
+import {
+  compareDates,
+  matchesDateRange,
+  matchesSearch,
+  matchesTags,
+  type TableSortOption,
+} from '@/lib/tableFilters';
 
-const CATEGORY_STYLES: Record<EventCategory, { label: string; bg: string }> = {
-    Meeting: { label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
-    Governance: { label: 'text-[#8C47D1]', bg: 'bg-[#8547D11A]' },
-    Ceremony: { label: 'text-[#F69E23]', bg: 'bg-[#F69E231A]' },
-    Validation: { label: 'text-[#4ADE80]', bg: 'bg-[#4ADE801A]' },
-};
+const categoryOptions = ['Meeting', 'Governance', 'Ceremony', 'Validation'];
+const statusOptions = ['Attended', 'Voted', 'Participated'];
 
-const STATUS_STYLES: Record<ParticipationStatus, { dot: string; label: string; bg: string }> = {
-    Attended: { dot: 'bg-[#4ADE80]', label: 'text-[#4ADE80]', bg: 'bg-[#4ADE801A]' },
-    Voted: { dot: 'bg-[#8C47D1]', label: 'text-[#8C47D1]', bg: 'bg-[#8547D11A]' },
-    Participated: { dot: 'bg-[#30ABE8]', label: 'text-[#30ABE8]', bg: 'bg-[#30ABE81A]' },
-};
+const participationSortOptions: TableSortOption[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'category', label: 'Category (A–Z)' },
+  { value: 'event', label: 'Event (A–Z)' },
+  { value: 'status', label: 'Status (A–Z)' },
+];
 
-function CategoryBadge({ category }: { category: EventCategory }) {
-    const s = CATEGORY_STYLES[category];
-    return (
-        <div className={clsx('py-1 rounded-sm w-14.5 md:w-22 flex items-center justify-center', s.bg)}>
-            <span className={clsx('text-[9px] md:text-xs font-medium font-inter text-center', s.label)}>{category}</span>
-        </div>
-    );
-}
+const CATEGORY_ICONS = {
+  Meeting: <PeopleTeam24Regular className={TABLE_ICON_CLASS} />,
+  Governance: <CheckboxChecked24Regular className={TABLE_ICON_CLASS} />,
+  Ceremony: <Book24Regular className={TABLE_ICON_CLASS} />,
+  Validation: <DocumentCheckmark24Regular className={TABLE_ICON_CLASS} />,
+} as const;
 
-function StatusBadge({ status }: { status: ParticipationStatus }) {
-    const s = STATUS_STYLES[status];
-    return (
-        <div className={clsx('flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit', s.bg)}>
-            <div className={clsx('w-1.5 h-1.5 rounded-full', s.dot)} />
-            <span className={clsx('text-[11px] font-medium font-inter', s.label)}>{status}</span>
-        </div>
-    );
-}
+const columns: Column<ParticipationEvent>[] = [
+  {
+    columnId: 'category',
+    header: 'Category',
+    accessor: 'category',
+    media: (item) => CATEGORY_ICONS[item.category],
+    className: 'w-[18%]',
+  },
+  {
+    columnId: 'title',
+    header: 'Event',
+    accessor: 'title',
+  },
+  {
+    columnId: 'date',
+    header: 'Date',
+    accessor: 'date',
+    media: () => <CalendarLtr24Regular className={TABLE_ICON_CLASS} />,
+    className: 'w-[22%]',
+  },
+  {
+    columnId: 'status',
+    header: 'Status',
+    accessor: (item) => (
+      <AppBadge tone={participationStatusTone[item.status] ?? 'neutral'} appearance="tint" size="table">
+        {item.status}
+      </AppBadge>
+    ),
+    className: 'w-[20%] text-right',
+    headerClassName: 'w-[20%] text-right',
+  },
+];
 
-function ParticipationRow({ event, index }: { event: ParticipationEvent; index: number }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35, delay: index * 0.08 }}
-            className="flex items-center justify-between py-5 "
-        >
-            <div className="flex items-center gap-1 md:gap-4 flex-1 min-w-0">
-                <div className="shrink-0">
-                    <CategoryBadge category={event.category} />
-                </div>
-                <span className="text-[#D1D5DB] text-left text-xs md:text-sm font-inter font-normal leading-5 truncate">{event.title}</span>
-            </div>
-            <div className="flex items-center gap-2 md:gap-4 shrink-0 ">
-                <span className="text-[#D1D5DB] text-xs md:text-sm font-inter font-normal leading-4">{event.date}</span>
-                <StatusBadge status={event.status} />
-            </div>
-        </motion.div>
-    );
-}
+export default function ParticipationHistory({ isLoading = false }: { isLoading?: boolean }) {
+  const [search, setSearch] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState('newest');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
-export default function ParticipationHistory() {
-    return (
-        <div className="bg-[#1E1B2E66] border border-[#FFFFFF0D] rounded-2xl p-2 md:p-6 flex flex-col">
-            <h3 className="text-white text-lg font-bold font-inter mb-2">Participation History</h3>
-            <div className="flex flex-col">
-                {participationHistory.map((event, index) => (
-                    <ParticipationRow key={event.id} event={event} index={index} />
-                ))}
-            </div>
-        </div>
-    );
+  const filtered = useMemo(() => {
+    const rows = participationHistory.filter((item) => {
+      const matchesCategory = matchesTags(selectedCategories, item.category);
+      const matchesStatus = matchesTags(selectedStatuses, item.status);
+      const matchesQuery = matchesSearch(search, [item.category, item.title, item.date, item.status]);
+      const matchesDates = matchesDateRange(item.date, startDate, endDate);
+      return matchesCategory && matchesStatus && matchesQuery && matchesDates;
+    });
+
+    return [...rows].sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return compareDates(a.date, b.date);
+        case 'category':
+          return a.category.localeCompare(b.category);
+        case 'event':
+          return a.title.localeCompare(b.title);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'newest':
+        default:
+          return compareDates(b.date, a.date);
+      }
+    });
+  }, [search, selectedCategories, selectedStatuses, sortBy, startDate, endDate]);
+
+  return (
+    <PanelCard aria-busy={isLoading}>
+      <PanelCardHeader title="Participation History" description="Meetings, governance, and ceremonies" />
+      <PanelCardBody>
+        <TableFilterToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search events, categories, status..."
+          searchAriaLabel="Search participation history"
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortOptions={participationSortOptions}
+          sortAriaLabel="Sort participation history"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          tagOptions={[...categoryOptions, ...statusOptions]}
+          selectedTags={[...selectedCategories, ...selectedStatuses]}
+          onTagsChange={(tags) => {
+            setSelectedCategories(tags.filter((tag) => categoryOptions.includes(tag)));
+            setSelectedStatuses(tags.filter((tag) => statusOptions.includes(tag)));
+          }}
+          tagAriaLabel="Selected participation filters"
+          tagButtonAriaLabel="Filter by category or status"
+        />
+
+        {isLoading ? (
+          <DataTable
+            columns={columns}
+            data={[]}
+            getRowId={(item) => item.id}
+            aria-label="Participation history"
+            isLoading
+            loadingLabel="Loading participation history"
+            loadingRowCount={6}
+          />
+        ) : filtered.length > 0 ? (
+          <DataTable
+            columns={columns}
+            data={filtered}
+            getRowId={(item) => item.id}
+            aria-label="Participation history"
+          />
+        ) : (
+          <TableEmptyState message="No participation events found." />
+        )}
+      </PanelCardBody>
+    </PanelCard>
+  );
 }

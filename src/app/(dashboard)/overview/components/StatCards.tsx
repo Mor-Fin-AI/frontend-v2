@@ -2,6 +2,7 @@
 
 import { motion, Variants } from "framer-motion";
 import Card from "@/components/ui/Card";
+import StatCardsSkeleton from "@/components/ui/skeletons/StatCardsSkeleton";
 import FramerCountUp from "@/components/ui/FramerCountUp";
 import { statCardsData } from "../data";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -28,8 +29,12 @@ const itemVariants: Variants = {
     },
 };
 
-export default function StatCards() {
+export default function StatCards({ isLoading = false }: { isLoading?: boolean }) {
     const { ref, controls } = useScrollAnimation();
+
+    if (isLoading) {
+        return <StatCardsSkeleton aria-label="Loading overview stats" />;
+    }
 
     return (
         <motion.div
@@ -48,14 +53,10 @@ export default function StatCards() {
                                 to={stat.value}
                                 prefix={stat.valuePrefix}
                                 suffix={stat.valueSuffix}
-                                className={stat.valueColor}
                             />
                         }
                         subtitle={stat.subtitle}
-                        subtitleColor="text-zinc-500"
                         icon={stat.icon}
-                        iconBg={stat.iconBg}
-                        iconColor={stat.iconColor}
                         className="h-full"
                     />
                 </motion.div>

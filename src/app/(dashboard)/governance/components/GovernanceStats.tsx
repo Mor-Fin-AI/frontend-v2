@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@/components/ui/Card';
+import StatCardsSkeleton from '@/components/ui/skeletons/StatCardsSkeleton';
 import { governanceStats } from '../data';
 import { motion } from 'framer-motion';
 
@@ -13,7 +14,11 @@ const item = {
     show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export default function GovernanceStats() {
+export default function GovernanceStats({ isLoading = false }: { isLoading?: boolean }) {
+    if (isLoading) {
+        return <StatCardsSkeleton aria-label="Loading governance stats" />;
+    }
+
     return (
         <motion.div
             variants={container}
@@ -29,11 +34,6 @@ export default function GovernanceStats() {
                         value={stat.value}
                         subtitle={stat.subtitle}
                         icon={stat.icon}
-                        iconBg={stat.iconBg}
-                        iconColor={stat.iconColor}
-                        valueColor={stat.valueColor}
-                        subtitleColor={stat.subtitleColor}
-                        variant={stat.variant}
                     />
                 </motion.div>
             ))}

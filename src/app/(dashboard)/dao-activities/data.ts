@@ -1,4 +1,5 @@
-import { BookOpen, CheckSquare, CalendarDays, Award, LucideIcon, Check, UsersRound } from 'lucide-react';
+import type React from 'react';
+import { Book24Regular, CheckboxChecked24Regular, CalendarLtr24Regular, Trophy24Regular, Checkmark24Regular, PeopleTeam24Regular } from '@fluentui/react-icons';
 import { BookOpenIcon } from '../../../../public/Svg/dao/BookOpenIcon';
 import { CertificateIcon } from '../../../../public/Svg/dao/CertificateIcon';
 
@@ -8,7 +9,7 @@ export interface ActivityStat {
     title: string;
     value: number | string;
     subtitle: string;
-    icon: LucideIcon | any;
+    icon: React.ComponentType<{ className?: string }> | any;
     iconBg: string;
     iconColor: string;
     valueColor: string;
@@ -32,7 +33,7 @@ export const activityStats: ActivityStat[] = [
         title: 'Assessments Completed',
         value: 18,
         subtitle: '3 this week',
-        icon: Check,
+        icon: Checkmark24Regular,
         iconBg: 'bg-[#8547D11A]',
         iconColor: 'text-[#8547D1]',
         valueColor: 'text-[#8C47D1]',
@@ -43,7 +44,7 @@ export const activityStats: ActivityStat[] = [
         title: 'Events Attended',
         value: 12,
         subtitle: 'Next: Mar 5',
-        icon: UsersRound,
+        icon: PeopleTeam24Regular,
         iconBg: 'bg-[#30ABE81A]',
         iconColor: 'text-[#30ABE8]',
         valueColor: 'text-[#30ABE8]',

@@ -2,10 +2,12 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
-interface User {
+export interface User {
   name: string;
   address: string;
+  fullAddress?: string;
   role: string;
+  isWalletConnected?: boolean;
 }
 
 interface UserContextType {
@@ -15,12 +17,15 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+const defaultUser: User = {
+  name: "",
+  address: "Not connected",
+  role: "",
+  isWalletConnected: false,
+};
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>({
-    name: "Smith",
-    address: "0x71C7...E1A3",
-    role: "Membership Profile",
-  });
+  const [user, setUser] = useState<User>(defaultUser);
 
   return (
     <UserContext.Provider value={{ user, setUser }}>

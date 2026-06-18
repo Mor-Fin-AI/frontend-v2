@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useId } from "react";
 import {
   Area,
   AreaChart as RechartsAreaChart,
@@ -8,16 +9,19 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-} from 'recharts';
+} from "recharts";
+import { useFluentThemeColors } from "@/hooks/useFluentThemeColors";
+import {
+  AREA_GRADIENT_BOTTOM_OPACITY,
+  AREA_GRADIENT_TOP_OPACITY,
+} from "@/lib/chartGradients";
 
 interface AreaChartProps {
-  data: any[];
+  data: object[];
   xKey: string;
   yKey: string;
   height?: number | string;
   color?: string;
-  gradientFrom?: string;
-  gradientTo?: string;
 }
 
 export default function AreaChart({
@@ -25,50 +29,66 @@ export default function AreaChart({
   xKey,
   yKey,
   height = 300,
-  color = '#22D3EE',
-  gradientFrom = '#22D3EE',
-  gradientTo = 'rgba(34, 211, 238, 0)',
+  color = "#22D3EE",
 }: AreaChartProps) {
+  const theme = useFluentThemeColors();
+  const gradientId = useId().replace(/:/g, "");
+
   return (
-    <div className="w-full h-[320px] focus:outline-none [&_*]:focus:outline-none">
+    <div
+      className="w-full focus:outline-none [&_*]:focus:outline-none"
+      style={{ height: typeof height === "number" ? height : undefined }}
+    >
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <RechartsAreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
           <defs>
-            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={gradientFrom} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={gradientTo} stopOpacity={0} />
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor={color}
+                stopOpacity={AREA_GRADIENT_TOP_OPACITY}
+              />
+              <stop
+                offset="100%"
+                stopColor={color}
+                stopOpacity={AREA_GRADIENT_BOTTOM_OPACITY}
+              />
             </linearGradient>
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.08)"
-            vertical={true}
-            horizontal={true}
+            stroke={theme.colorNeutralStroke2}
+            vertical
+            horizontal
           />
           <XAxis
             dataKey={xKey}
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#6B7280', fontSize: 12 }}
+            tick={{ fill: theme.colorNeutralForeground3, fontSize: 12 }}
             dy={10}
           />
-          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: theme.colorNeutralForeground3, fontSize: 12 }}
+          />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#111827',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              color: '#fff',
+              backgroundColor: theme.colorNeutralBackground2,
+              border: `1px solid ${theme.colorNeutralStroke2}`,
+              borderRadius: "8px",
+              color: theme.colorNeutralForeground1,
             }}
-            itemStyle={{ color: '#22D3EE' }}
+            itemStyle={{ color }}
           />
           <Area
             type="monotone"
             dataKey={yKey}
             stroke={color}
             strokeWidth={2}
-            fillOpacity={1}
-            fill="url(#areaGradient)"
+            fill={`url(#${gradientId})`}
+            dot={false}
           />
         </RechartsAreaChart>
       </ResponsiveContainer>
