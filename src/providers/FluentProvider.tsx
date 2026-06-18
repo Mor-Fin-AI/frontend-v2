@@ -8,6 +8,7 @@ import { ReactNode, useEffect } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { fluentThemes } from "@/lib/fluentTheme";
 import { applyFluentThemeCssVariables } from "@/lib/syncFluentCssVars";
+import { AppToaster } from "@/components/ui/AppToaster";
 
 export default function AppFluentProvider({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
@@ -19,7 +20,10 @@ export default function AppFluentProvider({ children }: { children: ReactNode })
 
   return (
     <SSRProvider>
-      <FluentProvider theme={fluentTheme}>{children}</FluentProvider>
+      <FluentProvider theme={fluentTheme}>
+        {children}
+        <AppToaster />
+      </FluentProvider>
     </SSRProvider>
   );
 }

@@ -25,35 +25,59 @@ import {
   Box20Regular,
   BuildingBank20Filled,
   BuildingBank20Regular,
+  Home20Filled,
+  Home20Regular,
   Money20Filled,
   Money20Regular,
+  Chat20Filled,
+  Chat20Regular,
   People20Filled,
   People20Regular,
   Settings20Filled,
   Settings20Regular,
+  ShieldTask20Filled,
+  ShieldTask20Regular,
+  Vote20Filled,
+  Vote20Regular,
+  Wallet20Filled,
+  Wallet20Regular,
   bundleIcon,
 } from "@fluentui/react-icons";
-import { useSidebar } from "@/context/SidebarContext";
-import { useIsLargeScreen } from "@/hooks/useMediaQuery";
+import { useAuth } from "@/context/AuthContext";
 import {
+  adminNavItems,
   navHrefByValue,
   navSections,
   resolveNavSelection,
-  settingsNavItem,
+  settingsNavItems,
 } from "../navConfig";
+import { useSidebar } from "@/context/SidebarContext";
+import { useIsLargeScreen } from "@/hooks/useMediaQuery";
 
 const Dashboard = bundleIcon(Board20Filled, Board20Regular);
+const Home = bundleIcon(Home20Filled, Home20Regular);
+const Dsa = bundleIcon(Wallet20Filled, Wallet20Regular);
 const Arbitrage = bundleIcon(ArrowSwap20Filled, ArrowSwap20Regular);
 const Rewards = bundleIcon(People20Filled, People20Regular);
 const Bank = bundleIcon(BuildingBank20Filled, BuildingBank20Regular);
 const Infrastructure = bundleIcon(Box20Filled, Box20Regular);
 const Fee = bundleIcon(Money20Filled, Money20Regular);
+const Governance = bundleIcon(Vote20Filled, Vote20Regular);
+const Admin = bundleIcon(ShieldTask20Filled, ShieldTask20Regular);
+const Users = bundleIcon(People20Filled, People20Regular);
+const ChatNav = bundleIcon(Chat20Filled, Chat20Regular);
 const Settings = bundleIcon(Settings20Filled, Settings20Regular);
 
 const navIconMap = {
+  home: Home,
   dashboard: Dashboard,
+  dsa: Dsa,
   arbitrage: Arbitrage,
   rewards: Rewards,
+  governance: Governance,
+  admin: Admin,
+  users: Users,
+  chat: ChatNav,
   bank: Bank,
   infrastructure: Infrastructure,
   pricing: Fee,
@@ -107,6 +131,7 @@ export default function NavDrawerMenu() {
   const styles = useStyles();
   const navigate = useNavigate();
   const pathname = useLocation().pathname;
+  const { isAdmin } = useAuth();
   const { open, collapsed, close, toggle, toggleCollapsed } = useSidebar();
   const isLargeScreen = useIsLargeScreen();
   const restoreFocusTargetAttributes = useRestoreFocusTarget();
@@ -176,11 +201,35 @@ export default function NavDrawerMenu() {
             </div>
           ))}
 
+          {isAdmin ? (
+            <div>
+              <NavSectionHeader>Admin</NavSectionHeader>
+              {adminNavItems.map((item) => {
+                const Icon =
+                  navIconMap[item.icon as keyof typeof navIconMap] ?? Admin;
+
+                return (
+                  <NavItem key={item.id} icon={<Icon />} value={item.value}>
+                    {item.label}
+                  </NavItem>
+                );
+              })}
+            </div>
+          ) : null}
+
           <NavDivider />
 
-          <NavItem icon={<Settings />} value={settingsNavItem.value}>
-            {settingsNavItem.label}
-          </NavItem>
+          <NavSectionHeader>Settings</NavSectionHeader>
+          {settingsNavItems.map((item) => {
+            const Icon =
+              navIconMap[item.icon as keyof typeof navIconMap] ?? Settings;
+
+            return (
+              <NavItem key={item.id} icon={<Icon />} value={item.value}>
+                {item.label}
+              </NavItem>
+            );
+          })}
         </NavDrawerBody>
       </NavDrawer>
     </div>

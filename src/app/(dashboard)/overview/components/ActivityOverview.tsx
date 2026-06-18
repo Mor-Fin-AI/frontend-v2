@@ -15,14 +15,14 @@ const variants: Variants = {
 };
 
 export default function ActivityOverview() {
-  const { ref, controls } = useScrollAnimation();
+  const { ref } = useScrollAnimation();
 
   return (
     <motion.div
       ref={ref}
       variants={variants}
       initial="hidden"
-      animate={controls}
+      animate="visible"
       className="grid grid-cols-1 md:grid-cols-12 items-stretch gap-4"
     >
       <div className="md:col-span-6 h-full">

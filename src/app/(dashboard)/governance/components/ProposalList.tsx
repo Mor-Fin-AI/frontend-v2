@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Proposal, ProposalStatus, ProposalCategory } from '../data';
 import { ThumbLike24Regular, ThumbDislike24Regular } from '@fluentui/react-icons';
 import {
@@ -98,6 +99,17 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalS,
     flexWrap: 'wrap',
   },
+  viewLink: {
+    marginLeft: 'auto',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorBrandForeground1,
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    ':hover': {
+      textDecoration: 'underline',
+    },
+  },
 });
 
 function ProposalBadge({ label }: { label: string }) {
@@ -144,9 +156,11 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
 
         <CardHeader
           header={
-            <Text as="h5" weight="semibold" style={{ margin: 0 }}>
-              {proposal.title}
-            </Text>
+            <Link to={`/governance/${proposal.id}`} className="hover:underline">
+              <Text as="h5" weight="semibold" style={{ margin: 0 }}>
+                {proposal.title}
+              </Text>
+            </Link>
           }
           description={
             <Caption1 className={shell.caption}>{proposal.description}</Caption1>
@@ -184,8 +198,17 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
             <NeuButton variant="secondary" size="sm">
               Vote Against
             </NeuButton>
+            <Link to={`/governance/${proposal.id}`} className={styles.viewLink}>
+              View details
+            </Link>
           </CardFooter>
-        ) : null}
+        ) : (
+          <CardFooter className={styles.footer}>
+            <Link to={`/governance/${proposal.id}`} className={styles.viewLink}>
+              View details
+            </Link>
+          </CardFooter>
+        )}
       </Card>
     </motion.div>
   );

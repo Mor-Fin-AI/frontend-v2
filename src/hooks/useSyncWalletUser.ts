@@ -16,12 +16,12 @@ export function useSyncWalletUser() {
   useEffect(() => {
     if (!isConnected || !address) return;
 
-    setUser({
+    setUser((prev) => ({
+      ...prev,
       name: ensName ?? truncateAddress(address),
       address: truncateAddress(address),
       fullAddress: address,
-      role: "",
       isWalletConnected: true,
-    });
+    }));
   }, [address, ensName, isConnected, setUser]);
 }

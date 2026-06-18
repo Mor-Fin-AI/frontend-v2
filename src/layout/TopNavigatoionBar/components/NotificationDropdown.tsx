@@ -27,6 +27,9 @@ import {
 } from "../data/notifications";
 import AppBadge from "@/components/ui/AppBadge";
 import { notificationTypeBadge } from "@/lib/badgeTones";
+import { useAuth } from "@/context/AuthContext";
+import { useSupportChatContext } from "@/context/SupportChatContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const useStyles = makeStyles({
   root: {
@@ -283,8 +286,20 @@ export default function NotificationDropdown() {
   const styles = useStyles();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] =
+  const [guestNotifications, setGuestNotifications] =
     useState<NotificationItem[]>(initialNotifications);
+  const { user, isAuthenticated } = useAuth();
+  const { openChat } = useSupportChatContext();
+  const {
+    notifications: liveNotifications,
+    markRead,
+    markAllRead,
+  } = useNotifications({
+    userId: user?.id,
+    enabled: isAuthenticated,
+  });
+
+  const notifications = isAuthenticated ? liveNotifications : guestNotifications;
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.read).length,
@@ -315,15 +330,31 @@ export default function NotificationDropdown() {
     };
   }, [open]);
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+  const markAllReadHandler = () => {
+    if (isAuthenticated) {
+      void markAllRead();
+      return;
+    }
+
+    setGuestNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
   };
 
   const handleNotificationClick = (item: NotificationItem) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
-    );
+    if (isAuthenticated) {
+      void markRead(item.id);
+    } else {
+      setGuestNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+      );
+    }
+
     setOpen(false);
+
+    if (item.href === "support-chat") {
+      openChat();
+      return;
+    }
+
     if (item.href) {
       navigate(item.href);
     }
@@ -382,7 +413,7 @@ export default function NotificationDropdown() {
             <NotificationPanel
               notifications={notifications}
               unreadCount={unreadCount}
-              onMarkAllRead={markAllRead}
+              onMarkAllRead={markAllReadHandler}
               onItemClick={handleNotificationClick}
               onViewAll={() => {
                 setOpen(false);

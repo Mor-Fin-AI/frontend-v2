@@ -1,17 +1,21 @@
 import { Outlet } from "react-router-dom";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import WalletUserSync from "@/components/wallet/WalletUserSync";
+import { L2ChainProvider } from "@/context/L2ChainContext";
 import { SidebarProvider } from "@/context/SidebarContext";
 import { UserProvider } from "@/context/UserContext";
 import TopNavigationBar from "@/layout/TopNavigatoionBar";
 import ClientNavigationBar from "@/layout/ClientNavigationBar";
 import SupportChat from "@/components/support/SupportChat";
+import { SupportChatProvider } from "@/context/SupportChatContext";
 
 export default function ClientLayout() {
   return (
     <UserProvider>
-      <WalletUserSync />
-      <SidebarProvider>
+      <L2ChainProvider>
+        <WalletUserSync />
+        <SupportChatProvider>
+        <SidebarProvider>
         <div className="flex h-screen overflow-hidden bg-background text-foreground">
           <ClientNavigationBar />
 
@@ -26,7 +30,9 @@ export default function ClientLayout() {
             <SupportChat />
           </div>
         </div>
-      </SidebarProvider>
+        </SidebarProvider>
+        </SupportChatProvider>
+      </L2ChainProvider>
     </UserProvider>
   );
 }

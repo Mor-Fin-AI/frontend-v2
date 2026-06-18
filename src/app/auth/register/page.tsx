@@ -6,17 +6,47 @@ import { motion } from "framer-motion";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthField, AuthSubmitButton } from "@/components/auth/AuthFormFields";
 import { primaryVariants, staggerTransition } from "@/components/auth/authMotion";
+import { useAuth } from "@/context/AuthContext";
+import { useAppToast } from "@/hooks/useAppToast";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
+  const toast = useAppToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      navigate("/overview");
-    }, 600);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    if (password !== confirmPassword) {
+      setIsSubmitting(false);
+      setError("Passwords do not match.");
+      toast.error("Passwords do not match", "Re-type your password to match.");
+      return;
+    }
+
+    const { error: signUpError } = await signUp(email, password);
+    setIsSubmitting(false);
+
+    if (signUpError) {
+      setError(signUpError);
+      toast.error("Account not created", signUpError);
+      return;
+    }
+
+    toast.success(
+      "Account created",
+      "Check your email to confirm, then sign in."
+    );
+    window.setTimeout(() => navigate("/sign-in"), 1200);
   };
 
   return (
@@ -43,6 +73,7 @@ export default function RegisterPage() {
             <motion.div variants={primaryVariants} className="mb-3">
               <AuthField
                 label="Email"
+                name="email"
                 type="email"
                 placeholder="Enter your email"
                 autoComplete="email"
@@ -54,6 +85,7 @@ export default function RegisterPage() {
             <motion.div variants={primaryVariants} className="mb-3">
               <AuthField
                 label="Password"
+                name="password"
                 type="password"
                 placeholder="Enter your password"
                 autoComplete="new-password"
@@ -65,6 +97,7 @@ export default function RegisterPage() {
             <motion.div variants={primaryVariants} className="mb-4">
               <AuthField
                 label="Re-type Password"
+                name="confirmPassword"
                 type="password"
                 placeholder="Re-type your password"
                 autoComplete="new-password"
@@ -72,6 +105,16 @@ export default function RegisterPage() {
                 requiredMark
               />
             </motion.div>
+
+            {error ? (
+              <motion.p
+                variants={primaryVariants}
+                className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {error}
+              </motion.p>
+            ) : null}
 
             <motion.div
               variants={primaryVariants}

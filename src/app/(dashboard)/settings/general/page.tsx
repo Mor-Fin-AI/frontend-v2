@@ -58,18 +58,18 @@ const useStyles = makeStyles({
   },
 });
 
-export default function SettingsPage() {
+export default function SettingsGeneralPage() {
   const styles = useStyles();
   const { theme, toggleTheme, isDark } = useTheme();
-  const { ref, controls } = useScrollAnimation();
+  const { ref } = useScrollAnimation();
 
   return (
     <motion.div
       ref={ref}
       variants={variants}
       initial="hidden"
-      animate={controls}
-      className="mt-6 flex flex-col gap-7"
+      animate="visible"
+      className="flex flex-col gap-7"
     >
       <PanelCard>
         <PanelCardTopBar>
@@ -79,7 +79,7 @@ export default function SettingsPage() {
         </PanelCardTopBar>
 
         <PanelCardHeader
-          title="Settings"
+          title="General"
           description="Manage appearance and dashboard preferences"
         />
 

@@ -9,6 +9,18 @@ export interface MenuItem {
 
 export const sidebarMenu: MenuItem[] = [
   {
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: "home",
+  },
+  {
+    id: "dsa-account",
+    label: "DSA Account",
+    href: "/dsa-account",
+    icon: "dsa",
+  },
+  {
     id: "treasury-flow",
     label: "Treasury Flow",
     href: "/overview",
@@ -25,6 +37,12 @@ export const sidebarMenu: MenuItem[] = [
     label: "DAO Education Rewards",
     href: "/dao-education-rewards",
     icon: "rewards",
+  },
+  {
+    id: "governance",
+    label: "Governance",
+    href: "/governance",
+    icon: "governance",
   },
   {
     id: "lending-debt-discharge",

@@ -14,6 +14,7 @@ import {
 import AppSpinner from "@/components/ui/AppSpinner";
 import ProfilePersona from "@/components/wallet/ProfilePersona";
 import { ChevronDown16Regular, SignOut24Regular } from "@fluentui/react-icons";
+import { useAuth } from "@/context/AuthContext";
 import { useUser } from "@/context/UserContext";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -194,6 +195,7 @@ export default function ProfileDropdown() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const { user, setUser } = useUser();
+  const { signOut, isAdmin } = useAuth();
   const { theme } = useTheme();
   const { disconnect } = useDisconnect();
   const { address, isConnected } = useAccount();
@@ -234,12 +236,14 @@ export default function ProfileDropdown() {
     };
   }, [open]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     if (user.isWalletConnected) {
       disconnect();
     }
+    await signOut();
     setUser(defaultUser);
     setOpen(false);
+    navigate("/sign-in");
   };
 
   const navigateTo = (path: string) => {
@@ -302,10 +306,28 @@ export default function ProfileDropdown() {
                   type="button"
                   role="menuitem"
                   className={styles.menuItem}
+                  onClick={() => navigateTo("/dashboard")}
+                >
+                  Dashboard
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItem}
                   onClick={() => navigateTo("/overview")}
                 >
                   Treasury Flow
                 </button>
+                {isAdmin ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => navigateTo("/admin")}
+                  >
+                    Admin Dashboard
+                  </button>
+                ) : null}
               </div>
 
               <div className={styles.themeRow}>

@@ -1,22 +1,46 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthField, AuthSubmitButton } from "@/components/auth/AuthFormFields";
+import ForgotPasswordDialog from "@/components/auth/ForgotPasswordDialog";
 import { primaryVariants, staggerTransition } from "@/components/auth/authMotion";
+import { useAuth } from "@/context/AuthContext";
+import { useAppToast } from "@/hooks/useAppToast";
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn } = useAuth();
+  const toast = useAppToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const from =
+    (location.state as { from?: string } | null)?.from ?? "/overview";
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      navigate("/overview");
-    }, 600);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    const { error: signInError } = await signIn(email, password);
+    setIsSubmitting(false);
+
+    if (signInError) {
+      setError(signInError);
+      toast.error("Sign in failed", signInError);
+      return;
+    }
+
+    toast.success("Welcome back", "Signed in successfully.");
+    navigate(from, { replace: true });
   };
 
   return (
@@ -43,6 +67,7 @@ export default function SignInPage() {
             <motion.div variants={primaryVariants} className="mb-3">
               <AuthField
                 label="Email"
+                name="email"
                 type="email"
                 placeholder="Enter your email"
                 autoComplete="email"
@@ -54,6 +79,7 @@ export default function SignInPage() {
             <motion.div variants={primaryVariants} className="mb-2">
               <AuthField
                 label="Password"
+                name="password"
                 type="password"
                 placeholder="Enter your password"
                 autoComplete="current-password"
@@ -62,13 +88,18 @@ export default function SignInPage() {
               />
             </motion.div>
 
-            <motion.div variants={primaryVariants} className="mb-6 text-right">
-              <button
-                type="button"
-                className="text-xs text-primary underline-offset-2 hover:underline"
+            {error ? (
+              <motion.p
+                variants={primaryVariants}
+                className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
               >
-                Forgot password?
-              </button>
+                {error}
+              </motion.p>
+            ) : null}
+
+            <motion.div variants={primaryVariants} className="mb-6 text-right">
+              <ForgotPasswordDialog />
             </motion.div>
 
             <motion.div variants={primaryVariants}>

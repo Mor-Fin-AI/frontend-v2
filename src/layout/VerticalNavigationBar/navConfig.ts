@@ -15,6 +15,25 @@ export interface NavSection {
 
 export const navSections: NavSection[] = [
   {
+    header: "Home",
+    items: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        value: "dashboard",
+        icon: "home",
+      },
+      {
+        id: "dsa-account",
+        label: "DSA Account",
+        href: "/dsa-account",
+        value: "dsa-account",
+        icon: "dsa",
+      },
+    ],
+  },
+  {
     header: "Treasury & Finance",
     items: [
       {
@@ -51,6 +70,13 @@ export const navSections: NavSection[] = [
         icon: "rewards",
       },
       {
+        id: "governance",
+        label: "Governance",
+        href: "/governance",
+        value: "governance",
+        icon: "governance",
+      },
+      {
         id: "lending-debt-discharge",
         label: "Lending & Debt Discharge",
         href: "/lending-debt-discharge",
@@ -73,17 +99,62 @@ export const navSections: NavSection[] = [
   },
 ];
 
-export const settingsNavItem: NavLink = {
-  id: "settings",
-  label: "Settings",
-  href: "/settings",
-  value: "settings",
-  icon: "settings",
-};
+export const adminNavItems: NavLink[] = [
+  {
+    id: "admin-overview",
+    label: "Overview",
+    href: "/admin",
+    value: "admin-overview",
+    icon: "admin",
+  },
+  {
+    id: "admin-tickets",
+    label: "Support Queue",
+    href: "/admin/tickets",
+    value: "admin-tickets",
+    icon: "admin",
+  },
+  {
+    id: "admin-users",
+    label: "Users",
+    href: "/admin/users",
+    value: "admin-users",
+    icon: "users",
+  },
+  {
+    id: "admin-chat",
+    label: "Support Chat",
+    href: "/admin/chat",
+    value: "admin-chat",
+    icon: "chat",
+  },
+];
+
+export const adminNavItem = adminNavItems[1];
+
+export const settingsNavItems: NavLink[] = [
+  {
+    id: "settings-general",
+    label: "General",
+    href: "/settings/general",
+    value: "settings-general",
+    icon: "settings",
+  },
+  {
+    id: "settings-support",
+    label: "Support",
+    href: "/settings/support",
+    value: "settings-support",
+    icon: "settings",
+  },
+];
+
+export const settingsNavItem = settingsNavItems[0];
 
 export const allNavLinks: NavLink[] = [
   ...navSections.flatMap((section) => section.items),
-  settingsNavItem,
+  ...adminNavItems,
+  ...settingsNavItems,
 ];
 
 export const navHrefByValue: Record<string, string> = Object.fromEntries(
@@ -98,6 +169,15 @@ export function resolveNavSelection(pathname: string): {
       ? pathname.slice(0, -1)
       : pathname;
 
-  const match = allNavLinks.find((item) => item.href === normalized);
+  const match = [...allNavLinks]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find(
+      (item) =>
+        normalized === item.href || normalized.startsWith(`${item.href}/`)
+    );
   return match ? { selectedValue: match.value } : {};
+}
+
+export function getAdminNavItems(isAdmin: boolean): NavLink[] {
+  return isAdmin ? adminNavItems : [];
 }

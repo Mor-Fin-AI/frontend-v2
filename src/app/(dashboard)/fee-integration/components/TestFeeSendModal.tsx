@@ -15,11 +15,11 @@ import {
   Input,
   Spinner,
   makeStyles,
-  mergeClasses,
   tokens,
 } from "@fluentui/react-components";
 import { Send24Regular } from "@fluentui/react-icons";
 import AppBadge from "@/components/ui/AppBadge";
+import { useAppToast } from "@/hooks/useAppToast";
 
 const useStyles = makeStyles({
   header: {
@@ -39,28 +39,6 @@ const useStyles = makeStyles({
     color: "var(--muted-foreground)",
     display: "block",
     marginTop: tokens.spacingVerticalM,
-  },
-  result: {
-    marginTop: tokens.spacingVerticalM,
-    padding: tokens.spacingHorizontalS,
-    borderRadius: tokens.borderRadiusMedium,
-    border: "1px solid var(--border)",
-    backgroundColor: "var(--muted)",
-    fontSize: tokens.fontSizeBase200,
-    lineHeight: 1.5,
-    color: "var(--card-foreground)",
-  },
-  resultSuccess: {
-    borderTopColor: "color-mix(in srgb, var(--action-green) 40%, var(--border))",
-    borderRightColor: "color-mix(in srgb, var(--action-green) 40%, var(--border))",
-    borderBottomColor: "color-mix(in srgb, var(--action-green) 40%, var(--border))",
-    borderLeftColor: "color-mix(in srgb, var(--action-green) 40%, var(--border))",
-  },
-  resultError: {
-    borderTopColor: "color-mix(in srgb, var(--destructive) 40%, var(--border))",
-    borderRightColor: "color-mix(in srgb, var(--destructive) 40%, var(--border))",
-    borderBottomColor: "color-mix(in srgb, var(--destructive) 40%, var(--border))",
-    borderLeftColor: "color-mix(in srgb, var(--destructive) 40%, var(--border))",
   },
   sendButton: {
     backgroundColor: "var(--action-green)",
@@ -84,13 +62,10 @@ type TestFeeSendModalProps = {
 
 export default function TestFeeSendModal({ feeRatePercent }: TestFeeSendModalProps) {
   const styles = useStyles();
+  const toast = useAppToast();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("1000");
   const [isSending, setIsSending] = useState(false);
-  const [result, setResult] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
 
   const previewFee = (() => {
     const parsed = Number.parseFloat(amount);
@@ -102,31 +77,29 @@ export default function TestFeeSendModal({ feeRatePercent }: TestFeeSendModalPro
     setOpen(data.open);
     if (!data.open) {
       setIsSending(false);
-      setResult(null);
     }
   };
 
   const handleSendTestFee = async () => {
     const parsed = Number.parseFloat(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      setResult({
-        type: "error",
-        message: "Enter a valid transaction amount greater than zero.",
-      });
+      toast.error(
+        "Invalid amount",
+        "Enter a valid transaction amount greater than zero."
+      );
       return;
     }
 
     setIsSending(true);
-    setResult(null);
 
     await new Promise((resolve) => window.setTimeout(resolve, 900));
 
     const feeAmount = parsed * (feeRatePercent / 100);
     setIsSending(false);
-    setResult({
-      type: "success",
-      message: `Test fee send succeeded. ${formatUsd(parsed)} volume captured → ${formatUsd(feeAmount)} (${feeRatePercent}%) routed to treasury.`,
-    });
+    toast.success(
+      "Test fee send succeeded",
+      `${formatUsd(parsed)} volume captured → ${formatUsd(feeAmount)} (${feeRatePercent}%) routed to treasury.`
+    );
   };
 
   return (
@@ -137,7 +110,7 @@ export default function TestFeeSendModal({ feeRatePercent }: TestFeeSendModalPro
         </Button>
       </DialogTrigger>
 
-      <DialogSurface>
+      <DialogSurface aria-describedby={undefined}>
         <DialogBody>
           <div className={styles.header}>
             <div>
@@ -169,20 +142,6 @@ export default function TestFeeSendModal({ feeRatePercent }: TestFeeSendModalPro
                 Preview: {formatUsd(previewFee)} fee will route to treasury at{" "}
                 {feeRatePercent}%.
               </Caption1>
-            ) : null}
-
-            {result ? (
-              <p
-                className={mergeClasses(
-                  styles.result,
-                  result.type === "success"
-                    ? styles.resultSuccess
-                    : styles.resultError
-                )}
-                role="status"
-              >
-                {result.message}
-              </p>
             ) : null}
           </DialogContent>
 

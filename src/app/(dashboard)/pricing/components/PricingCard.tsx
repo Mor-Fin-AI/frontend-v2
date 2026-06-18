@@ -90,7 +90,7 @@ const cardVariant: Variants = {
 };
 
 export function PricingCard({ tier }: { tier: PricingTier }) {
-  const { ref, controls } = useScrollAnimation(0.15);
+  const { ref, controls } = useScrollAnimation();
   const styles = useStyles();
 
   return (

@@ -30,7 +30,7 @@ const itemVariants: Variants = {
 };
 
 export default function StatCards({ isLoading = false }: { isLoading?: boolean }) {
-    const { ref, controls } = useScrollAnimation();
+    const { ref } = useScrollAnimation();
 
     if (isLoading) {
         return <StatCardsSkeleton aria-label="Loading overview stats" />;
@@ -41,7 +41,7 @@ export default function StatCards({ isLoading = false }: { isLoading?: boolean }
             ref={ref}
             variants={containerVariants}
             initial="hidden"
-            animate={controls}
+            animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 "
         >
             {statCardsData.map((stat) => (

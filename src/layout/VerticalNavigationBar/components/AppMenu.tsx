@@ -15,15 +15,20 @@ import {
   Box24Regular,
   BuildingBank24Regular,
   DocumentText24Regular,
+  Home24Regular,
   Money24Regular,
   Server24Regular,
+  Vote24Regular,
+  Wallet24Regular,
 } from "@fluentui/react-icons";
 import { MenuItem } from "../menu";
 import { RewardIcon } from "../../../../public/Svg/sidebar/RewardIcon";
 import { DaoIcon } from "../../../../public/Svg/sidebar/DaoIcon";
 
 const iconMap = {
+  home: Home24Regular,
   dashboard: Board24Regular,
+  dsa: Wallet24Regular,
   arbitrage: ArrowSwap24Regular,
   rewards: RewardIcon,
   dao: DaoIcon,
@@ -31,6 +36,7 @@ const iconMap = {
   server: Server24Regular,
   bank: BuildingBank24Regular,
   file: DocumentText24Regular,
+  governance: Vote24Regular,
   pricing: Money24Regular,
 };
 

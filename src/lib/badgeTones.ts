@@ -9,6 +9,7 @@ export const notificationTypeBadge: Record<
   governance: { tone: "warning", appearance: "tint" },
   reward: { tone: "success", appearance: "tint" },
   system: { tone: "info", appearance: "tint" },
+  support: { tone: "info", appearance: "tint" },
 };
 
 export const activityTypeTone: Record<string, AppBadgeTone> = {

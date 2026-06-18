@@ -1,0 +1,5 @@
+[functions.create-support-ticket]
+verify_jwt = true
+
+[functions.update-ticket-status]
+verify_jwt = true

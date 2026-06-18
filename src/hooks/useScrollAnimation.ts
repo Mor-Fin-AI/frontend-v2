@@ -1,25 +1,24 @@
 "use client";
 
-import { useAnimation, useInView } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
-export const useScrollAnimation = (threshold = 0.1) => {
-  const controls = useAnimation();
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: threshold });
+export const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
+};
 
-  useEffect(() => {
-    if (isInView) {
-      void controls.start("visible");
-      return;
-    }
+/** Always visible on mount — avoids blank pages after client-side navigation. */
+export const useScrollAnimation = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  return { ref, controls: "visible" as const };
+};
 
-    const timer = window.setTimeout(() => {
-      void controls.start("visible");
-    }, 150);
-
-    return () => window.clearTimeout(timer);
-  }, [controls, isInView]);
-
-  return { ref, controls };
+export const pageEnterMotion = {
+  variants: fadeUpVariants,
+  initial: "hidden" as const,
+  animate: "visible" as const,
 };

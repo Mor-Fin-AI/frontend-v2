@@ -1,5 +1,6 @@
 "use client";
 
+import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight24Regular, Star24Filled } from "@fluentui/react-icons";
 import {
@@ -7,6 +8,12 @@ import {
   primaryVariants,
   staggerTransition,
 } from "./authMotion";
+
+const AuthThreeScene = lazy(() =>
+  import("./AuthThreeScene").then((module) => ({
+    default: module.AuthThreeScene,
+  }))
+);
 
 const MEMBER_AVATARS = ["AK", "JM", "RS", "LT", "DW"];
 const MEMBER_COLORS = [
@@ -20,15 +27,17 @@ const MEMBER_COLORS = [
 export function AuthSupplementalPanel() {
   return (
     <div className="group sticky top-4 m-4 h-80 overflow-hidden rounded-3xl rounded-tl-[4rem] border border-border bg-card shadow-lg md:h-[calc(100vh-2rem)]">
-      <div
-        className="h-full w-full bg-cover bg-center transition-all duration-500 group-hover:scale-105 group-hover:opacity-60"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, color-mix(in srgb, var(--primary) 28%, transparent) 0%, color-mix(in srgb, var(--chart-2) 22%, transparent) 38%, color-mix(in srgb, var(--card) 88%, transparent) 100%), radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--primary) 24%, transparent), transparent 48%)",
-        }}
-      />
+      <Suspense
+        fallback={
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-card to-chart-2/10" />
+        }
+      >
+        <AuthThreeScene className="absolute inset-0 h-full w-full" />
+      </Suspense>
 
-      <div className="absolute right-3 top-4 z-10">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-2/10" />
+
+      <div className="pointer-events-none absolute right-3 top-4 z-10">
         <ArrowUpRight24Regular className="h-14 w-14 rotate-45 text-primary opacity-0 transition-all duration-500 group-hover:rotate-0 group-hover:opacity-100" />
       </div>
 
@@ -37,7 +46,7 @@ export function AuthSupplementalPanel() {
         whileInView="animate"
         transition={staggerTransition}
         viewport={{ once: true }}
-        className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-card/95 via-card/55 to-transparent p-8"
+        className="pointer-events-none absolute inset-0 z-10 flex flex-col items-start justify-end bg-gradient-to-t from-card/95 via-card/55 to-transparent p-8"
       >
         <motion.h2
           className="mb-2 text-3xl font-semibold leading-tight text-foreground lg:text-4xl"

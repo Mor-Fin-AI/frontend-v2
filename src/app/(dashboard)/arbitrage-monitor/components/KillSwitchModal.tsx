@@ -17,6 +17,8 @@ import {
 } from "@fluentui/react-components";
 import { Shield24Regular } from "@fluentui/react-icons";
 import AppBadge from "@/components/ui/AppBadge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useAppToast } from "@/hooks/useAppToast";
 import { killSwitchStatusMeta, type KillSwitchStatus } from "../data";
 
 const useStyles = makeStyles({
@@ -77,7 +79,9 @@ export default function KillSwitchModal({
   onStatusChange,
 }: KillSwitchModalProps) {
   const styles = useStyles();
+  const toast = useAppToast();
   const [open, setOpen] = useState(false);
+  const [killConfirmOpen, setKillConfirmOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(() =>
     new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
   );
@@ -89,9 +93,21 @@ export default function KillSwitchModal({
     setLastUpdated(
       new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
     );
+
+    if (next === "running") {
+      toast.success("Arbitrage resumed", "Automated execution is running again.");
+    } else if (next === "paused") {
+      toast.warning("Arbitrage paused", "Automated execution is temporarily paused.");
+    } else if (next === "killed") {
+      toast.error(
+        "Kill switch activated",
+        "All automated arbitrage execution has been halted."
+      );
+    }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(_event, data) => setOpen(data.open)}>
       <DialogTrigger disableButtonEnhancement>
         <Button appearance="secondary" icon={<Shield24Regular />}>
@@ -99,7 +115,7 @@ export default function KillSwitchModal({
         </Button>
       </DialogTrigger>
 
-      <DialogSurface>
+      <DialogSurface aria-describedby={undefined}>
         <DialogBody>
           <div className={styles.header}>
             <div>
@@ -132,7 +148,7 @@ export default function KillSwitchModal({
                 appearance="primary"
                 className={mergeClasses(styles.killButton)}
                 disabled={status === "killed"}
-                onClick={() => setStatus("killed")}
+                onClick={() => setKillConfirmOpen(true)}
               >
                 Activate Kill Switch
               </Button>
@@ -151,5 +167,20 @@ export default function KillSwitchModal({
         </DialogBody>
       </DialogSurface>
     </Dialog>
+
+    <ConfirmDialog
+      open={killConfirmOpen}
+      onOpenChange={setKillConfirmOpen}
+      modalType="alert"
+      title="Activate kill switch?"
+      description="This will immediately halt all automated arbitrage execution. Resume manually when it is safe to continue."
+      confirmLabel="Activate kill switch"
+      confirmAppearance="primary"
+      onConfirm={() => {
+        setStatus("killed");
+        setKillConfirmOpen(false);
+      }}
+    />
+  </>
   );
 }

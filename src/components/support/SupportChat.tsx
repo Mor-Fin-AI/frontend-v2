@@ -26,6 +26,15 @@ import {
   Note24Regular,
   PersonSupport24Regular,
 } from "@fluentui/react-icons";
+import { useAuth } from "@/context/AuthContext";
+import { useSupportChatContext } from "@/context/SupportChatContext";
+import { useSupportChat } from "@/hooks/useSupportChat";
+import { useAppToast } from "@/hooks/useAppToast";
+import type { SupportChatMessage } from "@/lib/supportChat";
+
+const SUPPORT_AVATAR = (
+  <Avatar name="Morfinance Support" badge={{ status: "available" }} />
+);
 
 type AttachmentKind = "file" | "image";
 
@@ -35,29 +44,6 @@ type ChatAttachment = {
   kind: AttachmentKind;
   previewUrl?: string;
 };
-
-type SupportChatMessage = {
-  id: string;
-  role: "user" | "support";
-  text: string;
-  time: string;
-  attachments?: Array<{
-    name: string;
-    kind: AttachmentKind;
-    previewUrl?: string;
-  }>;
-};
-
-const WELCOME_MESSAGE: SupportChatMessage = {
-  id: "welcome",
-  role: "support",
-  text: "Hi there! How can we help with your Morfinance dashboard today?",
-  time: "Just now",
-};
-
-const SUPPORT_AVATAR = (
-  <Avatar name="Morfinance Support" badge={{ status: "available" }} />
-);
 
 const MAX_TEXTAREA_HEIGHT = 120;
 const MAX_ATTACHMENTS = 3;
@@ -77,10 +63,6 @@ const COMPOSER_OPTIONS = [
   { id: "image", label: "Share image", icon: Image24Regular, action: "image" as const },
   { id: "note", label: "Add note", icon: Note24Regular, action: "note" as const },
 ] as const;
-
-function formatTime(date = new Date()) {
-  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -532,6 +514,19 @@ export default function SupportChat() {
   const styles = useStyles();
   const panelId = useId();
   const inputId = useId();
+  const { user, isAuthenticated } = useAuth();
+  const toast = useAppToast();
+  const { open, setOpen, toggleChat, closeChat } = useSupportChatContext();
+  const {
+    messages,
+    isSending,
+    isTyping,
+    error: chatError,
+    sendMessage,
+  } = useSupportChat({
+    userId: user?.id,
+    enabled: isAuthenticated,
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -539,18 +534,16 @@ export default function SupportChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const attachmentUrlsRef = useRef<Set<string>>(new Set());
 
-  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [focused, setFocused] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
-  const [messages, setMessages] = useState<SupportChatMessage[]>([WELCOME_MESSAGE]);
 
   const canSend =
-    (draft.trim().length > 0 || attachments.length > 0) && !isSending;
+    (draft.trim().length > 0 || attachments.length > 0) &&
+    !isSending &&
+    isAuthenticated;
 
   const trackPreviewUrl = (url: string) => {
     attachmentUrlsRef.current.add(url);
@@ -574,6 +567,12 @@ export default function SupportChat() {
     const nextHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT);
     textarea.style.height = `${nextHeight}px`;
   };
+
+  useEffect(() => {
+    if (chatError) {
+      toast.error("Support chat unavailable", chatError);
+    }
+  }, [chatError, toast]);
 
   useEffect(() => {
     resizeTextarea();
@@ -670,52 +669,30 @@ export default function SupportChat() {
     setComposerError(null);
   };
 
-  const sendMessage = async () => {
+  const sendMessageHandler = async () => {
     const text = draft.trim();
-    if ((!text && attachments.length === 0) || isSending) return;
+    if ((!text && attachments.length === 0) || isSending || !isAuthenticated) return;
 
     const sentAttachments = attachments.map((item) => ({
       name: item.file.name,
       kind: item.kind,
-      previewUrl: item.previewUrl,
     }));
 
-    const userMessage: SupportChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      text,
-      time: formatTime(),
-      attachments: sentAttachments.length ? sentAttachments : undefined,
-    };
-
-    setIsSending(true);
     setDraft("");
-    setAttachments([]);
+    clearAttachments();
     setComposerError(null);
-    setMessages((prev) => [...prev, userMessage]);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 320));
-    setIsSending(false);
-    setIsTyping(true);
-
-    window.setTimeout(() => {
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `support-${Date.now()}`,
-          role: "support",
-          text: "Thanks for reaching out. A support specialist will follow up shortly. For urgent wallet issues, include your DSA account ID.",
-          time: formatTime(),
-        },
-      ]);
-    }, 900);
+    const result = await sendMessage(text, sentAttachments);
+    if (result.error) {
+      setComposerError(result.error);
+      toast.error("Message not sent", result.error);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      void sendMessage();
+      void sendMessageHandler();
     }
   };
 
@@ -775,7 +752,7 @@ export default function SupportChat() {
                 <span className={styles.headerIcon}>
                   <PersonSupport24Regular className="h-5 w-5" />
                 </span>
-                <Text className={styles.headerTitle}>Support Chat</Text>
+                <Text className={styles.headerTitle}>Morfinance Support Chat</Text>
               </div>
               <button
                 type="button"
@@ -784,7 +761,7 @@ export default function SupportChat() {
                 onClick={() => {
                   setEmojiOpen(false);
                   clearAttachments();
-                  setOpen(false);
+                  closeChat();
                 }}
               >
                 <Dismiss24Regular className="h-4 w-4" />
@@ -888,9 +865,9 @@ export default function SupportChat() {
                 Images {MAX_IMAGE_SIZE_MB}MB max · Use note for extra context
               </Caption1>
 
-              {composerError ? (
+              {composerError || chatError ? (
                 <Caption1 className={styles.composerError} role="alert">
-                  {composerError}
+                  {composerError ?? chatError}
                 </Caption1>
               ) : null}
 
@@ -975,7 +952,7 @@ export default function SupportChat() {
                   )}
                   aria-label="Send message"
                   disabled={!canSend}
-                  onClick={() => void sendMessage()}
+                  onClick={() => void sendMessageHandler()}
                 >
                   <ArrowUp24Filled className={styles.sendIcon} />
                 </button>
@@ -991,7 +968,7 @@ export default function SupportChat() {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={open ? "Close support chat" : "Open support chat"}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleChat}
       >
         <Chat24Regular className="h-5 w-5" />
         <span className={styles.launcherLabel}>Support</span>

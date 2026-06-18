@@ -2,7 +2,8 @@ export type NotificationType =
   | "learning"
   | "governance"
   | "reward"
-  | "system";
+  | "system"
+  | "support";
 
 export interface NotificationItem {
   id: string;
@@ -67,6 +68,7 @@ export const TYPE_LABELS: Record<NotificationType, string> = {
   governance: "Governance",
   reward: "Reward",
   system: "System",
+  support: "Support",
 };
 
 export const TYPE_COLORS: Record<NotificationType, string> = {
@@ -74,4 +76,5 @@ export const TYPE_COLORS: Record<NotificationType, string> = {
   governance: "#30ABE8",
   reward: "#22C38E",
   system: "#F69E23",
+  support: "#30ABE8",
 };

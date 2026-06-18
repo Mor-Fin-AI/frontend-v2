@@ -12,7 +12,7 @@ export interface User {
 
 interface UserContextType {
   user: User;
-  setUser: (user: User) => void;
+  setUser: (user: User | ((prev: User) => User)) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -25,7 +25,11 @@ const defaultUser: User = {
 };
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>(defaultUser);
+  const [user, setUserState] = useState<User>(defaultUser);
+
+  const setUser = (value: User | ((prev: User) => User)) => {
+    setUserState((prev) => (typeof value === "function" ? value(prev) : value));
+  };
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
