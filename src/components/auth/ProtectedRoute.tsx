@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AUTH_ROUTES } from "@/middleware/authMiddleware";
 
 export default function ProtectedRoute() {
-  const { isAuthenticated, loading, isConfigured } = useAuth();
+  const { isAuthenticated, loading, isConfigured, isRecoverySession } = useAuth();
   const location = useLocation();
 
   if (!isConfigured) {
@@ -34,6 +34,10 @@ export default function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to={AUTH_ROUTES.signIn} replace state={{ from: location.pathname }} />;
+  }
+
+  if (isRecoverySession && location.pathname !== AUTH_ROUTES.resetPassword) {
+    return <Navigate to={AUTH_ROUTES.resetPassword} replace />;
   }
 
   return <Outlet />;

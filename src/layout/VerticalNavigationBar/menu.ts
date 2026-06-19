@@ -21,6 +21,12 @@ export const sidebarMenu: MenuItem[] = [
     icon: "dsa",
   },
   {
+    id: "pricing",
+    label: "Pricing",
+    href: "/pricing",
+    icon: "pricing",
+  },
+  {
     id: "treasury-flow",
     label: "Treasury Flow",
     href: "/overview",
@@ -60,6 +66,6 @@ export const sidebarMenu: MenuItem[] = [
     id: "fee-integration",
     label: "Fee Integration",
     href: "/fee-integration",
-    icon: "pricing",
+    icon: "fee",
   },
 ];

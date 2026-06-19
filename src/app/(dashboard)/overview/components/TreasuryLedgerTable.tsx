@@ -7,8 +7,9 @@ import AppBadge from "@/components/ui/AppBadge";
 import { TABLE_ICON_CLASS } from "@/lib/tableUi";
 import { matchesSearch, matchesTags, type TableSortOption } from "@/lib/tableFilters";
 import type { Column } from "@/components/ui/DataTable";
+import { useLiveDsaWalletData } from "@/hooks/useLiveDsaWalletData";
+import { getTreasuryLedgerRows } from "@/lib/liveWalletData";
 import {
-  treasuryLedgerRows,
   type TreasuryLedgerRow,
 } from "../treasuryData";
 
@@ -51,7 +52,8 @@ function statusTone(
   return "neutral";
 }
 
-const columns: Column<TreasuryLedgerRow>[] = [
+function buildColumns(isLive: boolean): Column<TreasuryLedgerRow>[] {
+  return [
   {
     columnId: "timestamp",
     header: "Time",
@@ -83,15 +85,15 @@ const columns: Column<TreasuryLedgerRow>[] = [
   },
   {
     columnId: "amount",
-    header: "Amount",
-    width: "120px",
+    header: isLive ? "Amount (on-chain)" : "Amount",
+    width: "140px",
     accessor: (item) => (
       <span className="font-semibold text-foreground">
-        ${item.amountUsd.toLocaleString()}
+        {item.amountLabel ?? `$${item.amountUsd.toLocaleString()}`}
       </span>
     ),
-    className: "text-right w-[120px]",
-    headerClassName: "text-right w-[120px]",
+    className: "text-right w-[140px]",
+    headerClassName: "text-right w-[140px]",
   },
   {
     columnId: "status",
@@ -106,6 +108,7 @@ const columns: Column<TreasuryLedgerRow>[] = [
     headerClassName: "text-center w-[112px]",
   },
 ];
+}
 
 export default function TreasuryLedgerTable({
   isLoading = false,
@@ -115,9 +118,31 @@ export default function TreasuryLedgerTable({
   const [search, setSearch] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("timestamp");
+  const live = useLiveDsaWalletData();
+
+  const rows = useMemo(
+    () =>
+      getTreasuryLedgerRows(
+        live.activeDsa,
+        live.platformStatus,
+        live.connectedAddress,
+        live.isLive
+      ),
+    [
+      live.activeDsa,
+      live.platformStatus,
+      live.connectedAddress,
+      live.isLive,
+    ]
+  );
+
+  const columns = useMemo(
+    () => buildColumns(live.isLive),
+    [live.isLive]
+  );
 
   const filtered = useMemo(() => {
-    const rows = treasuryLedgerRows.filter((item) => {
+    const filteredRows = rows.filter((item) => {
       const matchesType = matchesTags(selectedTypes, item.type);
       const matchesQuery = matchesSearch(search, [
         item.type,
@@ -125,12 +150,12 @@ export default function TreasuryLedgerTable({
         item.destination,
         item.status,
         item.timestamp,
-        String(item.amountUsd),
+        item.amountLabel ?? String(item.amountUsd),
       ]);
       return matchesType && matchesQuery;
     });
 
-    return [...rows].sort((a, b) => {
+    return [...filteredRows].sort((a, b) => {
       switch (sortBy) {
         case "amount":
           return b.amountUsd - a.amountUsd;
@@ -141,19 +166,25 @@ export default function TreasuryLedgerTable({
           return a.id.localeCompare(b.id);
       }
     });
-  }, [search, selectedTypes, sortBy]);
+  }, [rows, search, selectedTypes, sortBy]);
+
+  const loading = isLoading || (live.isConnected && live.isLoading);
 
   return (
     <DashboardTablePanel
       title="Treasury Movement Ledger"
-      description="Recent inflows, borrowings, discharges, and capital recycling events"
+      description={
+        live.isLive
+          ? "Live on-chain balances from connected MorDSA and treasury contracts"
+          : "Recent inflows, borrowings, discharges, and capital recycling events"
+      }
       icon={<ReceiptMoney24Regular className={`h-5 w-5 ${TABLE_ICON_CLASS}`} />}
       columns={columns}
       rows={filtered}
       getRowId={(item) => item.id}
       ariaLabel="Treasury movement ledger"
       emptyMessage="No ledger entries match your filters."
-      isLoading={isLoading}
+      isLoading={loading}
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Search ledger entries..."

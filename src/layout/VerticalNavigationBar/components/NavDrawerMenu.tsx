@@ -1,8 +1,8 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  AppItem,
   Hamburger,
   NavDivider,
   NavDrawer,
@@ -12,8 +12,10 @@ import {
   NavSectionHeader,
   Tooltip,
   makeStyles,
+  mergeClasses,
   tokens,
   useRestoreFocusTarget,
+  type NavItemValue,
   type OnNavItemSelectData,
 } from "@fluentui/react-components";
 import {
@@ -49,8 +51,8 @@ import {
   navHrefByValue,
   navSections,
   resolveNavSelection,
-  settingsNavItems,
 } from "../navConfig";
+import SettingsNavGroup from "./SettingsNavGroup";
 import { useSidebar } from "@/context/SidebarContext";
 import { useIsLargeScreen } from "@/hooks/useMediaQuery";
 
@@ -80,6 +82,7 @@ const navIconMap = {
   chat: ChatNav,
   bank: Bank,
   infrastructure: Infrastructure,
+  fee: Fee,
   pricing: Fee,
   settings: Settings,
 } as const;
@@ -94,7 +97,10 @@ const useStyles = makeStyles({
     height: "100%",
     backgroundColor: "var(--sidebar)",
     borderRight: `1px solid var(--sidebar-border)`,
-    "& .fui-NavItem, & .fui-AppItem": {
+    transitionProperty: "width",
+    transitionDuration: tokens.durationNormal,
+    transitionTimingFunction: tokens.curveEasyEase,
+    "& .fui-NavItem": {
       backgroundColor: "transparent",
       color: "var(--sidebar-foreground)",
       transitionProperty: "background-color, color",
@@ -109,21 +115,71 @@ const useStyles = makeStyles({
       },
     },
   },
+  drawerCollapsed: {
+    width: "72px",
+    "& .fui-NavSectionHeader": {
+      display: "none",
+    },
+    "& .fui-NavDrawerHeader": {
+      justifyContent: "center",
+      paddingLeft: tokens.spacingHorizontalXS,
+      paddingRight: tokens.spacingHorizontalXS,
+    },
+    "& .fui-NavItem": {
+      justifyContent: "center",
+      minWidth: "40px",
+      paddingLeft: tokens.spacingHorizontalXS,
+      paddingRight: tokens.spacingHorizontalXS,
+    },
+    "& .fui-NavItem__icon": {
+      marginRight: 0,
+    },
+  },
   header: {
     paddingTop: tokens.spacingVerticalS,
     paddingBottom: tokens.spacingVerticalS,
   },
 });
 
-function BrandIcon() {
+function NavDrawerLink({
+  label,
+  icon,
+  value,
+  href,
+  isCollapsed,
+  onNavigate,
+}: {
+  label: string;
+  icon: ReactElement;
+  value: NavItemValue;
+  href: string;
+  isCollapsed: boolean;
+  onNavigate: (href: string) => void;
+}) {
+  const item = (
+    <NavItem
+      icon={icon}
+      value={value}
+      aria-label={isCollapsed ? label : undefined}
+      onClick={() => onNavigate(href)}
+    >
+      {isCollapsed ? null : label}
+    </NavItem>
+  );
+
+  if (!isCollapsed) {
+    return item;
+  }
+
   return (
-    <img
-      src="/sidebar/side-logo.png"
-      alt=""
-      aria-hidden
-      className="h-8 w-8 rounded-md object-contain"
-      draggable={false}
-    />
+    <Tooltip
+      content={label}
+      relationship="label"
+      positioning="after"
+      withArrow
+    >
+      {item}
+    </Tooltip>
   );
 }
 
@@ -136,17 +192,24 @@ export default function NavDrawerMenu() {
   const isLargeScreen = useIsLargeScreen();
   const restoreFocusTargetAttributes = useRestoreFocusTarget();
 
+  const isCollapsed = collapsed && isLargeScreen;
   const { selectedValue } = resolveNavSelection(pathname);
-  const drawerOpen = isLargeScreen ? !collapsed : open;
+  const drawerOpen = isLargeScreen ? true : open;
   const drawerType = isLargeScreen ? "inline" : "overlay";
 
-  const handleNavSelect = (_: unknown, data: OnNavItemSelectData) => {
-    const href = navHrefByValue[data.value];
-    if (href) {
+  const goTo = (href: string) => {
+    if (pathname !== href) {
       navigate(href);
-      if (!isLargeScreen) {
-        close();
-      }
+    }
+    if (!isLargeScreen) {
+      close();
+    }
+  };
+
+  const handleNavSelect = (_: unknown, data: OnNavItemSelectData) => {
+    const href = navHrefByValue[String(data.value)];
+    if (href) {
+      goTo(href);
     }
   };
 
@@ -165,26 +228,30 @@ export default function NavDrawerMenu() {
         open={drawerOpen}
         selectedValue={selectedValue}
         onNavItemSelect={handleNavSelect}
-        className={styles.drawer}
+        className={mergeClasses(
+          styles.drawer,
+          isCollapsed && styles.drawerCollapsed
+        )}
       >
         <NavDrawerHeader className={styles.header}>
-          <Tooltip content="Toggle navigation" relationship="label">
+          <Tooltip
+            content={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            relationship="label"
+            positioning={isCollapsed ? "after" : "below"}
+            withArrow={isCollapsed}
+          >
             <Hamburger
               onClick={handleToggle}
               {...restoreFocusTargetAttributes}
-              aria-expanded={drawerOpen}
+              aria-expanded={isLargeScreen ? !collapsed : open}
             />
           </Tooltip>
         </NavDrawerHeader>
 
         <NavDrawerBody>
-          <AppItem icon={<BrandIcon />} onClick={() => navigate("/overview")}>
-            Morfinance
-          </AppItem>
-
           {navSections.map((section) => (
             <div key={section.header ?? "root"}>
-              {section.header ? (
+              {section.header && !isCollapsed ? (
                 <NavSectionHeader>{section.header}</NavSectionHeader>
               ) : null}
 
@@ -193,9 +260,15 @@ export default function NavDrawerMenu() {
                   navIconMap[item.icon as keyof typeof navIconMap] ?? Dashboard;
 
                 return (
-                  <NavItem key={item.id} icon={<Icon />} value={item.value}>
-                    {item.label}
-                  </NavItem>
+                  <NavDrawerLink
+                    key={item.id}
+                    label={item.label}
+                    icon={<Icon />}
+                    value={item.value}
+                    href={item.href}
+                    isCollapsed={isCollapsed}
+                    onNavigate={goTo}
+                  />
                 );
               })}
             </div>
@@ -203,15 +276,23 @@ export default function NavDrawerMenu() {
 
           {isAdmin ? (
             <div>
-              <NavSectionHeader>Admin</NavSectionHeader>
+              {!isCollapsed ? (
+                <NavSectionHeader>Admin</NavSectionHeader>
+              ) : null}
               {adminNavItems.map((item) => {
                 const Icon =
                   navIconMap[item.icon as keyof typeof navIconMap] ?? Admin;
 
                 return (
-                  <NavItem key={item.id} icon={<Icon />} value={item.value}>
-                    {item.label}
-                  </NavItem>
+                  <NavDrawerLink
+                    key={item.id}
+                    label={item.label}
+                    icon={<Icon />}
+                    value={item.value}
+                    href={item.href}
+                    isCollapsed={isCollapsed}
+                    onNavigate={goTo}
+                  />
                 );
               })}
             </div>
@@ -219,17 +300,8 @@ export default function NavDrawerMenu() {
 
           <NavDivider />
 
-          <NavSectionHeader>Settings</NavSectionHeader>
-          {settingsNavItems.map((item) => {
-            const Icon =
-              navIconMap[item.icon as keyof typeof navIconMap] ?? Settings;
-
-            return (
-              <NavItem key={item.id} icon={<Icon />} value={item.value}>
-                {item.label}
-              </NavItem>
-            );
-          })}
+          {!isCollapsed ? <NavSectionHeader>Settings</NavSectionHeader> : null}
+          <SettingsNavGroup onNavigate={goTo} isCollapsed={isCollapsed} />
         </NavDrawerBody>
       </NavDrawer>
     </div>

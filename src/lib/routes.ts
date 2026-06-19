@@ -38,10 +38,30 @@ export const routeMeta: Record<
     title: "Fee Integration Module",
     breadcrumb: "Fee Integration",
   },
+  "/pricing": {
+    title: "Pricing",
+    breadcrumb: "Pricing",
+    subtitle: "Membership tiers and platform plans",
+  },
+  "/pricing/success": {
+    title: "Subscription confirmed",
+    breadcrumb: "Success",
+    subtitle: "Your Mor Finance membership is active",
+  },
+  "/pricing/cancel": {
+    title: "Checkout canceled",
+    breadcrumb: "Canceled",
+    subtitle: "No charge was made",
+  },
   "/governance": {
     title: "Governance",
     breadcrumb: "Governance",
     subtitle: "Community proposals, voting, and participation",
+  },
+  "/governance/create": {
+    title: "Create Proposal",
+    breadcrumb: "Create Proposal",
+    subtitle: "Submit a new Mor Governor proposal on Arbitrum",
   },
   "/admin": {
     title: "Admin Dashboard",
@@ -78,6 +98,11 @@ export const routeMeta: Record<
     breadcrumb: "Support",
     subtitle: "Create and track support requests",
   },
+  "/settings/audit-logs": {
+    title: "Audit Logs",
+    breadcrumb: "Audit Logs",
+    subtitle: "Platform activity, governance events, and security audit trail",
+  },
   "/sign-in": {
     title: "Sign in",
     breadcrumb: "Sign in",
@@ -97,14 +122,17 @@ export function resolveRouteMeta(pathname: string) {
       : pathname;
 
   if (normalized.startsWith("/governance/")) {
+    if (normalized === "/governance/create") {
+      return routeMeta["/governance/create"];
+    }
     const proposalId = normalized.split("/").pop() ?? "Proposal";
     const proposal = getProposalById(proposalId);
     return {
-      title: proposal?.title ?? proposalId,
-      breadcrumb: proposal?.title ?? proposalId,
+      title: proposal?.title ?? (proposalId.startsWith("PROP") ? proposalId : `Proposal #${proposalId}`),
+      breadcrumb: proposal?.title ?? (proposalId.startsWith("PROP") ? proposalId : `#${proposalId}`),
       subtitle: proposal
-        ? `${proposal.id} · ${proposal.status}`
-        : "Proposal details and voting activity",
+        ? `${proposal.isOnChain ? `#${proposal.id}` : proposal.id} · ${proposal.status}`
+        : "Proposal details and on-chain voting",
     };
   }
 

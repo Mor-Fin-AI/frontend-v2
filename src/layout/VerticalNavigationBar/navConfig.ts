@@ -31,6 +31,13 @@ export const navSections: NavSection[] = [
         value: "dsa-account",
         icon: "dsa",
       },
+      {
+        id: "pricing",
+        label: "Pricing",
+        href: "/pricing",
+        value: "pricing",
+        icon: "pricing",
+      },
     ],
   },
   {
@@ -55,7 +62,7 @@ export const navSections: NavSection[] = [
         label: "Fee Integration",
         href: "/fee-integration",
         value: "fee-integration",
-        icon: "pricing",
+        icon: "fee",
       },
     ],
   },
@@ -145,6 +152,13 @@ export const settingsNavItems: NavLink[] = [
     label: "Support",
     href: "/settings/support",
     value: "settings-support",
+    icon: "settings",
+  },
+  {
+    id: "settings-audit-logs",
+    label: "Audit Logs",
+    href: "/settings/audit-logs",
+    value: "settings-audit-logs",
     icon: "settings",
   },
 ];

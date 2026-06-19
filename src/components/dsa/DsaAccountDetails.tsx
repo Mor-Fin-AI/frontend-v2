@@ -10,10 +10,17 @@ function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export default function DsaAccountDetails({ info }: { info: DsaAccountInfo }) {
+export default function DsaAccountDetails({
+  info,
+  dsaAddress,
+}: {
+  info: DsaAccountInfo;
+  dsaAddress?: string;
+}) {
   const { address, isConnected } = useAccount();
 
   const rows = [
+    { label: "MorDSA Address", value: dsaAddress ? truncateAddress(dsaAddress) : "—" },
     { label: "Account ID", value: info.accountId },
     { label: "Account Type", value: info.accountType },
     {

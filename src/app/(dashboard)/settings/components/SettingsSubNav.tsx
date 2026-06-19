@@ -1,74 +1,74 @@
 "use client";
 
-import { NavLink, useLocation } from "react-router-dom";
+import { useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
   makeStyles,
-  mergeClasses,
   tokens,
 } from "@fluentui/react-components";
+import { ChevronDown16Regular } from "@fluentui/react-icons";
 import { settingsNavItems } from "@/layout/VerticalNavigationBar/navConfig";
 
 const useStyles = makeStyles({
-  nav: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: tokens.spacingHorizontalXS,
+  trigger: {
+    minWidth: "180px",
+    justifyContent: "space-between",
     marginBottom: tokens.spacingVerticalL,
-    padding: tokens.spacingHorizontalXXS,
-    borderRadius: tokens.borderRadiusLarge,
     border: "1px solid var(--border)",
     backgroundColor: "var(--card)",
-    width: "fit-content",
-    maxWidth: "100%",
-  },
-  link: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalM}`,
-    borderRadius: tokens.borderRadiusMedium,
-    fontSize: tokens.fontSizeBase300,
-    fontWeight: tokens.fontWeightRegular,
-    color: "var(--muted-foreground)",
-    textDecorationLine: "none",
-    transitionProperty: "background-color, color",
-    transitionDuration: tokens.durationFaster,
+    color: "var(--foreground)",
     ":hover": {
       backgroundColor: "var(--accent)",
       color: "var(--accent-foreground)",
     },
   },
-  linkActive: {
-    backgroundColor: "color-mix(in srgb, var(--primary) 12%, var(--card))",
-    color: "var(--primary)",
-    fontWeight: tokens.fontWeightSemibold,
-  },
 });
 
 export default function SettingsSubNav() {
   const styles = useStyles();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  return (
-    <nav className={styles.nav} aria-label="Settings sections">
-      {settingsNavItems.map((item) => {
-        const isActive =
-          item.href === "/settings/general"
-            ? pathname === "/settings/general" ||
-              pathname === "/settings" ||
-              pathname === "/settings/"
-            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const activeItem = useMemo(
+    () =>
+      settingsNavItems.find((item) =>
+        item.href === "/settings/general"
+          ? pathname === "/settings/general" ||
+            pathname === "/settings" ||
+            pathname === "/settings/"
+          : pathname === item.href || pathname.startsWith(`${item.href}/`)
+      ) ?? settingsNavItems[0],
+    [pathname]
+  );
 
-        return (
-          <NavLink
-            key={item.id}
-            to={item.href}
-            end={item.href === "/settings/general"}
-            className={mergeClasses(styles.link, isActive && styles.linkActive)}
+  return (
+    <nav aria-label="Settings sections">
+      <Menu>
+        <MenuTrigger disableButtonEnhancement>
+          <MenuButton
+            className={styles.trigger}
+            menuIcon={<ChevronDown16Regular />}
           >
-            {item.label}
-          </NavLink>
-        );
-      })}
+            {activeItem.label}
+          </MenuButton>
+        </MenuTrigger>
+
+        <MenuPopover>
+          <MenuList>
+            {settingsNavItems.map((item) => (
+              <MenuItem key={item.id} onClick={() => navigate(item.href)}>
+                {item.label}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </MenuPopover>
+      </Menu>
     </nav>
   );
 }

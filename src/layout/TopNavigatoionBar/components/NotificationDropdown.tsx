@@ -417,7 +417,7 @@ export default function NotificationDropdown() {
               onItemClick={handleNotificationClick}
               onViewAll={() => {
                 setOpen(false);
-                navigate("/audit-logs");
+                navigate("/settings/audit-logs");
               }}
             />
           </motion.div>

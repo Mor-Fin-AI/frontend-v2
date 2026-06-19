@@ -24,6 +24,7 @@ export interface ArbitrageMonitorMetrics {
 
 export interface ArbitrageExecutionRow {
   id: string;
+  txHash?: string;
   pair: string;
   chain: L2ChainSlug;
   route: string;
@@ -32,6 +33,7 @@ export interface ArbitrageExecutionRow {
   gasUsd: number;
   status: "Executed" | "Skipped" | "Failed";
   executedAt: string;
+  isLive?: boolean;
 }
 
 export const arbitrageHourlyTrades = [

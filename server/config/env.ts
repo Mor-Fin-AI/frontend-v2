@@ -8,6 +8,12 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_PUBLIC_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_PUBLIC_ANNUAL: z.string().optional(),
+  STRIPE_PRICE_PRIVATE_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_PRIVATE_ANNUAL: z.string().optional(),
 });
 
 function loadEnv() {
@@ -17,6 +23,8 @@ function loadEnv() {
       process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL,
     SUPABASE_ANON_KEY:
       process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_ROLE_KEY:
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SERVICE_ROLE_KEY,
   };
 
   const parsed = envSchema.safeParse(withFallbacks);

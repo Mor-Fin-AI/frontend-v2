@@ -1,11 +1,7 @@
 'use client';
 
-import SlidePricing from './components/SlidePricing';
+import MorPricingSection from './components/MorPricingSection';
 
 export default function PricingPage() {
-  return (
-    <main className="min-h-screen py-4 sm:py-8">
-      <SlidePricing />
-    </main>
-  );
+  return <MorPricingSection />;
 }

@@ -7,23 +7,34 @@ import FramerCountUp from "@/components/ui/FramerCountUp";
 import DashboardStatCardsGrid, {
   statCardItemVariants,
 } from "@/components/ui/DashboardStatCardsGrid";
-import {
-  buildLendingDebtMetrics,
-  lendingDebtDischargeMetrics,
-  type LendingDebtMetric,
-} from "../data";
+import { useLendingDischargeData } from "@/hooks/useLendingDischarge";
+import { buildLiveLendingMetrics } from "@/lib/lendingApi";
+import type { LendingDebtMetric } from "../data";
 
 function MetricValue({ metric }: { metric: LendingDebtMetric }) {
   if (metric.format === "timer" || typeof metric.value === "string") {
     return <span className={metric.valueColor}>{metric.value}</span>;
   }
 
+  if (metric.format === "token") {
+    return (
+      <span className={metric.valueColor}>
+        <FramerCountUp
+          to={metric.value as number}
+          suffix={metric.valueSuffix}
+          decimals={4}
+        />
+      </span>
+    );
+  }
+
   return (
     <span className={metric.valueColor}>
       <FramerCountUp
-        to={metric.value}
+        to={metric.value as number}
         prefix={metric.valuePrefix}
         suffix={metric.valueSuffix}
+        decimals={metric.format === "percent" ? 0 : undefined}
       />
     </span>
   );
@@ -34,15 +45,28 @@ export default function LendingDebtDischargePanel({
 }: {
   isLoading?: boolean;
 }) {
-  const metrics = useMemo(
-    () => buildLendingDebtMetrics(lendingDebtDischargeMetrics),
-    []
-  );
+  const liveQuery = useLendingDischargeData();
+
+  const metrics = useMemo(() => {
+    if (!liveQuery.data?.metrics) return [];
+    return buildLiveLendingMetrics(liveQuery.data.metrics);
+  }, [liveQuery.data?.metrics]);
+
+  const loading = isLoading || liveQuery.isLoading;
+
+  if (!loading && liveQuery.isError) {
+    return (
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-6 text-center text-sm text-muted-foreground">
+        Could not load live lending data from MorTreasuryFlowPanel. Check your
+        connection and try again.
+      </div>
+    );
+  }
 
   return (
     <DashboardStatCardsGrid
-      isLoading={isLoading}
-      loadingLabel="Loading lending and debt discharge metrics"
+      isLoading={loading}
+      loadingLabel="Loading lending and debt discharge metrics from Arbitrum"
     >
       {metrics.map((metric) => (
         <motion.div key={metric.id} variants={statCardItemVariants} className="min-w-0">

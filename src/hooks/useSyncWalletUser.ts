@@ -14,7 +14,18 @@ export function useSyncWalletUser() {
   const { setUser } = useUser();
 
   useEffect(() => {
-    if (!isConnected || !address) return;
+    if (!isConnected || !address) {
+      setUser((prev) =>
+        prev.isWalletConnected
+          ? {
+              ...prev,
+              isWalletConnected: false,
+              fullAddress: undefined,
+            }
+          : prev
+      );
+      return;
+    }
 
     setUser((prev) => ({
       ...prev,

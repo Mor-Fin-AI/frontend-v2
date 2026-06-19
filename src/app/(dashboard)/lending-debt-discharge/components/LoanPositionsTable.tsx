@@ -7,7 +7,9 @@ import AppBadge from "@/components/ui/AppBadge";
 import { TABLE_ICON_CLASS } from "@/lib/tableUi";
 import { matchesSearch, matchesTags, type TableSortOption } from "@/lib/tableFilters";
 import type { Column } from "@/components/ui/DataTable";
-import { loanPositionRows, type LoanPositionRow } from "../data";
+import { useLendingDischargeData } from "@/hooks/useLendingDischarge";
+import { mapLiveLoanPositions } from "@/lib/lendingApi";
+import type { LoanPositionRow } from "../data";
 
 const statusOptions = ["Active", "Discharging", "Repaid"] as const;
 
@@ -25,6 +27,17 @@ function statusTone(
   return "brand";
 }
 
+function formatAmount(item: LoanPositionRow, field: "collateral" | "borrowed") {
+  if (item.isLive) {
+    return field === "collateral"
+      ? (item.collateralLabel ?? `${item.collateralUsd} ETH`)
+      : (item.borrowedLabel ?? `${item.borrowedUsd} WETH`);
+  }
+  return field === "collateral"
+    ? `$${item.collateralUsd.toLocaleString()}`
+    : `$${item.borrowedUsd.toLocaleString()}`;
+}
+
 const columns: Column<LoanPositionRow>[] = [
   {
     columnId: "borrower",
@@ -35,18 +48,18 @@ const columns: Column<LoanPositionRow>[] = [
   {
     columnId: "collateral",
     header: "Collateral",
-    width: "120px",
-    accessor: (item) => `$${item.collateralUsd.toLocaleString()}`,
-    className: "w-[120px] text-right",
-    headerClassName: "w-[120px] text-right",
+    width: "140px",
+    accessor: (item) => formatAmount(item, "collateral"),
+    className: "w-[140px] text-right",
+    headerClassName: "w-[140px] text-right",
   },
   {
     columnId: "borrowed",
     header: "Borrowed",
-    width: "120px",
-    accessor: (item) => `$${item.borrowedUsd.toLocaleString()}`,
-    className: "w-[120px] text-right font-semibold",
-    headerClassName: "w-[120px] text-right",
+    width: "160px",
+    accessor: (item) => formatAmount(item, "borrowed"),
+    className: "w-[160px] text-right font-semibold",
+    headerClassName: "w-[160px] text-right",
   },
   {
     columnId: "ltv",
@@ -87,23 +100,30 @@ const columns: Column<LoanPositionRow>[] = [
 ];
 
 export default function LoanPositionsTable() {
+  const liveQuery = useLendingDischargeData();
   const [search, setSearch] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("borrower");
 
+  const rows = useMemo(() => {
+    if (!liveQuery.data?.loanPositions) return [];
+    return mapLiveLoanPositions(liveQuery.data.loanPositions);
+  }, [liveQuery.data?.loanPositions]);
+
   const filtered = useMemo(() => {
-    const rows = loanPositionRows.filter((item) => {
+    const filteredRows = rows.filter((item) => {
       const matchesStatus = matchesTags(selectedStatuses, item.status);
       const matchesQuery = matchesSearch(search, [
         item.borrower,
         item.status,
         item.dischargeDate,
         String(item.borrowedUsd),
+        item.borrowedLabel ?? "",
       ]);
       return matchesStatus && matchesQuery;
     });
 
-    return [...rows].sort((a, b) => {
+    return [...filteredRows].sort((a, b) => {
       switch (sortBy) {
         case "borrowed":
           return b.borrowedUsd - a.borrowedUsd;
@@ -114,18 +134,31 @@ export default function LoanPositionsTable() {
           return a.borrower.localeCompare(b.borrower);
       }
     });
-  }, [search, selectedStatuses, sortBy]);
+  }, [rows, search, selectedStatuses, sortBy]);
+
+  const description = liveQuery.isError
+    ? "Could not load loan positions from chain"
+    : liveQuery.isLoading
+      ? "Loading MorDSA positions from MorTreasuryFlowPanel…"
+      : "Live collateral positions, LTV ratios, and discharge timelines";
 
   return (
     <DashboardTablePanel
       title="Loan Positions"
-      description="Active collateral positions, LTV ratios, and discharge timelines"
+      description={description}
       icon={<BuildingBank24Regular className={`h-5 w-5 ${TABLE_ICON_CLASS}`} />}
       columns={columns}
       rows={filtered}
       getRowId={(item) => item.id}
       ariaLabel="Loan positions table"
-      emptyMessage="No loan positions match your filters."
+      emptyMessage={
+        liveQuery.isLoading
+          ? "Loading loan positions…"
+          : liveQuery.isError
+            ? "Failed to load loan positions."
+            : "No loan positions on-chain yet."
+      }
+      isLoading={liveQuery.isLoading}
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Search loan positions..."

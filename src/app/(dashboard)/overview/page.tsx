@@ -1,11 +1,15 @@
+"use client";
+
 import TreasuryFlowPanel from "./components/TreasuryFlowPanel";
 import TreasuryBalanceChart from "./components/TreasuryBalanceChart";
 import TreasuryFlowSankey from "./components/TreasuryFlowSankey";
 import TreasuryLedgerTable from "./components/TreasuryLedgerTable";
+import LiveMorDataBanner from "@/components/contracts/LiveMorDataBanner";
 
 export default function OverviewPage() {
   return (
     <div className="mt-6 flex flex-col gap-6">
+      <LiveMorDataBanner />
       <TreasuryFlowPanel />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <TreasuryBalanceChart />

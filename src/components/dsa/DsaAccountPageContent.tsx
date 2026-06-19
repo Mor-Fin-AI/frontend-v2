@@ -23,6 +23,8 @@ interface DsaAccountPageContentProps {
   transactions: DsaTransaction[];
   accountInfo: DsaAccountInfo;
   walletLabel: string;
+  dsaAddress?: string;
+  chainId?: number;
 }
 
 export default function DsaAccountPageContent({
@@ -30,6 +32,8 @@ export default function DsaAccountPageContent({
   transactions,
   accountInfo,
   walletLabel,
+  dsaAddress,
+  chainId = 42161,
 }: DsaAccountPageContentProps) {
   const { ref: statsRef, controls: statsControls } = useScrollAnimation();
   const { ref: walletRef, controls: walletControls } = useScrollAnimation();
@@ -57,7 +61,11 @@ export default function DsaAccountPageContent({
           transition={{ duration: 0.5, delay: 0.1 }}
           className="h-full"
         >
-          <DsaWalletSection accountLabel={walletLabel} />
+          <DsaWalletSection
+            accountLabel={walletLabel}
+            dsaAddress={dsaAddress}
+            chainId={chainId}
+          />
         </motion.div>
 
         <motion.div
@@ -68,7 +76,7 @@ export default function DsaAccountPageContent({
           transition={{ duration: 0.5, delay: 0.15 }}
           className="h-full"
         >
-          <DsaAccountDetails info={accountInfo} />
+          <DsaAccountDetails info={accountInfo} dsaAddress={dsaAddress} />
         </motion.div>
       </div>
 
@@ -79,7 +87,10 @@ export default function DsaAccountPageContent({
         variants={fadeUp}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <DsaTransactionHistory transactions={transactions} />
+        <DsaTransactionHistory
+          transactions={transactions}
+          emptyMessage="On-chain spell history indexing is not enabled yet. Balances and account metadata are live from Arbitrum."
+        />
       </motion.div>
     </div>
   );

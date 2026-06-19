@@ -113,11 +113,6 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     boxShadow: tokens.shadow16,
   },
-  header: {
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    backgroundColor: tokens.colorNeutralBackground3,
-  },
   list: {
     display: "flex",
     flexDirection: "column",
@@ -229,11 +224,6 @@ export default function LiveNetworkDropdown() {
             <span className={styles.arrow} aria-hidden />
 
             <div id={panelId} className={styles.panel} role="listbox" aria-label="L2 networks">
-              <div className={styles.header}>
-                <Text weight="semibold">Select network</Text>
-                <Caption1>Choose a chain to scope dashboard data</Caption1>
-              </div>
-
               <div className={styles.list}>
                 {L2_EVM_CHAINS.map((item) => {
                   const isSelected = item.slug === selectedChain;

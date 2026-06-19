@@ -17,6 +17,7 @@ import { ChevronDown16Regular, SignOut24Regular } from "@fluentui/react-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useUser } from "@/context/UserContext";
 import { useTheme } from "@/context/ThemeContext";
+import { settingsNavItems } from "@/layout/VerticalNavigationBar/navConfig";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const AVATAR_SIZE = "small" as const;
@@ -116,6 +117,18 @@ const useStyles = makeStyles({
     flexDirection: "column",
     padding: tokens.spacingVerticalXS,
   },
+  sectionTitle: {
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalM}`,
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground3,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+  subMenuItem: {
+    paddingLeft: tokens.spacingHorizontalXL,
+    fontSize: tokens.fontSizeBase200,
+  },
   menuItem: {
     display: "flex",
     width: "100%",
@@ -198,7 +211,7 @@ export default function ProfileDropdown() {
   const { signOut, isAdmin } = useAuth();
   const { theme } = useTheme();
   const { disconnect } = useDisconnect();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector } = useAccount();
   const { isLoading: isEnsLoading } = useEnsName({
     address,
     query: { enabled: isConnected && !!address },
@@ -237,8 +250,8 @@ export default function ProfileDropdown() {
   }, [open]);
 
   const handleSignOut = async () => {
-    if (user.isWalletConnected) {
-      disconnect();
+    if (user.isWalletConnected || isConnected) {
+      disconnect({ connector });
     }
     await signOut();
     setUser(defaultUser);
@@ -328,6 +341,21 @@ export default function ProfileDropdown() {
                     Admin Dashboard
                   </button>
                 ) : null}
+
+                <p className={styles.sectionTitle} role="presentation">
+                  Settings
+                </p>
+                {settingsNavItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitem"
+                    className={mergeClasses(styles.menuItem, styles.subMenuItem)}
+                    onClick={() => navigateTo(item.href)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
 
               <div className={styles.themeRow}>

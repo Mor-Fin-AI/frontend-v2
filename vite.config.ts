@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["wagmi", "@wagmi/core", "@wagmi/connectors", "viem"],
   },
   server: {
     port: 5173,

@@ -85,6 +85,11 @@ export interface Proposal {
     votingEndsAt?: string;
     quorumRequired: string;
     timeline: Array<{ date: string; label: string }>;
+    isOnChain?: boolean;
+    stateLabel?: string;
+    userHasVoted?: boolean;
+    proposer?: string;
+    targets?: string[];
 }
 
 export const proposals: Proposal[] = [

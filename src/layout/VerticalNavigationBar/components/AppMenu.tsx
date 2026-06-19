@@ -38,6 +38,7 @@ const iconMap = {
   file: DocumentText24Regular,
   governance: Vote24Regular,
   pricing: Money24Regular,
+  fee: Money24Regular,
 };
 
 const useStyles = makeStyles({

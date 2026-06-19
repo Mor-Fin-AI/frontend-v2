@@ -1,11 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion, Variants } from "framer-motion";
 import Card from "@/components/ui/Card";
 import StatCardsSkeleton from "@/components/ui/skeletons/StatCardsSkeleton";
 import FramerCountUp from "@/components/ui/FramerCountUp";
 import { statCardsData } from "../data";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { useLiveDsaWalletData } from "@/hooks/useLiveDsaWalletData";
+import { getDashboardStatCards } from "@/lib/liveWalletData";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -31,8 +34,26 @@ const itemVariants: Variants = {
 
 export default function StatCards({ isLoading = false }: { isLoading?: boolean }) {
     const { ref } = useScrollAnimation();
+    const live = useLiveDsaWalletData();
 
-    if (isLoading) {
+    const cards = useMemo(() => {
+        const liveCards = getDashboardStatCards(
+            live.activeDsa,
+            live.platformStatus,
+            live.isPlatformOwner,
+            live.isLive
+        );
+        return liveCards ?? statCardsData;
+    }, [
+        live.activeDsa,
+        live.platformStatus,
+        live.isPlatformOwner,
+        live.isLive,
+    ]);
+
+    const loading = isLoading || (live.isConnected && live.isLoading);
+
+    if (loading) {
         return <StatCardsSkeleton aria-label="Loading overview stats" />;
     }
 
@@ -44,7 +65,7 @@ export default function StatCards({ isLoading = false }: { isLoading?: boolean }
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 "
         >
-            {statCardsData.map((stat) => (
+            {cards.map((stat) => (
                 <motion.div key={stat.id} variants={itemVariants}>
                     <Card
                         title={stat.title}
@@ -53,6 +74,7 @@ export default function StatCards({ isLoading = false }: { isLoading?: boolean }
                                 to={stat.value}
                                 prefix={stat.valuePrefix}
                                 suffix={stat.valueSuffix}
+                                decimals={live.isLive ? 4 : undefined}
                             />
                         }
                         subtitle={stat.subtitle}

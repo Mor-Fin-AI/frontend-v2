@@ -7,6 +7,8 @@ import FramerCountUp from "@/components/ui/FramerCountUp";
 import DashboardStatCardsGrid, {
   statCardItemVariants,
 } from "@/components/ui/DashboardStatCardsGrid";
+import { useLiveDsaWalletData } from "@/hooks/useLiveDsaWalletData";
+import { getCombinedEthBalance } from "@/lib/dsaApi";
 import KillSwitchModal from "./KillSwitchModal";
 import {
   arbitrageMonitorMetrics,
@@ -39,15 +41,45 @@ export default function ArbitrageMonitorPanel({
   const [killSwitchStatus, setKillSwitchStatus] =
     useState<KillSwitchStatus>("running");
 
-  const metrics = useMemo(
-    () => buildArbitrageMetrics(arbitrageMonitorMetrics, killSwitchStatus),
-    [killSwitchStatus]
-  );
+  const live = useLiveDsaWalletData();
+
+  const metrics = useMemo(() => {
+    const baseMetrics = buildArbitrageMetrics(
+      arbitrageMonitorMetrics,
+      killSwitchStatus
+    );
+
+    if (!live.isLive) {
+      return baseMetrics;
+    }
+
+    const ethExposure = live.activeDsa
+      ? getCombinedEthBalance(live.activeDsa)
+      : Number(live.platformStatus?.platformEthBalanceFormatted ?? 0);
+    const enabledConnectors =
+      live.platformStatus?.connectors.filter((c) => c.enabled).length ?? 0;
+
+    return baseMetrics.map((metric) => {
+      if (metric.id === "eth-modulation") {
+        return {
+          ...metric,
+          subtitle: `Live MorDSA exposure: ${ethExposure.toFixed(4)} ETH`,
+        };
+      }
+      if (metric.id === "regime-score") {
+        return {
+          ...metric,
+          subtitle: `${enabledConnectors} DEX connectors enabled on Arbitrum`,
+        };
+      }
+      return metric;
+    });
+  }, [killSwitchStatus, live.isLive, live.activeDsa, live.platformStatus]);
 
   return (
     <div className="flex flex-col gap-6">
       <DashboardStatCardsGrid
-        isLoading={isLoading}
+        isLoading={isLoading || (live.isConnected && live.isLoading)}
         loadingLabel="Loading arbitrage monitor metrics"
       >
         {metrics.map((metric) => (

@@ -19,6 +19,9 @@ export interface LendingDebtDischargeMetrics {
   borrowedCycleCompletePercent: number;
   borrowedCyclesCompleted: number;
   borrowedCyclesTotal: number;
+  isLive?: boolean;
+  collateralLabel?: string;
+  borrowedLabel?: string;
 }
 
 export interface LoanPositionRow {
@@ -30,6 +33,9 @@ export interface LoanPositionRow {
   repaymentPercent: number;
   dischargeDate: string;
   status: "Active" | "Discharging" | "Repaid";
+  collateralLabel?: string;
+  borrowedLabel?: string;
+  isLive?: boolean;
 }
 
 export const dischargeGanttTasks = [
@@ -112,7 +118,7 @@ export const loanPositionRows: LoanPositionRow[] = [
   },
 ];
 
-export type LendingMetricFormat = "currency" | "percent" | "status" | "timer";
+export type LendingMetricFormat = "currency" | "percent" | "status" | "timer" | "token";
 
 export interface LendingDebtMetric {
   id: string;

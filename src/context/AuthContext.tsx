@@ -26,6 +26,8 @@ type AuthContextValue = {
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
+  isRecoverySession: boolean;
   refreshProfile: () => Promise<void>;
 };
 
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
 
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) {
@@ -69,6 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get("type") === "recovery") {
+      setIsRecoverySession(true);
+    }
+
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -79,7 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecoverySession(true);
+      }
+      if (event === "SIGNED_OUT") {
+        setIsRecoverySession(false);
+      }
       setSession(nextSession);
       setLoading(false);
     });
@@ -176,8 +190,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/sign-in`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
+    return { error: error?.message ?? null };
+  }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (!supabase) {
+      return { error: "Supabase is not configured." };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password });
+    if (!error) {
+      setIsRecoverySession(false);
+    }
     return { error: error?.message ?? null };
   }, []);
 
@@ -194,9 +220,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       resetPassword,
+      updatePassword,
+      isRecoverySession,
       refreshProfile,
     }),
-    [session, profile, loading, signIn, signUp, signOut, resetPassword, refreshProfile]
+    [session, profile, loading, isRecoverySession, signIn, signUp, signOut, resetPassword, updatePassword, refreshProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -18,13 +19,14 @@ import PanelCard, {
 import ChartSkeleton from "@/components/ui/skeletons/ChartSkeleton";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { useFluentThemeColors } from "@/hooks/useFluentThemeColors";
+import { useLiveDsaWalletData } from "@/hooks/useLiveDsaWalletData";
+import { getTreasuryChartData } from "@/lib/liveWalletData";
 import { CHART_COLORS } from "@/lib/chartColors";
 import {
   AREA_GRADIENT_BOTTOM_OPACITY,
   AREA_GRADIENT_TOP_OPACITY,
   areaFillGradientId,
 } from "@/lib/chartGradients";
-import { treasuryBalanceTrend } from "../treasuryData";
 
 const CHART_HEIGHT = 340;
 const GRADIENT_PREFIX = "treasury-balance";
@@ -37,13 +39,6 @@ const variants: Variants = {
     transition: { duration: 0.6, ease: "easeOut" },
   },
 };
-
-const chartData = treasuryBalanceTrend.map((row) => ({
-  month: row.month,
-  balance: row.balance / 1000,
-  fees: row.fees / 1000,
-  recycled: row.recycled / 1000,
-}));
 
 const series = [
   { key: "balance", name: "Treasury Balance", color: CHART_COLORS.green },
@@ -58,6 +53,23 @@ export default function TreasuryBalanceChart({
 }) {
   const theme = useFluentThemeColors();
   const { ref, controls } = useScrollAnimation();
+  const live = useLiveDsaWalletData();
+
+  const chartData = useMemo(
+    () =>
+      getTreasuryChartData(
+        live.activeDsa,
+        live.platformStatus,
+        live.isLive
+      ),
+    [live.activeDsa, live.platformStatus, live.isLive]
+  );
+
+  const valueFormatter = live.isLive
+    ? (value: number) => `${value.toFixed(4)} ETH`
+    : (value: number) => `$${value}K`;
+
+  const loading = isLoading || (live.isConnected && live.isLoading);
 
   return (
     <motion.div
@@ -67,14 +79,18 @@ export default function TreasuryBalanceChart({
       animate={controls}
       className="h-full"
     >
-      <PanelCard aria-busy={isLoading}>
+      <PanelCard aria-busy={loading}>
         <PanelCardHeader
           title="Treasury Balance Over Time"
-          description="6-month liquidity, fee inflows, and capital recycling"
+          description={
+            live.isLive
+              ? "Historical trend with live MorDSA + treasury snapshot (ETH)"
+              : "6-month liquidity, fee inflows, and capital recycling"
+          }
         />
 
         <PanelCardBody>
-          {isLoading ? (
+          {loading ? (
             <ChartSkeleton
               minHeight={CHART_HEIGHT}
               aria-label="Loading treasury balance chart"
@@ -130,13 +146,17 @@ export default function TreasuryBalanceChart({
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    width={40}
+                    width={live.isLive ? 56 : 40}
                     tick={{
                       fill: theme.colorNeutralForeground3,
                       fontSize: 10,
                       fontFamily: "Inter",
                     }}
-                    tickFormatter={(value: number) => `$${value}K`}
+                    tickFormatter={(value: number) =>
+                      live.isLive
+                        ? `${value.toFixed(2)}`
+                        : `$${value}K`
+                    }
                   />
                   <Tooltip
                     contentStyle={{
@@ -146,7 +166,7 @@ export default function TreasuryBalanceChart({
                       color: theme.colorNeutralForeground1,
                     }}
                     formatter={(value: number, name: string) => [
-                      `$${value.toFixed(0)}K`,
+                      valueFormatter(value),
                       name,
                     ]}
                   />

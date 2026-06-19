@@ -109,9 +109,11 @@ const columns: Column<DsaTransaction>[] = [
 export default function DsaTransactionHistory({
   transactions,
   isLoading = false,
+  emptyMessage = "No transactions found.",
 }: {
   transactions: DsaTransaction[];
   isLoading?: boolean;
+  emptyMessage?: string;
 }) {
   const [search, setSearch] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -207,7 +209,7 @@ export default function DsaTransactionHistory({
             aria-label="DSA transaction history"
           />
         ) : (
-          <TableEmptyState message="No transactions found." />
+          <TableEmptyState message={emptyMessage} />
         )}
       </PanelCardBody>
     </PanelCard>

@@ -1,23 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowSwap24Regular } from "@fluentui/react-icons";
 import DashboardTablePanel from "@/components/ui/DashboardTablePanel";
 import AppBadge from "@/components/ui/AppBadge";
 import ChainIcon from "@/components/evm/ChainIcon";
 import DexRouteDisplay from "@/components/evm/DexRouteDisplay";
+import TablePagination from "@/components/ui/TablePagination";
 import { getL2ChainBySlug } from "@/lib/l2EvmChains";
 import { TABLE_ICON_CLASS } from "@/lib/tableUi";
-import { matchesSearch, matchesTags, type TableSortOption } from "@/lib/tableFilters";
+import { useArbitrageExecutions } from "@/hooks/useArbitrageExecutions";
+import { mapLiveArbitrageExecutions } from "@/lib/arbitrageApi";
 import type { Column } from "@/components/ui/DataTable";
-import {
-  arbitrageExecutionLog,
-  type ArbitrageExecutionRow,
-} from "../data";
+import type { ArbitrageExecutionRow } from "../data";
 
 const statusOptions = ["Executed", "Skipped", "Failed"] as const;
 
-const sortOptions: TableSortOption[] = [
+const sortOptions = [
   { value: "time", label: "Most recent" },
   { value: "profit", label: "Profit (high–low)" },
   { value: "pair", label: "Pair (A–Z)" },
@@ -35,10 +34,10 @@ const columns: Column<ArbitrageExecutionRow>[] = [
   {
     columnId: "time",
     header: "Time",
-    width: "88px",
+    width: "140px",
     accessor: "executedAt",
-    className: "text-muted-foreground w-[88px]",
-    headerClassName: "w-[88px]",
+    className: "text-muted-foreground w-[140px]",
+    headerClassName: "w-[140px]",
   },
   {
     columnId: "pair",
@@ -109,56 +108,79 @@ export default function ExecutionLogTable() {
   const [search, setSearch] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("time");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const filtered = useMemo(() => {
-    const rows = arbitrageExecutionLog.filter((item) => {
-      const matchesStatus = matchesTags(selectedStatuses, item.status);
-      const matchesQuery = matchesSearch(search, [
-        item.pair,
-        item.route,
-        item.status,
-        item.executedAt,
-        String(item.profitUsd),
-      ]);
-      return matchesStatus && matchesQuery;
-    });
+  const liveQuery = useArbitrageExecutions({
+    page,
+    pageSize,
+    search,
+    sortBy,
+  });
 
-    return [...rows].sort((a, b) => {
-      switch (sortBy) {
-        case "profit":
-          return b.profitUsd - a.profitUsd;
-        case "pair":
-          return a.pair.localeCompare(b.pair);
-        case "time":
-        default:
-          return a.id.localeCompare(b.id);
-      }
-    });
-  }, [search, selectedStatuses, sortBy]);
+  const rows = useMemo(() => {
+    if (!liveQuery.data?.executions) return [];
+    const mapped = mapLiveArbitrageExecutions(liveQuery.data.executions);
+    if (selectedStatuses.length === 0) return mapped;
+    return mapped.filter((row) => selectedStatuses.includes(row.status));
+  }, [liveQuery.data?.executions, selectedStatuses]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy, pageSize]);
+
+  const description = liveQuery.isError
+    ? "Could not load on-chain MorDSA cast transactions"
+    : liveQuery.isLoading && !liveQuery.data
+      ? "Loading live MorDSA spell casts from Arbitrum…"
+      : "Live MorDSA cast transactions with route, profit, and gas details";
 
   return (
-    <DashboardTablePanel
-      title="Execution Log"
-      description="Recent arbitrage attempts with route, profit, and gas details"
-      icon={<ArrowSwap24Regular className={`h-5 w-5 ${TABLE_ICON_CLASS}`} />}
-      columns={columns}
-      rows={filtered}
-      getRowId={(item) => item.id}
-      ariaLabel="Arbitrage execution log"
-      emptyMessage="No executions match your filters."
-      search={search}
-      onSearchChange={setSearch}
-      searchPlaceholder="Search executions..."
-      searchAriaLabel="Search arbitrage executions"
-      sortBy={sortBy}
-      onSortChange={setSortBy}
-      sortOptions={sortOptions}
-      sortAriaLabel="Sort arbitrage executions"
-      tagOptions={[...statusOptions]}
-      selectedTags={selectedStatuses}
-      onTagsChange={setSelectedStatuses}
-      tagAriaLabel="Selected execution statuses"
-      tagButtonAriaLabel="Filter by execution status"
-    />
+    <div className="flex flex-col gap-0">
+      <DashboardTablePanel
+        title="Execution Log"
+        description={description}
+        icon={<ArrowSwap24Regular className={`h-5 w-5 ${TABLE_ICON_CLASS}`} />}
+        columns={columns}
+        rows={rows}
+        getRowId={(item) => item.id}
+        ariaLabel="Arbitrage execution log"
+        emptyMessage={
+          liveQuery.isLoading
+            ? "Loading executions…"
+            : liveQuery.isError
+              ? "Failed to load live executions."
+              : "No on-chain executions match your filters."
+        }
+        isLoading={liveQuery.isLoading && !liveQuery.data}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search executions..."
+        searchAriaLabel="Search arbitrage executions"
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        sortOptions={sortOptions}
+        sortAriaLabel="Sort arbitrage executions"
+        tagOptions={[...statusOptions]}
+        selectedTags={selectedStatuses}
+        onTagsChange={setSelectedStatuses}
+        tagAriaLabel="Selected execution statuses"
+        tagButtonAriaLabel="Filter by execution status"
+        animate={false}
+      />
+
+      <div className="rounded-b-xl border border-t-0 border-border bg-card px-4 pb-4">
+        <TablePagination
+          page={liveQuery.data?.page ?? page}
+          pageSize={liveQuery.data?.pageSize ?? pageSize}
+          total={liveQuery.data?.total ?? 0}
+          totalPages={liveQuery.data?.totalPages ?? 1}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          isLoading={liveQuery.isFetching}
+          itemLabel="executions"
+        />
+      </div>
+    </div>
   );
 }

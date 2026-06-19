@@ -7,7 +7,7 @@ import {
 } from "@fluentui/react-icons";
 import { STAT_CARD_NEUTRAL } from "@/lib/statCardTheme";
 
-export type TreasuryMetricFormat = "currency" | "percent" | "status";
+export type TreasuryMetricFormat = "currency" | "percent" | "status" | "token";
 
 export interface TreasuryFlowMetric {
   id: string;
@@ -30,6 +30,7 @@ export interface TreasuryLedgerRow {
   source: string;
   destination: string;
   amountUsd: number;
+  amountLabel?: string;
   status: "Settled" | "Pending" | "Processing";
 }
 

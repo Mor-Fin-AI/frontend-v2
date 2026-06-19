@@ -16,16 +16,25 @@ import {
   ThumbDislike24Regular,
   ThumbLike24Regular,
 } from "@fluentui/react-icons";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { arbitrum } from "wagmi/chains";
 import AppBadge from "@/components/ui/AppBadge";
 import AppProgressBar from "@/components/ui/AppProgressBar";
+import AppSpinner from "@/components/ui/AppSpinner";
 import NeuButton from "@/components/ui/NeuButton";
 import PanelCard, {
   PanelCardBody,
   PanelCardHeader,
 } from "@/components/ui/PanelCard";
+import ConnectWallet from "@/components/wallet/ConnectWallet";
 import { useScrollAnimation, fadeUpVariants } from "@/hooks/useScrollAnimation";
+import {
+  useGovernanceProposal,
+  resolveProposalDetail,
+} from "@/hooks/useGovernance";
 import { proposalCategoryTone, proposalStatusTone } from "@/lib/badgeTones";
-import { getProposalById } from "../data";
+import { morContractAddresses, morGovernorAbi } from "@/lib/contracts";
+import { getArbitrumExplorerAddressUrl } from "@/lib/dsaApi";
 
 const VOTE_FOR_COLOR = "#22C38E";
 
@@ -106,6 +115,7 @@ const useStyles = makeStyles({
     display: "flex",
     flexWrap: "wrap",
     gap: tokens.spacingHorizontalS,
+    alignItems: "center",
   },
   timeline: {
     display: "flex",
@@ -123,15 +133,50 @@ const useStyles = makeStyles({
 
 export default function ProposalDetailPage() {
   const { proposalId } = useParams<{ proposalId: string }>();
-  const proposal = proposalId ? getProposalById(proposalId) : undefined;
+  const onChainQuery = useGovernanceProposal(proposalId);
+  const { proposal, isOnChain, isLoading } = resolveProposalDetail(
+    proposalId,
+    onChainQuery.data,
+    onChainQuery.isLoading
+  );
+  const { isConnected, chainId } = useAccount();
   const styles = useStyles();
   const { ref, controls } = useScrollAnimation();
+
+  const { writeContract, isPending, data: txHash } = useWriteContract();
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash });
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 flex min-h-[240px] items-center justify-center">
+        <AppSpinner size="small" label="Loading proposal from Arbitrum governor" />
+      </div>
+    );
+  }
 
   if (!proposal) {
     return <Navigate to="/governance" replace />;
   }
 
   const isActive = proposal.status === "Active";
+  const wrongNetwork = isConnected && chainId !== arbitrum.id;
+  const canVote =
+    isOnChain &&
+    isActive &&
+    isConnected &&
+    !wrongNetwork &&
+    !proposal.userHasVoted;
+
+  const castVote = (support: 0 | 1) => {
+    if (!proposalId || !/^\d+$/.test(proposalId)) return;
+    writeContract({
+      chainId: arbitrum.id,
+      address: morContractAddresses.morGovernor,
+      abi: morGovernorAbi,
+      functionName: "castVote",
+      args: [BigInt(proposalId), support],
+    });
+  };
 
   return (
     <motion.div
@@ -153,7 +198,7 @@ export default function ProposalDetailPage() {
         />
         <PanelCardBody className={styles.section}>
           <div className={styles.metaRow}>
-            <Caption1>{proposal.id}</Caption1>
+            <Caption1>{isOnChain ? `#${proposal.id}` : proposal.id}</Caption1>
             <AppBadge
               tone={proposalStatusTone[proposal.status]}
               appearance="tint"
@@ -168,8 +213,16 @@ export default function ProposalDetailPage() {
             >
               {proposal.category}
             </AppBadge>
-            {proposal.timeLeft ? (
-              <Caption1>{proposal.timeLeft}</Caption1>
+            {proposal.stateLabel ? (
+              <AppBadge tone="neutral" appearance="tint" size="small">
+                {proposal.stateLabel}
+              </AppBadge>
+            ) : null}
+            {proposal.timeLeft ? <Caption1>{proposal.timeLeft}</Caption1> : null}
+            {isOnChain ? (
+              <AppBadge tone="success" appearance="tint" size="small">
+                Live on Arbitrum
+              </AppBadge>
             ) : null}
           </div>
 
@@ -196,12 +249,51 @@ export default function ProposalDetailPage() {
 
           {isActive ? (
             <div className={styles.actions}>
-              <NeuButton variant="success" size="sm">
-                Vote For
-              </NeuButton>
-              <NeuButton variant="secondary" size="sm">
-                Vote Against
-              </NeuButton>
+              {!isConnected ? (
+                <ConnectWallet compact />
+              ) : wrongNetwork ? (
+                <Caption1 className="text-amber-600 dark:text-amber-400">
+                  Switch to Arbitrum One to vote on-chain.
+                </Caption1>
+              ) : isOnChain && proposal.userHasVoted ? (
+                <AppBadge tone="success" appearance="tint" size="medium">
+                  You already voted on this proposal
+                </AppBadge>
+              ) : isOnChain ? (
+                <>
+                  <NeuButton
+                    variant="success"
+                    size="sm"
+                    disabled={!canVote || isPending || isConfirming}
+                    onClick={() => castVote(1)}
+                  >
+                    Vote For
+                  </NeuButton>
+                  <NeuButton
+                    variant="secondary"
+                    size="sm"
+                    disabled={!canVote || isPending || isConfirming}
+                    onClick={() => castVote(0)}
+                  >
+                    Vote Against
+                  </NeuButton>
+                  {(isPending || isConfirming) && (
+                    <AppSpinner size="tiny" label="Submitting vote" />
+                  )}
+                </>
+              ) : (
+                <>
+                  <NeuButton variant="success" size="sm" disabled>
+                    Vote For
+                  </NeuButton>
+                  <NeuButton variant="secondary" size="sm" disabled>
+                    Vote Against
+                  </NeuButton>
+                  <Caption1 className="text-muted-foreground">
+                    Sample proposal — voting available on live on-chain proposals only.
+                  </Caption1>
+                </>
+              )}
             </div>
           ) : null}
         </PanelCardBody>
@@ -233,6 +325,16 @@ export default function ProposalDetailPage() {
             <div className={mergeClasses(styles.infoRow, "!text-foreground")}>
               <Caption1>Quorum required: {proposal.quorumRequired}</Caption1>
             </div>
+            {isOnChain && proposal.proposer ? (
+              <a
+                href={getArbitrumExplorerAddressUrl(proposal.proposer)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline"
+              >
+                View proposer on Arbiscan
+              </a>
+            ) : null}
           </PanelCardBody>
         </PanelCard>
 

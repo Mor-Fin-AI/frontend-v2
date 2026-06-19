@@ -13,6 +13,10 @@ import TopNavigationBar from "@/layout/TopNavigatoionBar";
 import VerticalNavigationBar from "@/layout/VerticalNavigationBar";
 import SupportChat from "@/components/support/SupportChat";
 import { SupportChatProvider } from "@/context/SupportChatContext";
+import DashboardStickyBanner from "@/components/ui/DashboardStickyBanner";
+import { MorContractsProvider } from "@/context/MorContractsContext";
+import ModuleContractsBar from "@/components/contracts/ModuleContractsBar";
+import SafeRainbowKitProvider from "@/providers/SafeRainbowKitProvider";
 
 export default function DashboardLayout() {
   const mainRef = useRef<HTMLElement>(null);
@@ -23,32 +27,41 @@ export default function DashboardLayout() {
   }, [pathname]);
 
   return (
+    <SafeRainbowKitProvider>
     <UserProvider>
       <L2ChainProvider>
         <WalletUserSync />
         <AuthUserSync />
         <SupportChatProvider>
           <SidebarProvider>
-            <div className="flex h-screen overflow-hidden bg-background">
-              <VerticalNavigationBar />
+            <MorContractsProvider>
+            <div className="flex h-screen flex-col overflow-hidden bg-background">
+              <DashboardStickyBanner scrollContainerRef={mainRef} />
 
-              <div className="relative flex flex-1 flex-col overflow-hidden">
-                <TopNavigationBar />
+              <div className="flex min-h-0 flex-1 overflow-hidden">
+                <VerticalNavigationBar />
 
-                <main
-                  ref={mainRef}
-                  className="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5"
-                >
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <TopNavigationBar />
+
+                  <main
+                    ref={mainRef}
+                    className="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5"
+                  >
                   <Breadcrumbs />
+                  <ModuleContractsBar />
                   <RouteOutlet />
-                </main>
+                  </main>
 
-                <SupportChat />
+                  <SupportChat />
+                </div>
               </div>
             </div>
+            </MorContractsProvider>
           </SidebarProvider>
         </SupportChatProvider>
       </L2ChainProvider>
     </UserProvider>
+    </SafeRainbowKitProvider>
   );
 }

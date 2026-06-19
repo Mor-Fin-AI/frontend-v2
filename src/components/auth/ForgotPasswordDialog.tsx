@@ -81,7 +81,7 @@ export default function ForgotPasswordDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange} modalType="non-modal">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger disableButtonEnhancement>
         <Button appearance="transparent" className={styles.trigger}>
           Forgot password?

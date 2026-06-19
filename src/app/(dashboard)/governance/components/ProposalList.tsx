@@ -145,9 +145,16 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
       >
         <div className={styles.metaRow}>
           <div className={styles.badgeRow}>
-            <span className={styles.proposalId}>{proposal.id}</span>
+            <span className={styles.proposalId}>
+              {proposal.isOnChain ? `#${proposal.id}` : proposal.id}
+            </span>
             <ProposalBadge label={proposal.status} />
             <ProposalBadge label={proposal.category} />
+            {proposal.stateLabel ? (
+              <AppBadge tone="neutral" appearance="tint" size="small">
+                {proposal.stateLabel}
+              </AppBadge>
+            ) : null}
           </div>
           {proposal.timeLeft ? (
             <span className={styles.timeLeft}>{proposal.timeLeft}</span>
@@ -214,21 +221,41 @@ function ProposalCard({ proposal, index }: { proposal: Proposal; index: number }
   );
 }
 
-export default function ProposalList({ proposals }: { proposals: Proposal[] }) {
+export default function ProposalList({
+  proposals,
+  isLoading = false,
+  isLive = false,
+}: {
+  proposals: Proposal[];
+  isLoading?: boolean;
+  isLive?: boolean;
+}) {
   const styles = useStyles();
 
   return (
-    <PanelCard>
+    <PanelCard aria-busy={isLoading}>
       <PanelCardHeader
         title="Governance Proposals"
-        description="Active and recent community proposals"
+        description={
+          isLive
+            ? "Live proposals from MorGovernorTimeLocked on Arbitrum"
+            : "Sample proposals — create one on-chain to replace this list"
+        }
       />
       <PanelCardBody>
-        <div className={styles.list}>
-          {proposals.map((proposal, index) => (
-            <ProposalCard key={proposal.id} proposal={proposal} index={index} />
-          ))}
-        </div>
+        {isLoading ? (
+          <Caption1 className="text-muted-foreground">Loading proposals…</Caption1>
+        ) : proposals.length === 0 ? (
+          <Caption1 className="text-muted-foreground">
+            No proposals yet. Create the first governance proposal on Arbitrum.
+          </Caption1>
+        ) : (
+          <div className={styles.list}>
+            {proposals.map((proposal, index) => (
+              <ProposalCard key={proposal.id} proposal={proposal} index={index} />
+            ))}
+          </div>
+        )}
       </PanelCardBody>
     </PanelCard>
   );
