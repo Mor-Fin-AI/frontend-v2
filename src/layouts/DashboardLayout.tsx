@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import RouteOutlet from "@/components/routing/RouteOutlet";
+import PageOutlet from "@/components/routing/PageOutlet";
 import WalletUserSync from "@/components/wallet/WalletUserSync";
 import AuthUserSync from "@/components/auth/AuthUserSync";
 import { L2ChainProvider } from "@/context/L2ChainContext";
@@ -16,7 +16,6 @@ import { SupportChatProvider } from "@/context/SupportChatContext";
 import DashboardStickyBanner from "@/components/ui/DashboardStickyBanner";
 import { MorContractsProvider } from "@/context/MorContractsContext";
 import ModuleContractsBar from "@/components/contracts/ModuleContractsBar";
-import SafeRainbowKitProvider from "@/providers/SafeRainbowKitProvider";
 
 export default function DashboardLayout() {
   const mainRef = useRef<HTMLElement>(null);
@@ -27,7 +26,6 @@ export default function DashboardLayout() {
   }, [pathname]);
 
   return (
-    <SafeRainbowKitProvider>
     <UserProvider>
       <L2ChainProvider>
         <WalletUserSync />
@@ -50,7 +48,7 @@ export default function DashboardLayout() {
                   >
                   <Breadcrumbs />
                   <ModuleContractsBar />
-                  <RouteOutlet />
+                  <PageOutlet />
                   </main>
 
                   <SupportChat />
@@ -62,6 +60,5 @@ export default function DashboardLayout() {
         </SupportChatProvider>
       </L2ChainProvider>
     </UserProvider>
-    </SafeRainbowKitProvider>
   );
 }

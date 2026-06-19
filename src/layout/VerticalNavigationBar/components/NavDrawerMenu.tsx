@@ -1,22 +1,19 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Hamburger,
   NavDivider,
   NavDrawer,
   NavDrawerBody,
   NavDrawerHeader,
-  NavItem,
   NavSectionHeader,
   Tooltip,
   makeStyles,
   mergeClasses,
   tokens,
   useRestoreFocusTarget,
-  type NavItemValue,
-  type OnNavItemSelectData,
 } from "@fluentui/react-components";
 import {
   ArrowSwap20Filled,
@@ -48,9 +45,9 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import {
   adminNavItems,
-  navHrefByValue,
   navSections,
   resolveNavSelection,
+  type NavLink,
 } from "../navConfig";
 import SettingsNavGroup from "./SettingsNavGroup";
 import { useSidebar } from "@/context/SidebarContext";
@@ -100,20 +97,6 @@ const useStyles = makeStyles({
     transitionProperty: "width",
     transitionDuration: tokens.durationNormal,
     transitionTimingFunction: tokens.curveEasyEase,
-    "& .fui-NavItem": {
-      backgroundColor: "transparent",
-      color: "var(--sidebar-foreground)",
-      transitionProperty: "background-color, color",
-      transitionDuration: tokens.durationFaster,
-      transitionTimingFunction: tokens.curveLinear,
-      ":hover": {
-        backgroundColor: "var(--sidebar-accent)",
-        color: "var(--sidebar-accent-foreground)",
-      },
-      ":active": {
-        backgroundColor: "var(--sidebar-accent)",
-      },
-    },
   },
   drawerCollapsed: {
     width: "72px",
@@ -125,67 +108,110 @@ const useStyles = makeStyles({
       paddingLeft: tokens.spacingHorizontalXS,
       paddingRight: tokens.spacingHorizontalXS,
     },
-    "& .fui-NavItem": {
-      justifyContent: "center",
-      minWidth: "40px",
-      paddingLeft: tokens.spacingHorizontalXS,
-      paddingRight: tokens.spacingHorizontalXS,
-    },
-    "& .fui-NavItem__icon": {
-      marginRight: 0,
-    },
   },
   header: {
     paddingTop: tokens.spacingVerticalS,
     paddingBottom: tokens.spacingVerticalS,
   },
+  navLink: {
+    display: "flex",
+    alignItems: "center",
+    gap: tokens.spacingHorizontalM,
+    width: "100%",
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    border: "none",
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: "transparent",
+    color: "var(--sidebar-foreground)",
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightMedium,
+    textDecoration: "none",
+    cursor: "pointer",
+    textAlign: "left",
+    transitionProperty: "background-color, color",
+    transitionDuration: tokens.durationFaster,
+    ":hover": {
+      backgroundColor: "var(--sidebar-accent)",
+      color: "var(--sidebar-accent-foreground)",
+    },
+  },
+  navLinkCollapsed: {
+    justifyContent: "center",
+    minWidth: "40px",
+    paddingLeft: tokens.spacingHorizontalXS,
+    paddingRight: tokens.spacingHorizontalXS,
+  },
+  navLinkActive: {
+    backgroundColor: "var(--sidebar-accent)",
+    color: "var(--sidebar-accent-foreground)",
+  },
+  navLinkIcon: {
+    display: "inline-flex",
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
-function NavDrawerLink({
-  label,
+function isNavActive(pathname: string, href: string) {
+  const normalized =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  return normalized === href || normalized.startsWith(`${href}/`);
+}
+
+function SidebarNavLink({
+  item,
   icon,
-  value,
-  href,
   isCollapsed,
   onNavigate,
 }: {
-  label: string;
+  item: NavLink;
   icon: ReactElement;
-  value: NavItemValue;
-  href: string;
   isCollapsed: boolean;
-  onNavigate: (href: string) => void;
+  onNavigate: () => void;
 }) {
-  const item = (
-    <NavItem
-      icon={icon}
-      value={value}
-      aria-label={isCollapsed ? label : undefined}
-      onClick={() => onNavigate(href)}
+  const styles = useStyles();
+  const pathname = useLocation().pathname;
+  const isActive = isNavActive(pathname, item.href);
+
+  const link = (
+    <Link
+      to={item.href}
+      onClick={onNavigate}
+      aria-label={isCollapsed ? item.label : undefined}
+      aria-current={isActive ? "page" : undefined}
+      className={mergeClasses(
+        styles.navLink,
+        isCollapsed && styles.navLinkCollapsed,
+        isActive && styles.navLinkActive
+      )}
     >
-      {isCollapsed ? null : label}
-    </NavItem>
+      <span className={styles.navLinkIcon}>{icon}</span>
+      {isCollapsed ? null : item.label}
+    </Link>
   );
 
   if (!isCollapsed) {
-    return item;
+    return link;
   }
 
   return (
     <Tooltip
-      content={label}
+      content={item.label}
       relationship="label"
       positioning="after"
       withArrow
     >
-      {item}
+      {link}
     </Tooltip>
   );
 }
 
 export default function NavDrawerMenu() {
   const styles = useStyles();
-  const navigate = useNavigate();
   const pathname = useLocation().pathname;
   const { isAdmin } = useAuth();
   const { open, collapsed, close, toggle, toggleCollapsed } = useSidebar();
@@ -197,19 +223,9 @@ export default function NavDrawerMenu() {
   const drawerOpen = isLargeScreen ? true : open;
   const drawerType = isLargeScreen ? "inline" : "overlay";
 
-  const goTo = (href: string) => {
-    if (pathname !== href) {
-      navigate(href);
-    }
+  const closeMobileDrawer = () => {
     if (!isLargeScreen) {
       close();
-    }
-  };
-
-  const handleNavSelect = (_: unknown, data: OnNavItemSelectData) => {
-    const href = navHrefByValue[String(data.value)];
-    if (href) {
-      goTo(href);
     }
   };
 
@@ -227,7 +243,6 @@ export default function NavDrawerMenu() {
         type={drawerType}
         open={drawerOpen}
         selectedValue={selectedValue}
-        onNavItemSelect={handleNavSelect}
         className={mergeClasses(
           styles.drawer,
           isCollapsed && styles.drawerCollapsed
@@ -260,14 +275,12 @@ export default function NavDrawerMenu() {
                   navIconMap[item.icon as keyof typeof navIconMap] ?? Dashboard;
 
                 return (
-                  <NavDrawerLink
+                  <SidebarNavLink
                     key={item.id}
-                    label={item.label}
+                    item={item}
                     icon={<Icon />}
-                    value={item.value}
-                    href={item.href}
                     isCollapsed={isCollapsed}
-                    onNavigate={goTo}
+                    onNavigate={closeMobileDrawer}
                   />
                 );
               })}
@@ -284,14 +297,12 @@ export default function NavDrawerMenu() {
                   navIconMap[item.icon as keyof typeof navIconMap] ?? Admin;
 
                 return (
-                  <NavDrawerLink
+                  <SidebarNavLink
                     key={item.id}
-                    label={item.label}
+                    item={item}
                     icon={<Icon />}
-                    value={item.value}
-                    href={item.href}
                     isCollapsed={isCollapsed}
-                    onNavigate={goTo}
+                    onNavigate={closeMobileDrawer}
                   />
                 );
               })}
@@ -301,7 +312,7 @@ export default function NavDrawerMenu() {
           <NavDivider />
 
           {!isCollapsed ? <NavSectionHeader>Settings</NavSectionHeader> : null}
-          <SettingsNavGroup onNavigate={goTo} isCollapsed={isCollapsed} />
+          <SettingsNavGroup isCollapsed={isCollapsed} />
         </NavDrawerBody>
       </NavDrawer>
     </div>

@@ -24,7 +24,6 @@ import {
   Emoji24Regular,
   Image24Regular,
   Note24Regular,
-  PersonSupport24Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSupportChatContext } from "@/context/SupportChatContext";
@@ -139,17 +138,6 @@ const useStyles = makeStyles({
     minWidth: 0,
     alignItems: "center",
     gap: tokens.spacingHorizontalS,
-  },
-  headerIcon: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "36px",
-    height: "36px",
-    borderRadius: tokens.borderRadiusMedium,
-    backgroundColor: "color-mix(in srgb, var(--primary) 16%, transparent)",
-    color: "var(--primary)",
-    flexShrink: 0,
   },
   headerTitle: {
     fontSize: tokens.fontSizeBase300,
@@ -749,9 +737,6 @@ export default function SupportChat() {
           >
             <header className={styles.header}>
               <div className={styles.headerInfo}>
-                <span className={styles.headerIcon}>
-                  <PersonSupport24Regular className="h-5 w-5" />
-                </span>
                 <Text className={styles.headerTitle}>Morfinance Support Chat</Text>
               </div>
               <button

@@ -1,7 +1,7 @@
-import { RouterProvider } from "react-router-dom";
+import { RouterProvider } from "react-router/dom";
 
-import Web3Provider from "@/providers/Web3Provider";
 import AppFluentProvider from "@/providers/FluentProvider";
+import Web3Provider from "@/providers/Web3Provider";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { router } from "@/router";

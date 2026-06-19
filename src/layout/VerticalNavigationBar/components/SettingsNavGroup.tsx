@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
-  MenuItem,
   MenuList,
   MenuPopover,
   MenuTrigger,
@@ -20,6 +19,8 @@ import {
   bundleIcon,
 } from "@fluentui/react-icons";
 import { settingsNavItems } from "../navConfig";
+import { useSidebar } from "@/context/SidebarContext";
+import { useIsLargeScreen } from "@/hooks/useMediaQuery";
 
 const Settings = bundleIcon(Settings20Filled, Settings20Regular);
 
@@ -74,6 +75,11 @@ const useStyles = makeStyles({
     flexDirection: "column",
     paddingLeft: tokens.spacingHorizontalL,
   },
+  subLink: {
+    display: "block",
+    textDecoration: "none",
+    color: "inherit",
+  },
   subItem: {
     display: "flex",
     width: "100%",
@@ -105,15 +111,21 @@ function isSettingsPath(pathname: string) {
 }
 
 export default function SettingsNavGroup({
-  onNavigate,
   isCollapsed = false,
 }: {
-  onNavigate: (href: string) => void;
   isCollapsed?: boolean;
 }) {
   const styles = useStyles();
   const { pathname } = useLocation();
+  const { close } = useSidebar();
+  const isLargeScreen = useIsLargeScreen();
   const [open, setOpen] = useState(isSettingsPath(pathname));
+
+  const closeMobileDrawer = () => {
+    if (!isLargeScreen) {
+      close();
+    }
+  };
 
   useEffect(() => {
     if (isSettingsPath(pathname)) {
@@ -150,9 +162,14 @@ export default function SettingsNavGroup({
           <MenuPopover>
             <MenuList>
               {settingsNavItems.map((item) => (
-                <MenuItem key={item.id} onClick={() => onNavigate(item.href)}>
-                  {item.label}
-                </MenuItem>
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  onClick={closeMobileDrawer}
+                  className={styles.subLink}
+                >
+                  <span className={styles.subItem}>{item.label}</span>
+                </Link>
               ))}
             </MenuList>
           </MenuPopover>
@@ -168,14 +185,7 @@ export default function SettingsNavGroup({
         className={mergeClasses(styles.toggle, settingsActive && styles.toggleActive)}
         aria-expanded={open}
         onClick={() => {
-          if (!open) {
-            setOpen(true);
-            if (!settingsActive) {
-              onNavigate(settingsNavItems[0].href);
-            }
-            return;
-          }
-          setOpen(false);
+          setOpen((current) => !current);
         }}
       >
         <Settings />
@@ -196,17 +206,21 @@ export default function SettingsNavGroup({
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                className={mergeClasses(
-                  styles.subItem,
-                  isActive && styles.subItemActive
-                )}
-                onClick={() => onNavigate(item.href)}
+                to={item.href}
+                className={styles.subLink}
+                onClick={closeMobileDrawer}
               >
-                {item.label}
-              </button>
+                <span
+                  className={mergeClasses(
+                    styles.subItem,
+                    isActive && styles.subItemActive
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
             );
           })}
         </div>

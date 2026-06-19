@@ -32,10 +32,6 @@ import GuestRoute from "@/components/auth/GuestRoute";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Navigate to="/dashboard" replace />,
-  },
-  {
     path: "/reset-password",
     element: <ResetPasswordPage />,
   },
@@ -47,11 +43,13 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/",
     element: <ProtectedRoute />,
     children: [
       {
         element: <DashboardLayout />,
         children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
           { path: "dashboard", element: <DashboardPage /> },
           { path: "overview", element: <OverviewPage /> },
           { path: "dsa-account", element: <UserDsaAccountPage /> },
