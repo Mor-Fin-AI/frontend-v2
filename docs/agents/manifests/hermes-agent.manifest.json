@@ -1,0 +1,61 @@
+{
+  "manifestVersion": "1.0.0",
+  "manifestType": "mor-agent",
+  "slackAppManifest": "docs/agents/manifests/hermes-slack-app-manifest.json",
+  "note": "For Slack app creation use hermes-slack-app-manifest.json (has display_information). This file is the MOR agent config only.",
+  "agentId": "mor-hermes",
+  "name": "Hermes",
+  "displayName": "Hermes",
+  "emoji": "⚡",
+  "role": "mentor",
+  "platform": "openclaw",
+  "mode": "recommend-only",
+  "description": "Engineering mentor — GitHub code review, PR audits, fix templates, prompt improvements. Never auto-modifies production.",
+  "openclawWorkspace": "integrations/openclaw/workspaces/mor-hermes",
+  "promptFile": "docs/agents/prompts/hermes-mentor.md",
+  "collaborationProtocol": "docs/agents/prompts/hermes-mor-collaboration.md",
+  "githubIntegration": {
+    "enabled": true,
+    "tokenEnv": "GITHUB_TOKEN",
+    "reviewContextPathEnv": "GITHUB_REVIEW_CONTEXT_PATH",
+    "reviewContextApi": "GET /api/github/review-context",
+    "capabilities": [
+      "fetch-pr-diff",
+      "review-changed-files",
+      "audit-code-security",
+      "output-fix-templates",
+      "prepare-pr-body"
+    ],
+    "workflows": [
+      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
+      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" },
+      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" }
+    ]
+  },
+  "outputs": ["REVIEW", "OPTIMIZE", "EXPLAIN_FAILURE", "TEMPLATE", "DIAGNOSE", "FIX_PLAN", "READY_FOR_PR"],
+  "slack": {
+    "displayName": "Hermes",
+    "slashCommands": ["/mor_hermes", "/mor_audit", "/mor_codefix", "/mor_collab"],
+    "avatar": "https://ui-avatars.com/api/?name=HER&background=0891b2&color=fff&size=128&bold=true"
+  },
+  "skills": ["mor-finance", "mor-hermes", "mor-collab"],
+  "envRequired": ["MOR_API_BASE", "MOR_REPO", "SLACK_BOT_TOKEN", "OPENAI_API_KEY"],
+  "envForGithubReview": ["GITHUB_TOKEN"],
+  "envOptional": [
+    "GITHUB_REVIEW_CONTEXT_PATH",
+    "SLACK_CHANNEL_MOR_AUDIT",
+    "SLACK_CHANNEL_MOR_CODEFIX",
+    "SLACK_CHANNEL_MOR_AGENTS"
+  ],
+  "dataSources": [
+    "GET /api/agents/context",
+    "GET /api/github/review-context",
+    "integrations/openclaw/state/github-review-context.json",
+    "MOR_REPO git diff + framework paths"
+  ],
+  "limitations": [
+    "No autonomous PR merge or deploy",
+    "No production code changes without human approval",
+    "TEMPLATE and READY_FOR_PR only — never run gh pr create autonomously"
+  ]
+}
