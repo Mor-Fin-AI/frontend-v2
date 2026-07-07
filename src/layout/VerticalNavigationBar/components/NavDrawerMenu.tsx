@@ -20,6 +20,8 @@ import {
   ArrowSwap20Regular,
   Board20Filled,
   Board20Regular,
+  Bot20Filled,
+  Bot20Regular,
   Box20Filled,
   Box20Regular,
   BuildingBank20Filled,
@@ -45,7 +47,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import {
   adminNavItems,
-  navSections,
+  getNavSectionsForUser,
   resolveNavSelection,
   type NavLink,
 } from "../navConfig";
@@ -57,6 +59,7 @@ const Dashboard = bundleIcon(Board20Filled, Board20Regular);
 const Home = bundleIcon(Home20Filled, Home20Regular);
 const Dsa = bundleIcon(Wallet20Filled, Wallet20Regular);
 const Arbitrage = bundleIcon(ArrowSwap20Filled, ArrowSwap20Regular);
+const Agents = bundleIcon(Bot20Filled, Bot20Regular);
 const Rewards = bundleIcon(People20Filled, People20Regular);
 const Bank = bundleIcon(BuildingBank20Filled, BuildingBank20Regular);
 const Infrastructure = bundleIcon(Box20Filled, Box20Regular);
@@ -72,6 +75,7 @@ const navIconMap = {
   dashboard: Dashboard,
   dsa: Dsa,
   arbitrage: Arbitrage,
+  agents: Agents,
   rewards: Rewards,
   governance: Governance,
   admin: Admin,
@@ -214,6 +218,7 @@ export default function NavDrawerMenu() {
   const styles = useStyles();
   const pathname = useLocation().pathname;
   const { isAdmin } = useAuth();
+  const visibleNavSections = getNavSectionsForUser(isAdmin);
   const { open, collapsed, close, toggle, toggleCollapsed } = useSidebar();
   const isLargeScreen = useIsLargeScreen();
   const restoreFocusTargetAttributes = useRestoreFocusTarget();
@@ -264,7 +269,7 @@ export default function NavDrawerMenu() {
         </NavDrawerHeader>
 
         <NavDrawerBody>
-          {navSections.map((section) => (
+          {visibleNavSections.map((section) => (
             <div key={section.header ?? "root"}>
               {section.header && !isCollapsed ? (
                 <NavSectionHeader>{section.header}</NavSectionHeader>

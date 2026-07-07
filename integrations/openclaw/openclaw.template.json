@@ -1,0 +1,418 @@
+{
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "auth": {
+      "mode": "token",
+      "token": "REPLACE_WITH_openclaw_doctor_generate"
+    },
+    "controlUi": {
+      "enabled": true,
+      "allowedOrigins": [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:18789",
+        "http://127.0.0.1:18789"
+      ]
+    },
+    "nodes": {
+      "pairing": {
+        "autoApproveCidrs": ["127.0.0.1/32", "::1/128"]
+      },
+      "browser": {
+        "mode": "auto"
+      },
+      "allowCommands": [
+        "browser.*",
+        "canvas.*",
+        "screen.*",
+        "camera.*",
+        "location.*"
+      ]
+    }
+  },
+  "channels": {
+    "slack": {
+      "enabled": false,
+      "mode": "socket",
+      "commands": {
+        "native": true,
+        "nativeSkills": true
+      },
+      "dmPolicy": "open",
+      "allowFrom": ["*", "REPLACE_WITH_SLACK_USER_ID", "slack:REPLACE_WITH_SLACK_USER_ID"],
+      "slashCommand": {
+        "enabled": true,
+        "name": "mor",
+        "ephemeral": false
+      },
+      "groupPolicy": "open",
+      "requireMention": true,
+      "dm": {
+        "enabled": true,
+        "policy": "open",
+        "groupEnabled": true
+      },
+      "streaming": {
+        "mode": "partial"
+      },
+      "reactionNotifications": "own",
+      "botToken": {
+        "source": "env",
+        "provider": "default",
+        "id": "SLACK_BOT_TOKEN"
+      },
+      "appToken": {
+        "source": "env",
+        "provider": "default",
+        "id": "SLACK_APP_TOKEN"
+      }
+    }
+  },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": { "channel": "slack" }
+    },
+    {
+      "agentId": "main",
+      "match": { "channel": "webchat" }
+    }
+  ],
+  "commands": {
+    "native": true,
+    "nativeSkills": true,
+    "ownerAllowFrom": ["slack:REPLACE_WITH_SLACK_USER_ID"],
+    "allowFrom": {
+      "slack": ["*", "REPLACE_WITH_SLACK_USER_ID", "slack:REPLACE_WITH_SLACK_USER_ID"]
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "openai/gpt-5.4",
+      "models": {
+        "openai/gpt-5.4": {}
+      },
+      "skills": [
+        "mor-finance",
+        "mor-pnl",
+        "mor-smart-router",
+        "mor-liquidity",
+        "mor-risk",
+        "mor-mode",
+        "mor-capital",
+        "mor-review",
+        "mor-governance",
+        "mor-health",
+        "mor-brief",
+        "mor-roundtable",
+        "mor-hermes",
+        "mor-collab"
+      ],
+      "subagents": {
+        "maxSpawnDepth": 1,
+        "maxChildrenPerAgent": 10,
+        "maxConcurrent": 10,
+        "runTimeoutSeconds": 600,
+        "announceTimeoutMs": 120000,
+        "archiveAfterMinutes": 60,
+        "requireAgentId": true,
+        "delegationMode": "prefer",
+        "model": "openai/gpt-5.4",
+        "allowAgents": [
+          "mor-pnl",
+          "mor-smart-router",
+          "mor-liquidity",
+          "mor-dd-risk",
+          "mor-market-mode",
+          "mor-capital-ladder",
+          "mor-governance",
+          "mor-ops",
+          "mor-hermes"
+        ]
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/main",
+        "agentDir": "{{STATE_DIR}}/agents/main/agent",
+        "skills": [
+        "mor-finance",
+        "mor-pnl",
+        "mor-smart-router",
+        "mor-liquidity",
+        "mor-risk",
+        "mor-mode",
+        "mor-capital",
+        "mor-review",
+        "mor-governance",
+        "mor-health",
+        "mor-brief",
+        "mor-roundtable",
+        "mor-hermes",
+        "mor-collab"
+      ],
+        "subagents": {
+          "delegationMode": "prefer",
+          "requireAgentId": true,
+          "allowAgents": [
+            "mor-pnl",
+            "mor-smart-router",
+            "mor-liquidity",
+            "mor-dd-risk",
+            "mor-market-mode",
+            "mor-capital-ladder",
+            "mor-governance",
+            "mor-ops",
+            "mor-hermes"
+          ]
+        }
+      },
+      {
+        "id": "mor-pnl",
+        "name": "PnL Intelligence",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-pnl",
+        "agentDir": "{{STATE_DIR}}/agents/mor-pnl/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-pnl"]
+      },
+      {
+        "id": "mor-smart-router",
+        "name": "Smart Router",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-smart-router",
+        "agentDir": "{{STATE_DIR}}/agents/mor-smart-router/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-smart-router"]
+      },
+      {
+        "id": "mor-liquidity",
+        "name": "Liquidity Intelligence",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-liquidity",
+        "agentDir": "{{STATE_DIR}}/agents/mor-liquidity/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-liquidity"]
+      },
+      {
+        "id": "mor-dd-risk",
+        "name": "DD / Risk",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-dd-risk",
+        "agentDir": "{{STATE_DIR}}/agents/mor-dd-risk/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-risk"]
+      },
+      {
+        "id": "mor-market-mode",
+        "name": "Market Mode",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-market-mode",
+        "agentDir": "{{STATE_DIR}}/agents/mor-market-mode/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-mode"]
+      },
+      {
+        "id": "mor-capital-ladder",
+        "name": "Capital Ladder",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-capital-ladder",
+        "agentDir": "{{STATE_DIR}}/agents/mor-capital-ladder/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-capital"]
+      },
+      {
+        "id": "mor-governance",
+        "name": "Governance Intelligence",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-governance",
+        "agentDir": "{{STATE_DIR}}/agents/mor-governance/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-governance"]
+      },
+      {
+        "id": "mor-ops",
+        "name": "Ops / Health Watch",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-ops",
+        "agentDir": "{{STATE_DIR}}/agents/mor-ops/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-health"]
+      },
+      {
+        "id": "mor-hermes",
+        "name": "Hermes",
+        "workspace": "{{REPO_ROOT}}/integrations/openclaw/workspaces/mor-hermes",
+        "agentDir": "{{STATE_DIR}}/agents/mor-hermes/agent",
+        "model": "openai/gpt-5.4",
+        "skills": ["mor-finance", "mor-hermes"]
+      }
+    ]
+  },
+  "skills": {
+    "load": {
+      "extraDirs": ["{{REPO_ROOT}}/integrations/openclaw/skills"]
+    },
+    "entries": {
+      "mor-finance": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_DASHBOARD_URL": "http://localhost:5173",
+          "MOR_REPO": "{{REPO_ROOT}}",
+          "GITHUB_REVIEW_CONTEXT_PATH": "{{REPO_ROOT}}/integrations/openclaw/state/github-review-context.json"
+        }
+      },
+      "mor-pnl": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-smart-router": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-liquidity": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-risk": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-mode": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-capital": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-review": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-governance": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-health": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-brief": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-roundtable": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      },
+      "mor-hermes": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}",
+          "GITHUB_REVIEW_CONTEXT_PATH": "{{REPO_ROOT}}/integrations/openclaw/state/github-review-context.json"
+        }
+      },
+      "mor-collab": {
+        "enabled": true,
+        "env": {
+          "MOR_API_BASE": "http://localhost:3001/api",
+          "MOR_REPO": "{{REPO_ROOT}}"
+        }
+      }
+    }
+  },
+  "tools": {
+    "sessions": {
+      "visibility": "all"
+    },
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "main",
+        "mor-pnl",
+        "mor-smart-router",
+        "mor-liquidity",
+        "mor-dd-risk",
+        "mor-market-mode",
+        "mor-capital-ladder",
+        "mor-governance",
+        "mor-ops",
+        "mor-hermes"
+      ]
+    },
+    "subagents": {
+      "tools": {
+        "deny": [
+          "gateway",
+          "cron",
+          "message",
+          "sessions_send",
+          "browser",
+          "canvas",
+          "file-transfer"
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "allow": [
+      "slack",
+      "memory-core",
+      "browser",
+      "canvas",
+      "device-pair",
+      "bonjour",
+      "file-transfer",
+      "talk-voice",
+      "mor-slack"
+    ],
+    "load": {
+      "paths": [
+        "{{REPO_ROOT}}/integrations/openclaw/plugin-mor-slack"
+      ]
+    },
+    "entries": {
+      "slack": { "enabled": true },
+      "memory-core": { "enabled": true },
+      "browser": { "enabled": true },
+      "canvas": { "enabled": true },
+      "device-pair": { "enabled": true },
+      "mor-slack": {
+        "enabled": true,
+        "config": {
+          "repoRoot": "{{REPO_ROOT}}"
+        }
+      }
+    }
+  }
+}

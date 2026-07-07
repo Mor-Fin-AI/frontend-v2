@@ -12,6 +12,7 @@ import { useIsLargeScreen } from "@/hooks/useMediaQuery";
 import {
   ArrowSwap24Regular,
   Board24Regular,
+  Bot24Regular,
   Box24Regular,
   BuildingBank24Regular,
   DocumentText24Regular,
@@ -30,6 +31,7 @@ const iconMap = {
   dashboard: Board24Regular,
   dsa: Wallet24Regular,
   arbitrage: ArrowSwap24Regular,
+  agents: Bot24Regular,
   rewards: RewardIcon,
   dao: DaoIcon,
   infrastructure: Box24Regular,

@@ -1,0 +1,26 @@
+{
+  "id": "mor-slack",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "MOR Slack Slash",
+  "description": "Fast tool dispatch for MOR Finance Slack slash commands (channel + DM).",
+  "contracts": {
+    "tools": ["mor_slash"]
+  },
+  "toolMetadata": {
+    "mor_slash": {
+      "optional": false
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "repoRoot": {
+        "type": "string",
+        "description": "Path to mor-finance-user-dashboard repo (default: MOR_REPO env)."
+      }
+    }
+  }
+}

@@ -6,6 +6,8 @@ export interface NavLink {
   href: string;
   value: NavItemValue;
   icon: string;
+  /** Treasury, PnL, and financial reports — Owner/Admin only */
+  ownerOnly?: boolean;
 }
 
 export interface NavSection {
@@ -30,6 +32,7 @@ export const navSections: NavSection[] = [
         href: "/dsa-account",
         value: "dsa-account",
         icon: "dsa",
+        ownerOnly: true,
       },
       {
         id: "pricing",
@@ -49,6 +52,7 @@ export const navSections: NavSection[] = [
         href: "/overview",
         value: "treasury-flow",
         icon: "dashboard",
+        ownerOnly: true,
       },
       {
         id: "arbitrage-monitor",
@@ -56,6 +60,14 @@ export const navSections: NavSection[] = [
         href: "/arbitrage-monitor",
         value: "arbitrage-monitor",
         icon: "arbitrage",
+        ownerOnly: true,
+      },
+      {
+        id: "openclaw-agents",
+        label: "OpenClaw Agents",
+        href: "/openclaw-agents",
+        value: "openclaw-agents",
+        icon: "agents",
       },
       {
         id: "fee-integration",
@@ -63,6 +75,7 @@ export const navSections: NavSection[] = [
         href: "/fee-integration",
         value: "fee-integration",
         icon: "fee",
+        ownerOnly: true,
       },
     ],
   },
@@ -75,6 +88,7 @@ export const navSections: NavSection[] = [
         href: "/dao-education-rewards",
         value: "dao-education-rewards",
         icon: "rewards",
+        ownerOnly: true,
       },
       {
         id: "governance",
@@ -82,6 +96,7 @@ export const navSections: NavSection[] = [
         href: "/governance",
         value: "governance",
         icon: "governance",
+        ownerOnly: true,
       },
       {
         id: "lending-debt-discharge",
@@ -89,6 +104,7 @@ export const navSections: NavSection[] = [
         href: "/lending-debt-discharge",
         value: "lending-debt-discharge",
         icon: "bank",
+        ownerOnly: true,
       },
     ],
   },
@@ -194,4 +210,14 @@ export function resolveNavSelection(pathname: string): {
 
 export function getAdminNavItems(isAdmin: boolean): NavLink[] {
   return isAdmin ? adminNavItems : [];
+}
+
+/** Engineering users see ops nav; Owner/Admin also sees treasury and financial pages. */
+export function getNavSectionsForUser(isAdmin: boolean): NavSection[] {
+  return navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isAdmin || !item.ownerOnly),
+    }))
+    .filter((section) => section.items.length > 0);
 }

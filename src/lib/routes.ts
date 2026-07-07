@@ -22,6 +22,11 @@ export const routeMeta: Record<
     title: "Arbitrage Screen Monitor",
     breadcrumb: "Arbitrage Monitor",
   },
+  "/openclaw-agents": {
+    title: "OpenClaw Agents",
+    breadcrumb: "OpenClaw Agents",
+    subtitle: "External OpenClaw install — prompts in this repo, runtime at ~/.openclaw/",
+  },
   "/dao-education-rewards": {
     title: "DAO Education Rewards",
     breadcrumb: "DAO Education Rewards",

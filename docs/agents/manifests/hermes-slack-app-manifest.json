@@ -1,0 +1,194 @@
+{
+  "display_information": {
+    "name": "Hermes \u2014 MOR Code Review",
+    "description": "Engineering mentor: GitHub PR review, code audit, fix templates, Hermes \u2194 MOR collab",
+    "background_color": "#0891b2"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Hermes",
+      "always_online": true
+    },
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "assistant_view": {
+      "assistant_description": "Hermes reviews repo code from GitHub webhooks and PR context. Outputs REVIEW, OPTIMIZE, TEMPLATE \u2014 never auto-modifies production.",
+      "suggested_prompts": [
+        {
+          "title": "Code review",
+          "message": "/mor_hermes Review latest GitHub PR diff and changed files. Output REVIEW with file paths."
+        },
+        {
+          "title": "Audit PR",
+          "message": "/mor_audit Audit this PR for security, correctness, and agent-safety boundaries. PASS/WARN/FAIL."
+        },
+        {
+          "title": "Codefix plan",
+          "message": "/mor_codefix Diagnose issue and output FIX_PLAN + PR TEMPLATE. Human approval required."
+        },
+        {
+          "title": "Agent collab",
+          "message": "/mor_collab Hermes \u2194 MOR specialist dialogue on engineering topic."
+        }
+      ]
+    },
+    "slash_commands": [
+      {
+        "command": "/mor",
+        "description": "MOR Finance intelligence (routes to main orchestrator)",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_finance",
+        "description": "MOR engineering snapshot \u2014 intelligence layer health (no revenue rollup)",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_roundtable",
+        "description": "All specialists \u2014 Slack thread with cross follow-ups",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_brief",
+        "description": "Engineering brief \u2014 ops, routes, risk, data quality",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_health",
+        "description": "Ops / Health \u2014 API status and data freshness",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_governance",
+        "description": "Governance \u2014 proposals and voting posture",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_review",
+        "description": "Full MOR review \u2014 spawn all specialists and synthesize",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_pnl",
+        "description": "Route quality \u2014 opportunity scoring and route actions",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_router",
+        "description": "Smart Router \u2014 execution-quality ranking by confidence",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_risk",
+        "description": "DD/Risk \u2014 borrow/lending health and safety alerts",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_mode",
+        "description": "Market observations \u2014 deployment tier classification",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_liquidity",
+        "description": "Liquidity Intelligence \u2014 pool depth and sizing",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_capital",
+        "description": "Capital Ladder \u2014 tier posture and allocation logic",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_hermes",
+        "description": "Hermes \u2014 code review; MOR specialists respond",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_collab",
+        "description": "Hermes \u2194 MOR full dialogue \u2014 specialists, mentor, synthesis",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_agents",
+        "description": "MOR Agents \u2014 Hermes and specialists collaborate",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_audit",
+        "description": "MOR Audit \u2014 code audit discussion by agents",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_github",
+        "description": "MOR GitHub events channel status",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_suggestion",
+        "description": "MOR Suggestions \u2014 agent project improvement ideas",
+        "should_escape": false
+      },
+      {
+        "command": "/mor_codefix",
+        "description": "MOR Codefix \u2014 discuss fix and prepare PR template",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "pkce_enabled": true,
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "assistant:write",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "commands",
+        "emoji:read",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
+        "pins:read",
+        "pins:write",
+        "reactions:read",
+        "reactions:write",
+        "usergroups:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "socket_mode_enabled": true,
+    "event_subscriptions": {
+      "bot_events": [
+        "app_home_opened",
+        "app_mention",
+        "assistant_thread_context_changed",
+        "assistant_thread_started",
+        "channel_rename",
+        "member_joined_channel",
+        "member_left_channel",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim",
+        "pin_added",
+        "pin_removed",
+        "reaction_added",
+        "reaction_removed"
+      ]
+    }
+  }
+}

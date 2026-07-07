@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import DashboardLayout from "@/layouts/DashboardLayout";
+import OpenClawAgentsPage from "@/app/(dashboard)/openclaw-agents/page";
 import OverviewPage from "@/app/(dashboard)/overview/page";
 import DashboardPage from "@/app/(dashboard)/dashboard/page";
 import UserDsaAccountPage from "@/app/(dashboard)/dsa-account/page";
@@ -51,19 +52,25 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
           { path: "dashboard", element: <DashboardPage /> },
-          { path: "overview", element: <OverviewPage /> },
-          { path: "dsa-account", element: <UserDsaAccountPage /> },
-          { path: "arbitrage-monitor", element: <ArbitrageMonitorPage /> },
-          { path: "dao-education-rewards", element: <DaoEducationRewardsPage /> },
-          { path: "lending-debt-discharge", element: <LendingDebtDischargePage /> },
+          {
+            element: <AdminRoute />,
+            children: [
+              { path: "overview", element: <OverviewPage /> },
+              { path: "dsa-account", element: <UserDsaAccountPage /> },
+              { path: "arbitrage-monitor", element: <ArbitrageMonitorPage /> },
+              { path: "fee-integration", element: <FeeIntegrationPage /> },
+              { path: "dao-education-rewards", element: <DaoEducationRewardsPage /> },
+              { path: "lending-debt-discharge", element: <LendingDebtDischargePage /> },
+              { path: "governance/create", element: <CreateProposalPage /> },
+              { path: "governance", element: <GovernancePage /> },
+              { path: "governance/:proposalId", element: <ProposalDetailPage /> },
+            ],
+          },
+          { path: "openclaw-agents", element: <OpenClawAgentsPage /> },
           { path: "infrastructure-deployment", element: <InfrastructureDeploymentPage /> },
-          { path: "fee-integration", element: <FeeIntegrationPage /> },
           { path: "pricing", element: <PricingPage /> },
           { path: "pricing/success", element: <PricingSuccessPage /> },
           { path: "pricing/cancel", element: <PricingCancelPage /> },
-          { path: "governance/create", element: <CreateProposalPage /> },
-          { path: "governance", element: <GovernancePage /> },
-          { path: "governance/:proposalId", element: <ProposalDetailPage /> },
           {
             path: "settings",
             element: <SettingsLayout />,
