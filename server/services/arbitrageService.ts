@@ -53,6 +53,7 @@ export type ArbitrageExecutionResponse = {
   gasUsd: number;
   status: ArbitrageExecutionStatus;
   executedAt: string;
+  executedAtIso: string | null;
   blockNumber: number;
   dsaAddress: Address;
   nonce: number;
@@ -106,11 +107,17 @@ function getEthUsdPrice() {
 function formatExecutionTime(timestamp: bigint | number) {
   const date = new Date(Number(timestamp) * 1000);
   return date.toLocaleString(undefined, {
+    year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function toExecutionIso(timestamp: bigint | number) {
+  const ms = Number(timestamp) * 1000;
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : null;
 }
 
 function buildPairLabel(tokens: Set<string>) {
@@ -454,6 +461,7 @@ async function enrichCastPage(
         gasUsd,
         status,
         executedAt: formatExecutionTime(timestamp),
+        executedAtIso: toExecutionIso(timestamp),
         blockNumber: Number(cast.blockNumber),
         dsaAddress: cast.dsaAddress,
         nonce: Number(cast.nonce),

@@ -39,6 +39,12 @@ export const sidebarMenu: MenuItem[] = [
     icon: "arbitrage",
   },
   {
+    id: "openclaw-agents",
+    label: "OpenClaw Agents",
+    href: "/openclaw-agents",
+    icon: "agents",
+  },
+  {
     id: "dao-education-rewards",
     label: "DAO Education Rewards",
     href: "/dao-education-rewards",

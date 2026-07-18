@@ -1,0 +1,21 @@
+{
+  channels: {
+    slack: {
+      enabled: true,
+      mode: "socket",
+      dmPolicy: "open",
+      allowFrom: ["*", "slack:{{SLACK_ALERT_USER_ID}}"],
+      botToken: { source: "env", provider: "default", id: "SLACK_BOT_TOKEN" },
+      appToken: { source: "env", provider: "default", id: "SLACK_APP_TOKEN" },
+    },
+  },
+  bindings: [
+    { agentId: "main", match: { channel: "slack" } },
+  ],
+  commands: {
+    ownerAllowFrom: ["slack:{{SLACK_ALERT_USER_ID}}"],
+    allowFrom: {
+      slack: ["*", "slack:{{SLACK_ALERT_USER_ID}}"],
+    },
+  },
+}

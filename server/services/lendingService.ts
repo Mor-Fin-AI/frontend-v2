@@ -36,6 +36,8 @@ export type LendingDischargeMetricsResponse = {
   dischargesPending: number;
   dischargesActive: number;
   dischargesFailed: number;
+  dischargesFailedObserved: number;
+  loanToValueAnomaly: boolean;
   lastUpdatedAt: number | null;
   isLive: true;
 };
@@ -117,6 +119,7 @@ function formatDischargeDate(unixSeconds: bigint | number) {
 }
 
 const GANTT_COLORS = ["#30ABE8", "#8764B8", "#F69E23", "#22C38E", "#8547D1"];
+const DISCHARGE_STATUS_FAILED = 3;
 
 export async function getLendingDischargeData(
   walletAddress?: string
@@ -205,7 +208,12 @@ export async function getLendingDischargeData(
   const active = Number(globalPanel.dischargesActive);
   const completed = Number(globalPanel.dischargesCompleted);
   const failed = Number(globalPanel.dischargesFailed);
+  const failedObserved = dischargeRecords.filter(
+    (record) => Number(record.status) === DISCHARGE_STATUS_FAILED
+  ).length;
+  const dischargesFailed = Math.max(failed, failedObserved);
   const lastUpdatedAt = Number(globalPanel.lastUpdatedAt) || null;
+  const ltv = computeLtv(borrowed, collateral);
 
   const debtTotal = borrowed + recycled;
   const debtRepaymentPercent =
@@ -222,7 +230,8 @@ export async function getLendingDischargeData(
   const metrics: LendingDischargeMetricsResponse = {
     collateralEth: formatEther(collateral),
     borrowedEth: formatEther(borrowed),
-    loanToValueRatio: computeLtv(borrowed, collateral),
+    loanToValueRatio: ltv,
+    loanToValueAnomaly: ltv > 100,
     dischargeTimerActive: active > 0,
     dischargeDaysRemaining: active,
     dischargeHoursRemaining: pending,
@@ -235,7 +244,8 @@ export async function getLendingDischargeData(
     borrowedCyclesTotal: cyclesTotal,
     dischargesPending: pending,
     dischargesActive: active,
-    dischargesFailed: failed,
+    dischargesFailed,
+    dischargesFailedObserved: failedObserved,
     lastUpdatedAt,
     isLive: true,
   };

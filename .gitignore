@@ -34,5 +34,17 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
+# OpenClaw submodule (source); local install artifacts ignored
+/openclaw/node_modules/
+/openclaw/dist/
+/openclaw/.artifacts/
+
+# MOR OpenClaw integration runtime state
+/integrations/openclaw/state/
+/integrations/openclaw/openclaw.json
+/integrations/openclaw/openclaw.json.bak*
+/integrations/openclaw/openclaw.json.last-good
+/integrations/openclaw/subagents.env
+/integrations/openclaw/workspaces/**/openclaw-workspace-state.json
+/integrations/openclaw/workspaces/**/tmp/
+/integrations/openclaw/workspaces/**/*-context-*.json

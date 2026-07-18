@@ -17,6 +17,7 @@ export type ArbitrageExecutionResponse = {
   gasUsd: number;
   status: "Executed" | "Skipped" | "Failed";
   executedAt: string;
+  executedAtIso?: string | null;
   blockNumber: number;
   dsaAddress: string;
   nonce: number;

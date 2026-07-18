@@ -1,0 +1,108 @@
+{
+  "manifestVersion": "1.0.0",
+  "manifestType": "mor-agent",
+  "slackAppManifest": "docs/agents/manifests/mor-openclaw-slack-app-manifest.json",
+  "note": "For Slack app creation use mor-openclaw-slack-app-manifest.json (has display_information). This file is the MOR agent config only.",
+  "agentId": "main",
+  "name": "MOR Commander",
+  "displayName": "MOR Commander",
+  "emoji": "🐾",
+  "role": "orchestrator",
+  "platform": "openclaw",
+  "mode": "recommend-only",
+  "description": "OpenClaw orchestrator — delegates to MOR specialists, synthesizes GitHub + engineering intelligence, coordinates Hermes mentor dialogue.",
+  "openclawWorkspace": "integrations/openclaw/workspaces/main",
+  "gatewayUrl": "http://127.0.0.1:18789",
+  "githubIntegration": {
+    "enabled": true,
+    "tokenEnv": "GITHUB_TOKEN",
+    "webhookPath": "POST /api/github/webhook",
+    "workflowsApi": "GET /api/github/workflows",
+    "reviewContextApi": "GET /api/github/review-context",
+    "smeeUrlEnv": "SMEE_WEBHOOK_URL",
+    "webhookSecretEnv": "GITHUB_WEBHOOK_SECRET",
+    "autoTriggers": {
+      "reviewCode": "GITHUB_AUTO_REVIEW_CODE",
+      "auditPr": "GITHUB_AUTO_AUDIT_PR",
+      "suggestion": "GITHUB_AUTO_SUGGESTION",
+      "suggestionIssues": "GITHUB_AUTO_SUGGESTION_ISSUES",
+      "agentsIssues": "GITHUB_AUTO_AGENTS_ISSUES",
+      "codefix": "GITHUB_AUTO_CODEFIX"
+    },
+    "slackWorkflows": [
+      { "id": "mor-github-events", "channelEnv": "SLACK_CHANNEL_MOR_GITHUB_EVENTS", "slash": "/mor_github" },
+      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" },
+      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
+      { "id": "mor-suggestion", "channelEnv": "SLACK_CHANNEL_MOR_SUGGESTION", "slash": "/mor_suggestion" },
+      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" }
+    ]
+  },
+  "spawnTargets": [
+    "mor-pnl",
+    "mor-smart-router",
+    "mor-liquidity",
+    "mor-dd-risk",
+    "mor-market-mode",
+    "mor-capital-ladder",
+    "mor-governance",
+    "mor-ops",
+    "mor-hermes"
+  ],
+  "outputs": ["Unified intelligence summary", "Escalation to Risk Engine", "Commander synthesis"],
+  "slack": {
+    "displayName": "MOR Commander",
+    "slashCommands": [
+      "/mor",
+      "/mor_roundtable",
+      "/mor_review",
+      "/mor_brief",
+      "/mor_finance",
+      "/mor_agents",
+      "/mor_github"
+    ],
+    "avatar": "https://ui-avatars.com/api/?name=CMD&background=0f172a&color=fff&size=128&bold=true"
+  },
+  "skills": [
+    "mor-finance",
+    "mor-pnl",
+    "mor-smart-router",
+    "mor-liquidity",
+    "mor-risk",
+    "mor-mode",
+    "mor-capital",
+    "mor-review",
+    "mor-governance",
+    "mor-health",
+    "mor-brief",
+    "mor-roundtable",
+    "mor-hermes",
+    "mor-collab"
+  ],
+  "envRequired": ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "MOR_API_BASE", "MOR_REPO", "OPENAI_API_KEY"],
+  "envForGithub": ["GITHUB_TOKEN", "GITHUB_WEBHOOK_SECRET", "SMEE_WEBHOOK_URL"],
+  "envOptional": [
+    "SLACK_CHANNEL_MOR_AGENTS",
+    "SLACK_CHANNEL_MOR_AUDIT",
+    "SLACK_CHANNEL_MOR_GITHUB_EVENTS",
+    "SLACK_CHANNEL_MOR_SUGGESTION",
+    "SLACK_CHANNEL_MOR_CODEFIX",
+    "GITHUB_AUTO_REVIEW_CODE",
+    "GITHUB_AUTO_AUDIT_PR",
+    "GITHUB_AUTO_SUGGESTION",
+    "GITHUB_AUTO_SUGGESTION_ISSUES",
+    "GITHUB_AUTO_AGENTS_ISSUES",
+    "GITHUB_AUTO_CODEFIX"
+  ],
+  "dataSources": [
+    "GET /api/health",
+    "GET /api/agents/context",
+    "GET /api/agents/manifest",
+    "GET /api/github/workflows",
+    "GET /api/github/review-context"
+  ],
+  "limitations": [
+    "Orchestrator recommends only — does not execute trades",
+    "Delegates code review to mor-hermes for deep GitHub analysis",
+    "Synthesizes specialist + Hermes threads on Slack"
+  ]
+}

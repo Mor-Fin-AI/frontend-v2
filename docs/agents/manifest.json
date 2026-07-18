@@ -1,0 +1,361 @@
+{
+  "manifestVersion": "1.0.0",
+  "service": "mor-finance-intelligence",
+  "mode": "recommend-only",
+  "limitationsDoc": "docs/agents/AGENT-LIMITATIONS.md",
+  "limitations": {
+    "general": [
+      "No autonomous trade execution",
+      "No direct treasury access",
+      "No capital allocation without Risk Engine approval",
+      "No protocol configuration changes without authorization",
+      "No contract or infrastructure deployment without authorization"
+    ],
+    "tradingRisk": [
+      "Recommend routes and trade sizing only",
+      "Borrow/lending requires DD/Risk Agent and Risk Engine validation",
+      "Never bypass risk limits, kill switches, or daily loss limits",
+      "Pause recommendations when market or data confidence is low"
+    ],
+    "dataQuality": [
+      "Detect stale or missing data and flag it",
+      "Report confidence scores for recommendations",
+      "Escalate conflicting signals instead of guessing"
+    ],
+    "mentors": {
+      "claude": "Education and documentation only — no production changes or deployments",
+      "hermes": "Code review and templates only — no auto-modify production or deployments"
+    },
+    "security": [
+      "No private keys or wallet secrets",
+      "No independent transaction signing",
+      "Owner-only financial dashboard data"
+    ]
+  },
+  "executionHierarchy": [
+    "Agents recommend",
+    "Risk Engine approves or rejects",
+    "Execution Engine executes"
+  ],
+  "slack": {
+    "orchestratorAgentId": "main",
+    "reportingPhase": "engineering-intelligence",
+    "reportingPolicyDoc": "docs/agents/prompts/slack-engineering-focus.md",
+    "excludedFromAutomatedAlerts": [
+      "Daily revenue notifications",
+      "Daily realized PnL rollups",
+      "Profit/loss standups and evening financial summaries"
+    ],
+    "recommendedSetup": "One Slack app → main orchestrator. Specialists post engineering intelligence (routes, risk, liquidity, data health) — not daily revenue rollups during deployment phase.",
+    "envRequired": [
+      "SLACK_BOT_TOKEN",
+      "SLACK_APP_TOKEN"
+    ],
+    "envOptional": [
+      "SLACK_ALERT_USER_ID",
+      "SLACK_ALERT_CHANNEL_ID"
+    ],
+    "defaultBinding": {
+      "agentId": "main",
+      "match": { "channel": "slack" }
+    },
+    "interaction": {
+      "dm": "DM the bot for full MOR intelligence reviews",
+      "channel": "@mention the bot in a channel (invite bot first)",
+      "slashCommand": "/openclaw (if configured in Slack app manifest)"
+    },
+    "samplePrompts": {
+      "fullReview": "Engineering intelligence roundtable: spawn all specialists, pull /api/agents/context. Synthesize route quality, risk posture, data freshness, and top 3 engineering actions. No revenue rollup.",
+      "routeQuality": "Spawn mor-pnl: route quality and opportunity scoring (PRIORITIZE/RETIRE) with confidence — not daily PnL.",
+      "riskAlert": "Spawn mor-dd-risk: borrow/lending health and failure patterns. BLOCK or REDUCE if thresholds breached.",
+      "marketMode": "Spawn mor-market-mode: market observations and deployment tier (BASELINE/BURST/5×/10×).",
+      "opsHealth": "Spawn mor-ops: data freshness, execution latency, failed execution diagnostics, infrastructure health."
+    },
+    "alertCronJobs": [
+      {
+        "id": "mor-alert-full",
+        "name": "MOR Engineering Roundtable",
+        "agentId": "main",
+        "schedule": "0 */6 * * *",
+        "scheduleHuman": "Every 6 hours",
+        "delivery": "roundtable",
+        "prompt": "MOR engineering roundtable: each specialist posts on Slack and follows up on prior agents. Pull GET /api/agents/context. Commander synthesizes: route quality, risk posture, data freshness, deployment tier, agent tensions, top 3 engineering actions. No revenue or daily PnL rollup. Never execute trades."
+      },
+      {
+        "id": "mor-alert-route-quality",
+        "name": "MOR Route Quality Scan",
+        "agentId": "mor-pnl",
+        "schedule": "0 */4 * * *",
+        "scheduleHuman": "Every 4 hours",
+        "prompt": "MOR route quality scan: GET /api/agents/context. Output PRIORITIZE/RETIRE with opportunity scores, failure patterns, cross-chain notes. Do not lead with dollar PnL or revenue."
+      },
+      {
+        "id": "mor-alert-risk",
+        "name": "MOR DD/Risk Alert",
+        "agentId": "mor-dd-risk",
+        "schedule": "30 */2 * * *",
+        "scheduleHuman": "Every 2 hours at :30",
+        "delivery": "slack-deliver",
+        "prompt": "MOR DD/Risk alert: GET /api/agents/context. Borrow/lending health, utilization, collateral. Output APPROVE/REDUCE/BLOCK. No PnL rollup."
+      },
+      {
+        "id": "mor-alert-market-mode",
+        "name": "MOR Market Observations",
+        "agentId": "mor-market-mode",
+        "schedule": "0 * * * *",
+        "scheduleHuman": "Hourly",
+        "prompt": "MOR market observations: classify BASELINE/BURST/5×/10× with route-quality, liquidity, and DD scores. Cross-chain context. No revenue rollup."
+      },
+      {
+        "id": "mor-alert-liquidity",
+        "name": "MOR Liquidity Analysis",
+        "agentId": "mor-liquidity",
+        "schedule": "15 */4 * * *",
+        "scheduleHuman": "Every 4 hours at :15",
+        "prompt": "MOR liquidity analysis: SAFE SIZE / REDUCE SIZE / AVOID ROUTE per route. Pool depth, slippage, cross-chain migration signals."
+      },
+      {
+        "id": "mor-alert-capital",
+        "name": "MOR Capital Ladder Engineering",
+        "agentId": "mor-capital-ladder",
+        "schedule": "45 */6 * * *",
+        "scheduleHuman": "Every 6 hours at :45",
+        "prompt": "MOR capital ladder engineering brief: tier posture, allocation logic, SCALE/PAUSE with risk alignment. Buffer % if SCALE — no daily revenue rollup."
+      },
+      {
+        "id": "mor-alert-ops",
+        "name": "MOR Ops & Data Freshness",
+        "agentId": "mor-ops",
+        "schedule": "0 */2 * * *",
+        "scheduleHuman": "Every 2 hours",
+        "delivery": "slack-deliver",
+        "prompt": "MOR ops watch: GET /api/agents/context. Data freshness flags, API health, execution latency, failed execution diagnostics, infrastructure signals. Optional prompt-improvement note."
+      },
+      {
+        "id": "mor-alert-governance",
+        "name": "MOR Governance Watch",
+        "agentId": "mor-governance",
+        "schedule": "0 9,15 * * 1-5",
+        "scheduleHuman": "Weekdays 9am and 3pm",
+        "delivery": "slack-deliver",
+        "prompt": "MOR governance watch: active proposals, timelocks, operational impact on routes and risk. MONITOR/PREPARE/URGENT — no financial rollup."
+      },
+      {
+        "id": "mor-alert-smart-router",
+        "name": "MOR Smart Router Scan",
+        "agentId": "mor-smart-router",
+        "schedule": "20 */4 * * *",
+        "scheduleHuman": "Every 4 hours at :20",
+        "prompt": "MOR smart router scan: GET /api/agents/context. Use smartRouter.recommendations — output ROUTE/AVOID with confidence, success probability, execution priority. Never rank by quoted spread alone."
+      },
+      {
+        "id": "mor-alert-flashloan-opportunities",
+        "name": "MOR Flashloan Opportunity Scan",
+        "agentId": "mor-smart-router",
+        "schedule": "*/30 * * * *",
+        "scheduleHuman": "Every 30 minutes",
+        "delivery": "flashloan-opportunities",
+        "prompt": "Evaluate live Smart Router candidates for flashloan viability. Post the deterministic result as MOR Smart Router. When routes qualify, have MOR PnL Intel, MOR Liquidity, and MOR Risk Guard discuss expected realized profit, quote freshness, liquidity, safe size, gas, fees, and execution risk in the same Slack thread; Commander posts the final recommend-only synthesis. Risk Engine approval is required."
+      },
+      {
+        "id": "mor-alert-hermes",
+        "name": "MOR Hermes Engineering Review",
+        "agentId": "mor-hermes",
+        "schedule": "0 10 * * 5",
+        "scheduleHuman": "Fridays 10am",
+        "delivery": "slack-deliver",
+        "prompt": "Hermes engineering review: GET /api/agents/context. REVIEW agent framework, dataQuality flags, prompt gaps. OPTIMIZE observability. TEMPLATE any prompt fixes. No production changes claimed."
+      }
+    ]
+  },
+  "agents": [
+    {
+      "id": "main",
+      "name": "MOR Orchestrator",
+      "emoji": "🐾",
+      "role": "orchestrator",
+      "slackRole": "Primary Slack contact — delegates to specialists via sub-agents",
+      "outputs": ["Unified intelligence summary", "Escalation to Risk Engine"],
+      "spawnTargets": [
+        "mor-pnl",
+        "mor-smart-router",
+        "mor-liquidity",
+        "mor-dd-risk",
+        "mor-market-mode",
+        "mor-capital-ladder",
+        "mor-governance",
+        "mor-ops",
+        "mor-hermes"
+      ],
+      "openclawWorkspace": "integrations/openclaw/workspaces/main",
+      "promptFile": null,
+      "kpi": "Route requests and synthesize specialist alerts"
+    },
+    {
+      "id": "mor-pnl",
+      "name": "PnL Intelligence",
+      "emoji": "📈",
+      "role": "specialist",
+      "slackRole": "Route quality and opportunity scoring — engineering phase (no daily PnL rollup)",
+      "outputs": ["PRIORITIZE", "MAINTAIN", "DEPRIORITIZE", "RETIRE"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-pnl",
+      "promptFile": "docs/agents/prompts/pnl-intelligence.md",
+      "kpi": "Maximize realized profitable opportunities"
+    },
+    {
+      "id": "mor-smart-router",
+      "name": "Smart Router",
+      "emoji": "🧭",
+      "role": "specialist",
+      "slackRole": "Execution-quality route ranking — confidence and success probability over spread",
+      "outputs": ["ROUTE", "REDUCE SIZE", "WATCH", "AVOID"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-smart-router",
+      "promptFile": "docs/agents/prompts/smart-router-intelligence.md",
+      "kpi": "Maximize realized net profit via selective high-confidence routing"
+    },
+    {
+      "id": "mor-liquidity",
+      "name": "Liquidity Intelligence",
+      "emoji": "💧",
+      "role": "specialist",
+      "slackRole": "Liquidity analysis and safe sizing alerts",
+      "outputs": ["SAFE SIZE", "REDUCE SIZE", "AVOID ROUTE"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-liquidity",
+      "promptFile": "docs/agents/prompts/liquidity-intelligence.md",
+      "kpi": "Maximum safe capital without reducing profitability"
+    },
+    {
+      "id": "mor-dd-risk",
+      "name": "DD / Risk",
+      "emoji": "🛡️",
+      "role": "specialist",
+      "slackRole": "DD/Risk and borrow/lending health alerts — highest urgency",
+      "outputs": ["APPROVE", "REDUCE", "BLOCK"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-dd-risk",
+      "promptFile": "docs/agents/prompts/dd-risk.md",
+      "kpi": "Protect treasury while enabling safe scaling"
+    },
+    {
+      "id": "mor-market-mode",
+      "name": "Market Mode",
+      "emoji": "📊",
+      "role": "specialist",
+      "slackRole": "Market observations and deployment tier alerts",
+      "outputs": ["BASELINE", "BURST", "5× DEPLOYMENT TIER", "10× DEPLOYMENT TIER"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-market-mode",
+      "promptFile": "docs/agents/prompts/market-mode-intelligence.md",
+      "kpi": "Accurate deployment-tier recommendations"
+    },
+    {
+      "id": "mor-capital-ladder",
+      "name": "Capital Ladder",
+      "emoji": "🏦",
+      "role": "specialist",
+      "slackRole": "Capital ladder recommendations — tier and allocation logic (no revenue rollup)",
+      "outputs": [
+        "MAINTAIN",
+        "SCALE",
+        "PAUSE",
+        "UPGRADE DEPLOYMENT TIER",
+        "DOWNGRADE DEPLOYMENT TIER"
+      ],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-capital-ladder",
+      "promptFile": "docs/agents/prompts/capital-ladder.md",
+      "kpi": "Compound treasury growth from validated data"
+    },
+    {
+      "id": "mor-governance",
+      "name": "Governance Intelligence",
+      "emoji": "🗳️",
+      "role": "specialist",
+      "slackRole": "Proposal and voting posture alerts",
+      "outputs": ["MONITOR", "PREPARE", "URGENT", "PAUSE OPS"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-governance",
+      "promptFile": "docs/agents/prompts/governance-intelligence.md",
+      "kpi": "Timely governance visibility before treasury moves"
+    },
+    {
+      "id": "mor-ops",
+      "name": "Ops / Health Watch",
+      "emoji": "🩺",
+      "role": "specialist",
+      "slackRole": "Data freshness, execution latency, failure diagnostics, infrastructure health",
+      "outputs": ["HEALTHY", "DEGRADED", "DOWN", "ACTION REQUIRED"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-ops",
+      "promptFile": "docs/agents/prompts/ops-health.md",
+      "kpi": "Reliable observability for all intelligence agents"
+    },
+    {
+      "id": "mor-hermes",
+      "name": "Hermes",
+      "emoji": "⚡",
+      "role": "mentor",
+      "slackRole": "Code review, optimizations, failure explanations, prompt templates — no auto-modify production",
+      "outputs": ["REVIEW", "OPTIMIZE", "EXPLAIN_FAILURE", "TEMPLATE"],
+      "openclawWorkspace": "integrations/openclaw/workspaces/mor-hermes",
+      "promptFile": "docs/agents/prompts/hermes-mentor.md",
+      "kpi": "Improve prompts, code, and workflows through mentor feedback only"
+    }
+  ],
+  "dataSources": {
+    "health": "GET /api/health",
+    "context": "GET /api/agents/context",
+    "smartRouter": "GET /api/agents/smart-router",
+    "flashloanOpportunities": "GET /api/agents/flashloan-opportunities",
+    "githubWorkflows": "GET /api/github/workflows",
+    "manifest": "GET /api/agents/manifest",
+    "openclaw": "GET /api/agents/openclaw",
+    "mentors": "GET /api/agents/mentors",
+    "mentorAsk": "POST /api/agents/mentors/ask"
+  },
+  "developerAcademy": {
+    "product": "ai-mentor",
+    "doc": "docs/agents/AI-MENTOR-ACADEMY.md",
+    "authEnv": "MOR_MENTOR_API_KEY",
+    "mentors": ["hermes", "claude"],
+    "openclawAgentIds": {
+      "hermes": "mor-hermes",
+      "claude": "main"
+    }
+  },
+  "githubSlack": {
+    "doc": "docs/agents/GITHUB-SLACK-INTEGRATION.md",
+    "webhook": "POST /api/github/webhook",
+    "workflows": [
+      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" },
+      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
+      { "id": "mor-github-events", "channelEnv": "SLACK_CHANNEL_MOR_GITHUB_EVENTS", "slash": "/mor_github" },
+      { "id": "mor-suggestion", "channelEnv": "SLACK_CHANNEL_MOR_SUGGESTION", "slash": "/mor_suggestion" },
+      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" }
+    ],
+    "cronJobs": [
+      {
+        "id": "mor-github-audit-sweep",
+        "name": "MOR GitHub Audit Sweep",
+        "agentId": "main",
+        "workflowId": "mor-audit",
+        "schedule": "0 10,16 * * 1-5",
+        "scheduleHuman": "Weekdays 10am and 4pm",
+        "prompt": "MOR GitHub audit sweep: review the latest GitHub review context if available, otherwise inspect the current repo diff and recent engineering changes. Post a structured PASS/WARN/FAIL/NEEDS_HUMAN audit in #mor-audit with file-specific risks and required follow-ups."
+      },
+      {
+        "id": "mor-github-suggestion-sweep",
+        "name": "MOR GitHub Suggestion Sweep",
+        "agentId": "main",
+        "workflowId": "mor-suggestion",
+        "schedule": "30 10,16 * * 1-5",
+        "scheduleHuman": "Weekdays 10:30am and 4:30pm",
+        "prompt": "MOR GitHub suggestion sweep: review the latest GitHub context, working-tree diff, and MOR system state. Share 3-7 ranked engineering suggestions in #mor-suggestion with impact, effort, and recommended owners."
+      },
+      {
+        "id": "mor-github-agents-collab",
+        "name": "MOR GitHub Agents Collaboration",
+        "agentId": "main",
+        "workflowId": "mor-agents",
+        "schedule": "0 11,17 * * 1-5",
+        "scheduleHuman": "Weekdays 11am and 5pm",
+        "prompt": "MOR GitHub agents collaboration: run a full Hermes ↔ MOR engineering discussion over the latest GitHub context, active repo changes, and MOR live context. Have agents interact in #mor-agents and synthesize next actions for the team."
+      }
+    ]
+  }
+}
