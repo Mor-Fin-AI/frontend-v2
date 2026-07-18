@@ -27,3 +27,7 @@ openclaw doctor --generate-gateway-token
 
 - `GET /api/agents/context` — on-chain data for agents
 - `GET /api/agents/openclaw` — reads `integrations/openclaw/openclaw.json`
+- `GET /api/agents/mentors` — Developer Academy AI Mentor discovery (OpenClaw + Hermes + Claude)
+- `POST /api/agents/mentors/ask` — Academy mentor chat turn
+
+→ [docs/agents/AI-MENTOR-ACADEMY.md](./docs/agents/AI-MENTOR-ACADEMY.md)

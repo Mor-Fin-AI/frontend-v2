@@ -52,6 +52,9 @@ export type SmartRouterRecommendation = {
   routePath: string;
   pair: string;
   routeDexes: [string, string];
+  inputTradeSizeUsd: number;
+  grossArbitrageProfitUsd: number;
+  flashLoanFeeUsd: number;
   expectedNetProfitUsd: number;
   expectedBps: number;
   confidenceScore: number;
@@ -419,13 +422,15 @@ function scoreCandidate(
     1,
   );
 
+  const liquidityAdjustedTradeSize =
+    candidate.inputTradeSizeUsd *
+    (liquidityDepth / Math.max(candidate.inputTradeSizeUsd, 1)) *
+    (0.5 + successProbability * 0.5);
+  // Never recommend more capital than the candidate was actually quoted for.
   const recommendedTradeSizeUsd = round(
-    clamp(
-      candidate.inputTradeSizeUsd *
-        (liquidityDepth / Math.max(candidate.inputTradeSizeUsd, 1)) *
-        (0.5 + successProbability * 0.5),
-      1_000,
-      10_000,
+    Math.min(
+      candidate.inputTradeSizeUsd,
+      Math.max(Math.min(1_000, candidate.inputTradeSizeUsd), liquidityAdjustedTradeSize),
     ),
     0,
   );
@@ -442,6 +447,9 @@ function scoreCandidate(
     routePath: candidate.routePath,
     pair,
     routeDexes,
+    inputTradeSizeUsd: candidate.inputTradeSizeUsd,
+    grossArbitrageProfitUsd: candidate.grossArbitrageProfitUsd,
+    flashLoanFeeUsd: flashLoanFee,
     expectedNetProfitUsd: netProfitUsd,
     expectedBps: candidate.expectedBps,
     confidenceScore,

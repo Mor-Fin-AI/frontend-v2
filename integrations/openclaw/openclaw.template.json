@@ -375,7 +375,6 @@
         "deny": [
           "gateway",
           "cron",
-          "message",
           "sessions_send",
           "browser",
           "canvas",

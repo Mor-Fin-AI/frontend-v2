@@ -43,6 +43,15 @@ Optional: install deps in the submodule for local development:
 cd openclaw && npm install
 ```
 
+## Developer Academy AI Mentor
+
+MOR exposes Hermes + Claude mentors for Academy over the dashboard API:
+
+- Contract: [docs/agents/AI-MENTOR-ACADEMY.md](../../docs/agents/AI-MENTOR-ACADEMY.md)
+- `GET /api/agents/mentors` — discovery (OpenClaw + Hermes)
+- `POST /api/agents/mentors/ask` — mentor chat
+- Optional auth: `MOR_MENTOR_API_KEY`
+
 ## Sub-agents
 
 See [SUBAGENTS.md](./SUBAGENTS.md) for spawn patterns, env vars, and tool policy.

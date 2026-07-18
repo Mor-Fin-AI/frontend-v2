@@ -135,6 +135,36 @@ Each recommendation includes:
 | `/api/agents/context` | GET | Full snapshot including `smartRouter` |
 | `/api/agents/smart-router` | GET | Smart router evaluation only |
 | `/api/agents/smart-router/evaluate` | POST | Evaluate optional `candidates[]` body against historical learning |
+| `/api/agents/flashloan-opportunities` | GET | Screen Smart Router output for flashloan viability |
+| `/api/agents/flashloan-opportunities/evaluate` | POST | Score optional `candidates[]` for a supported flashloan provider |
+
+## Flashloan Opportunity Engine
+
+The Flashloan Opportunity Engine is a deterministic, recommend-only layer on
+top of Smart Router output. By default it consumes **live on-chain DEX quotes**
+from `server/services/flashloanLiveQuoteService.ts` (curated 2-hop routes in
+`server/data/flashloanQuoteRoutes.ts`), then screens them for flashloan
+viability. Historical DSA Casts supply learning priors only.
+
+It:
+
+- quotes Uniswap V3 (QuoterV2) and V2 routers via read-only `eth_call`;
+- estimates provider fees against the recommended trade size;
+- ranks by expected value after success probability and failed-attempt gas;
+- rejects low-confidence, low-success, or poor profit-to-fee candidates;
+- returns `OPPORTUNITY`, `WATCH`, or `REJECT` with `dataSource: "live-quotes"`;
+- requires Risk Engine approval before any Execution Engine enqueue.
+
+It never signs, submits, or executes a transaction.
+
+Run a manual Slack scan with:
+
+```bash
+npm run openclaw:flashloan:scan -- --dry-run
+```
+
+The manifest installs `MOR Flashloan Opportunity Scan` every 30 minutes via
+`npm run openclaw:cron:install`.
 
 ## Agent integration
 

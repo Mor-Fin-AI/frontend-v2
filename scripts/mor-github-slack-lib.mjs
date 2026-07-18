@@ -38,9 +38,9 @@ export function workflowInstructions(workflowId) {
     "mor-audit":
       "Channel workflow: mor-audit. Code audit on GitHub-linked change. Hermes REVIEW + MOR Ops/Risk. Output PASS/WARN/FAIL/NEEDS_HUMAN with prioritized fixes.",
     "mor-suggestion":
-      "Channel workflow: mor-suggestion. Propose 3–7 ranked engineering suggestions with impact/effort. Categories: architecture, agents, routing, observability, dx.",
+      "Channel workflow: mor-suggestion. Propose 3–7 ranked engineering suggestions with impact/effort. Categories: architecture, agents, routing, observability, dx. When GitHub review context contains competing code-fix paths, run the patch-vote stage and conclude with the selected patch or blocker.",
     "mor-codefix":
-      "Channel workflow: mor-codefix. Diagnose issue, FIX_PLAN, TEMPLATE for PR. Never open PR without human approval. Output READY_FOR_PR only when fix plan is complete.",
+      "Channel workflow: mor-codefix. Diagnose issue, FIX_PLAN, TEMPLATE for PR. Never open PR without human approval. Output READY_FOR_PR only when fix plan is complete. When multiple patch paths exist, run the agent patch-vote stage before final synthesis.",
   };
   return blocks[workflowId] ?? "";
 }

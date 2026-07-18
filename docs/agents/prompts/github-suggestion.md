@@ -35,5 +35,6 @@ Evidence: <file paths, API signals, or GitHub context>
 
 - 3–7 suggestions per round; rank by impact/effort
 - Tie suggestions to live context or GitHub change when available
+- If the GitHub context reveals competing code-fix approaches, make those approaches concrete enough for a later agent patch vote
 - No autonomous implementation — propose only
 - Flag if suggestion touches financial execution (requires Risk Engine review)

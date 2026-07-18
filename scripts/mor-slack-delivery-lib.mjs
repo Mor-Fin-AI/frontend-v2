@@ -282,10 +282,10 @@ export function formatTranscript(transcript) {
 }
 
 export async function runAgentTurn({ agent, agentId, message, contextBlock, transcript = [] }) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return message;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!openaiKey && !anthropicKey) return message;
 
-  const model = agent.model.replace(/^openai\//, "");
   const prior = formatTranscript(transcript);
   const respondingToHermes =
     agentId !== "mor-hermes" && transcriptHasHermes(transcript);
@@ -310,27 +310,76 @@ export async function runAgentTurn({ agent, agentId, message, contextBlock, tran
   if (contextBlock) userParts.push(`---\n${contextBlock}`);
   const userContent = userParts.join("\n\n");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userContent },
-      ],
-      temperature: 0.4,
-    }),
-  });
+  const errors = [];
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error?.message ?? `OpenAI HTTP ${res.status}`);
+  if (openaiKey) {
+    try {
+      const model = agent.model.replace(/^openai\//, "");
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openaiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: userContent },
+          ],
+          temperature: 0.4,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message ?? `OpenAI HTTP ${res.status}`);
+      }
+      return data.choices?.[0]?.message?.content?.trim() || message;
+    } catch (error) {
+      errors.push(`openai: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
-  return data.choices?.[0]?.message?.content?.trim() || message;
+
+  if (anthropicKey) {
+    try {
+      const model =
+        process.env.ANTHROPIC_MODEL?.trim() ||
+        (String(agent.model).startsWith("anthropic/")
+          ? agent.model.replace(/^anthropic\//, "")
+          : "claude-sonnet-4-5");
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1200,
+          temperature: 0.4,
+          system,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message ?? `Anthropic HTTP ${res.status}`);
+      }
+      const text = Array.isArray(data.content)
+        ? data.content
+            .filter((part) => part?.type === "text")
+            .map((part) => part.text)
+            .join("\n")
+            .trim()
+        : "";
+      return text || message;
+    } catch (error) {
+      errors.push(`anthropic: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  throw new Error(errors.join(" | ") || "No LLM provider available");
 }
 
 export function resolveFollowupAgents(primaryId, mode) {
@@ -368,6 +417,7 @@ export async function deliverAgentToSlack({
   threadTs,
   transcript,
   contextBlock,
+  allowFallback = true,
 }) {
   const agent = resolveAgent(cfg, agentId);
   let reply;
@@ -380,6 +430,7 @@ export async function deliverAgentToSlack({
       transcript,
     });
   } catch (err) {
+    if (!allowFallback) throw err;
     console.warn(`→ ${agentId} turn failed (${err.message}); using fallback text`);
     reply = message;
   }
@@ -469,9 +520,10 @@ export async function runCommanderSynthesis({
   token,
   channel,
   threadTs,
+  allowFallback = true,
 }) {
   console.log("→ Commander synthesis (Hermes ↔ MOR dialogue)");
-  const synthesisPrompt = `Synthesize this MOR engineering dialogue for the user. Include Hermes mentor findings AND how MOR specialists responded. Reference each agent by name. Summarize agreements, tensions, open questions. Top 3 engineering actions. No revenue rollup. User focus: ${userTopic}`;
+  const synthesisPrompt = `Synthesize this MOR engineering dialogue for the user. Include Hermes mentor findings AND how MOR specialists responded. Reference each agent by name. Summarize agreements, tensions, open questions. Top 3 engineering actions. No revenue rollup. End with a clearly labeled final section titled CONCLUSION that briefly closes the full discussion thread. User focus: ${userTopic}`;
   return deliverAgentToSlack({
     cfg,
     agentId: "main",
@@ -482,6 +534,7 @@ export async function runCommanderSynthesis({
     threadTs,
     transcript,
     contextBlock: await fetchMorContext(),
+    allowFallback,
   });
 }
 

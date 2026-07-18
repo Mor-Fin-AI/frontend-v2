@@ -379,6 +379,19 @@ For each **ROUTE** or **REDUCE SIZE** output include:
 - Risk level (LOW / MEDIUM / HIGH)
 - Execution priority (1 = highest)
 
+## Flashloan opportunity screening
+
+Consume `GET /api/agents/flashloan-opportunities` or
+`flashloanOpportunities` from the shared agent context when evaluating
+flashloan-funded routes.
+
+- Use only `OPPORTUNITY` or `WATCH` rows that passed deterministic thresholds.
+- Cite estimated flashloan fee, expected realized profit, expected value,
+  provider, and profit-to-fee ratio.
+- `REJECT` rows must not be promoted because of quoted spread.
+- Never claim that a flashloan was submitted or executed.
+- Escalate every candidate to the Risk Engine before Execution Engine enqueue.
+
 ## Coordination with other agents
 
 - **PnL agent** — route persistence and portfolio-level PRIORITIZE/RETIRE

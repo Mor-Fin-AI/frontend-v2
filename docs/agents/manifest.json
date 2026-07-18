@@ -149,6 +149,15 @@
         "prompt": "MOR smart router scan: GET /api/agents/context. Use smartRouter.recommendations — output ROUTE/AVOID with confidence, success probability, execution priority. Never rank by quoted spread alone."
       },
       {
+        "id": "mor-alert-flashloan-opportunities",
+        "name": "MOR Flashloan Opportunity Scan",
+        "agentId": "mor-smart-router",
+        "schedule": "*/30 * * * *",
+        "scheduleHuman": "Every 30 minutes",
+        "delivery": "flashloan-opportunities",
+        "prompt": "Evaluate live Smart Router candidates for flashloan viability. Post the deterministic result as MOR Smart Router. When routes qualify, have MOR PnL Intel, MOR Liquidity, and MOR Risk Guard discuss expected realized profit, quote freshness, liquidity, safe size, gas, fees, and execution risk in the same Slack thread; Commander posts the final recommend-only synthesis. Risk Engine approval is required."
+      },
+      {
         "id": "mor-alert-hermes",
         "name": "MOR Hermes Engineering Review",
         "agentId": "mor-hermes",
@@ -292,8 +301,22 @@
     "health": "GET /api/health",
     "context": "GET /api/agents/context",
     "smartRouter": "GET /api/agents/smart-router",
+    "flashloanOpportunities": "GET /api/agents/flashloan-opportunities",
     "githubWorkflows": "GET /api/github/workflows",
-    "manifest": "GET /api/agents/manifest"
+    "manifest": "GET /api/agents/manifest",
+    "openclaw": "GET /api/agents/openclaw",
+    "mentors": "GET /api/agents/mentors",
+    "mentorAsk": "POST /api/agents/mentors/ask"
+  },
+  "developerAcademy": {
+    "product": "ai-mentor",
+    "doc": "docs/agents/AI-MENTOR-ACADEMY.md",
+    "authEnv": "MOR_MENTOR_API_KEY",
+    "mentors": ["hermes", "claude"],
+    "openclawAgentIds": {
+      "hermes": "mor-hermes",
+      "claude": "main"
+    }
   },
   "githubSlack": {
     "doc": "docs/agents/GITHUB-SLACK-INTEGRATION.md",

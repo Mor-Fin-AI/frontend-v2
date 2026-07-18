@@ -4,6 +4,9 @@ import { getArbitrageExecutions } from "./arbitrageService.js";
 import { getGovernanceStatus } from "./governanceService.js";
 import { getLendingDischargeData } from "./lendingService.js";
 import { getPlatformStatus } from "./platformService.js";
+import { evaluateFlashloanOpportunities } from "./flashloanOpportunityService.js";
+import type { FlashloanOpportunityResult } from "./flashloanOpportunityService.js";
+import { scanLiveFlashloanQuotes } from "./flashloanLiveQuoteService.js";
 import { evaluateSmartRouterFromExecutions } from "./smartRouterScoringService.js";
 import type { SmartRouterEvaluationResult } from "./smartRouterScoringService.js";
 
@@ -46,6 +49,7 @@ export type AgentsContextSnapshot = {
   platform: Awaited<ReturnType<typeof getPlatformStatus>>;
   governance: Awaited<ReturnType<typeof getGovernanceStatus>>;
   smartRouter: SmartRouterEvaluationResult;
+  flashloanOpportunities: FlashloanOpportunityResult;
 };
 
 function pct(numerator: number, denominator: number) {
@@ -147,9 +151,33 @@ export async function getAgentsContextSnapshot(): Promise<AgentsContextSnapshot>
 
   const dataQuality = buildDataQuality(arbitrage.executions, lending);
 
-  const smartRouter = evaluateSmartRouterFromExecutions({
-    executions: arbitrage.executions,
-    confidenceCap: dataQuality.confidenceCap,
+  const liveQuotes = await scanLiveFlashloanQuotes();
+  const smartRouter =
+    liveQuotes.candidates.length > 0
+      ? evaluateSmartRouterFromExecutions({
+          executions: arbitrage.executions,
+          // Live quotes are fresh; do not inherit stale-history confidence caps.
+          confidenceCap: null,
+          candidates: liveQuotes.candidates,
+        })
+      : evaluateSmartRouterFromExecutions({
+          executions: arbitrage.executions,
+          confidenceCap: dataQuality.confidenceCap,
+        });
+  const flashloanOpportunities = evaluateFlashloanOpportunities({
+    smartRouter,
+    dataSource: liveQuotes.candidates.length > 0 ? "live-quotes" : undefined,
+    liveQuoteScan:
+      liveQuotes.candidates.length > 0
+        ? {
+            quotesAttempted: liveQuotes.quotesAttempted,
+            quotesSucceeded: liveQuotes.quotesSucceeded,
+            ethUsdPrice: liveQuotes.ethUsdPrice,
+            chainsScanned: liveQuotes.chainsScanned,
+            byChain: liveQuotes.byChain,
+            errors: liveQuotes.errors,
+          }
+        : undefined,
   });
 
   return {
@@ -182,5 +210,6 @@ export async function getAgentsContextSnapshot(): Promise<AgentsContextSnapshot>
     platform,
     governance,
     smartRouter,
+    flashloanOpportunities,
   };
 }

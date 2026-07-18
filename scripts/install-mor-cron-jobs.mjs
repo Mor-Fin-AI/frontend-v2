@@ -111,7 +111,9 @@ function loadManifestJobs() {
     schedule: job.schedule,
     prompt: job.prompt,
     kind:
-      job.delivery === "roundtable"
+      job.delivery === "flashloan-opportunities"
+        ? "flashloan-opportunities"
+        : job.delivery === "roundtable"
         ? "roundtable"
         : job.delivery === "slack-deliver" || (job.agentId !== "main" && job.agentId)
           ? "deliver"
@@ -291,6 +293,34 @@ function installRoundtableJob(job) {
   return runOpenClawCron(args);
 }
 
+function installFlashloanOpportunityJob(job) {
+  const argv = [
+    "node",
+    path.join(REPO_ROOT, "scripts/deliver-slack-flashloan-opportunities.mjs"),
+    SLACK_CHANNEL ? "--channel" : "--to",
+    DELIVER_TO,
+    "--provider",
+    process.env.FLASHLOAN_PROVIDER_ID ?? "aave-v3",
+  ];
+
+  const args = [
+    "cron",
+    "create",
+    job.schedule,
+    "--name",
+    job.name,
+    "--agent",
+    job.agentId,
+    "--command-argv",
+    JSON.stringify(argv),
+    "--command-cwd",
+    REPO_ROOT,
+    "--no-deliver",
+  ];
+  if (TZ) args.push("--tz", TZ);
+  return runOpenClawCron(args);
+}
+
 function installGithubWorkflowJob(job) {
   const argv = [
     "node",
@@ -355,6 +385,8 @@ async function main() {
     const result =
       job.kind === "deliver"
         ? installDeliverJob(job)
+        : job.kind === "flashloan-opportunities"
+          ? installFlashloanOpportunityJob(job)
         : job.kind === "roundtable"
           ? installRoundtableJob(job)
           : job.kind === "github-workflow"

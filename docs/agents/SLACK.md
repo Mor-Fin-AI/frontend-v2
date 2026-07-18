@@ -79,6 +79,7 @@ Each agent runs on its own schedule and posts to Slack with its own identity.
 | MOR Capital Ladder Engineering | mor-capital-ladder | Every 6h at :45 |
 | MOR Ops & Data Freshness | mor-ops | Every 2h |
 | MOR Governance Watch | mor-governance | Weekdays 9am & 3pm |
+| MOR Flashloan Opportunity Scan | mor-smart-router | Every 30m |
 | MOR Hermes Engineering Review | mor-hermes | Fridays 10am |
 | MOR GitHub Audit Sweep | main → `mor-audit` workflow | Weekdays 10am and 4pm |
 | MOR GitHub Suggestion Sweep | main → `mor-suggestion` workflow | Weekdays 10:30am and 4:30pm |
@@ -107,12 +108,37 @@ npm run openclaw:cron:install -- --force
 
 Optional timezone: `export MOR_CRON_TZ=America/New_York`
 
+Optional flashloan provider: `export FLASHLOAN_PROVIDER_ID=aave-v3`
+
+Flashloan scans post the deterministic live-quote result as **MOR Smart
+Router**. When one or more routes qualify, MOR PnL Intel, MOR Liquidity, and
+MOR Risk Guard discuss the routes in the same Slack thread, then Commander
+posts a recommend-only synthesis for Risk Engine review. `OPENAI_API_KEY` is
+required for those specialist turns. Add `--no-discuss` to a manual scan to
+post only the deterministic result.
+
+### Real-time flashloan watcher (websocket)
+
+Cron alone only posts every 30 minutes. For instant Slack delivery when an
+opportunity appears, run the block-stream watcher:
+
+```bash
+npm run openclaw:flashloan:watch
+```
+
+It connects to Arbitrum / Base / Optimism websockets (`ARBITRUM_WS_URL`,
+`BASE_WS_URL`, `OPTIMISM_WS_URL` optional), rescans live quotes on new blocks
+(debounced, default every 30s), and the moment a route qualifies it posts to
+Slack and opens the agent discussion. Same opportunity is not re-alerted for
+15 minutes (`FLASHLOAN_WATCH_COOLDOWN_MS`).
+
 **How agents interact on Slack**
 
 | Job type | Behavior |
 |----------|----------|
 | **Orchestrator** (`main`) | Isolated agent turn spawns all 5 specialists in parallel, synthesizes one DM brief |
 | **Specialist** (`mor-*`) | Runs `deliver-slack-agent.mjs` — posts with that agent's Slack name + avatar |
+| **Flashloan opportunity** | Smart Router posts live quotes; PnL, Liquidity, and Risk discuss qualified routes in-thread; Commander synthesizes |
 | **GitHub workflow** (`main` → `mor-audit` / `mor-suggestion` / `mor-agents`) | Runs `deliver-slack-github-workflow.mjs` — posts to the dedicated GitHub Slack channels via the workflow's assigned subagent sequence/collab |
 
 Specialist cron jobs do not go through Commander; each posts independently on its schedule. Commander jobs coordinate all specialists and post a single synthesized brief.

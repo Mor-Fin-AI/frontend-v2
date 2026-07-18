@@ -13,6 +13,8 @@
     "openclaw:cron:install": "node scripts/install-mor-cron-jobs.mjs",
     "openclaw:test-identities": "bash scripts/test-slack-agent-identities.sh",
     "openclaw:deliver": "node scripts/deliver-slack-agent.mjs",
+    "openclaw:flashloan:scan": "node scripts/deliver-slack-flashloan-opportunities.mjs",
+    "openclaw:flashloan:watch": "node scripts/watch-flashloan-opportunities.mjs",
     "openclaw:roundtable": "node scripts/deliver-slack-roundtable.mjs",
     "openclaw:collab": "node scripts/deliver-slack-collab.mjs",
     "openclaw:github:agents": "node scripts/deliver-slack-github-workflow.mjs --workflow mor-agents",

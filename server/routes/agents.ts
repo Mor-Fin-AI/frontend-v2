@@ -1,10 +1,24 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { requireMentorAuth } from "../middleware/mentorAuth.js";
 import { getAgentManifest } from "../services/agentManifestService.js";
 import { getAgentsContextSnapshot } from "../services/agentsContextService.js";
+import {
+  evaluateFlashloanOpportunities,
+  isFlashloanProviderId,
+  type FlashloanOpportunityResult,
+} from "../services/flashloanOpportunityService.js";
+import { scanLiveFlashloanQuotes } from "../services/flashloanLiveQuoteService.js";
+import { isFlashloanChainId } from "../data/flashloanQuoteRoutes.js";
 import { evaluateSmartRouterFromExecutions } from "../services/smartRouterScoringService.js";
 import { getArbitrageExecutions } from "../services/arbitrageService.js";
 import { getOpenClawAgentsSnapshot } from "../services/openclawAgentsService.js";
+import {
+  askMentor,
+  getMentorForAcademy,
+  listMentorsForAcademy,
+  mentorAskSchema,
+} from "../services/aiMentorService.js";
 
 const router = Router();
 
@@ -29,12 +43,98 @@ router.get(
   })
 );
 
+/** Developer Academy — AI Mentor discovery (OpenClaw + Hermes + Claude). */
+router.get(
+  "/mentors",
+  requireMentorAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(await listMentorsForAcademy());
+  }),
+);
+
+/** Developer Academy — ask Hermes or Claude mentor. */
+router.post(
+  "/mentors/ask",
+  requireMentorAuth,
+  asyncHandler(async (req, res) => {
+    const input = mentorAskSchema.parse(req.body ?? {});
+    res.json(await askMentor(input));
+  }),
+);
+
+router.get(
+  "/mentors/:mentorId",
+  requireMentorAuth,
+  asyncHandler(async (req, res) => {
+    res.json(await getMentorForAcademy(String(req.params.mentorId)));
+  }),
+);
+
 router.get(
   "/smart-router",
   asyncHandler(async (_req, res) => {
     const context = await getAgentsContextSnapshot();
     res.json(context.smartRouter);
   })
+);
+
+router.get(
+  "/flashloan-opportunities",
+  asyncHandler(async (req, res) => {
+    const providerId = isFlashloanProviderId(req.query.provider)
+      ? req.query.provider
+      : undefined;
+    const chainFilter = isFlashloanChainId(req.query.chain)
+      ? req.query.chain
+      : undefined;
+
+    if (chainFilter) {
+      const arbitrage = await getArbitrageExecutions({
+        page: 1,
+        pageSize: 50,
+        sortBy: "time",
+      });
+      const liveQuotes = await scanLiveFlashloanQuotes({
+        forceRefresh: req.query.refresh === "1",
+        chains: chainFilter,
+      });
+      const smartRouter = evaluateSmartRouterFromExecutions({
+        executions: arbitrage.executions,
+        confidenceCap: null,
+        candidates: liveQuotes.candidates,
+      });
+      res.json(
+        evaluateFlashloanOpportunities({
+          smartRouter,
+          providerId,
+          dataSource: liveQuotes.candidates.length > 0 ? "live-quotes" : undefined,
+          liveQuoteScan: {
+            quotesAttempted: liveQuotes.quotesAttempted,
+            quotesSucceeded: liveQuotes.quotesSucceeded,
+            ethUsdPrice: liveQuotes.ethUsdPrice,
+            chainsScanned: liveQuotes.chainsScanned,
+            byChain: liveQuotes.byChain,
+            errors: liveQuotes.errors,
+          },
+        }),
+      );
+      return;
+    }
+
+    const context = await getAgentsContextSnapshot();
+    if (!providerId) {
+      res.json(context.flashloanOpportunities);
+      return;
+    }
+    res.json(
+      evaluateFlashloanOpportunities({
+        smartRouter: context.smartRouter,
+        providerId,
+        dataSource: context.flashloanOpportunities.dataSource,
+        liveQuoteScan: context.flashloanOpportunities.liveQuoteScan,
+      }),
+    );
+  }),
 );
 
 router.post(
@@ -52,6 +152,69 @@ router.post(
       }),
     );
   })
+);
+
+router.post(
+  "/flashloan-opportunities/evaluate",
+  asyncHandler(async (req, res) => {
+    const arbitrage = await getArbitrageExecutions({
+      page: 1,
+      pageSize: 50,
+      sortBy: "time",
+    });
+    const bodyCandidates = Array.isArray(req.body?.candidates)
+      ? req.body.candidates
+      : undefined;
+    const providerId = isFlashloanProviderId(req.body?.providerId)
+      ? req.body.providerId
+      : undefined;
+
+    let candidates = bodyCandidates;
+    let liveQuoteScan: FlashloanOpportunityResult["liveQuoteScan"];
+    let dataSource: FlashloanOpportunityResult["dataSource"] | undefined;
+    let confidenceCap: number | null = null;
+
+    if (!candidates || candidates.length === 0) {
+      const chainFilter = isFlashloanChainId(req.body?.chain)
+        ? req.body.chain
+        : undefined;
+      const liveQuotes = await scanLiveFlashloanQuotes({
+        forceRefresh: Boolean(req.body?.forceRefresh),
+        chains: chainFilter,
+      });
+      candidates = liveQuotes.candidates;
+      liveQuoteScan = {
+        quotesAttempted: liveQuotes.quotesAttempted,
+        quotesSucceeded: liveQuotes.quotesSucceeded,
+        ethUsdPrice: liveQuotes.ethUsdPrice,
+        chainsScanned: liveQuotes.chainsScanned,
+        byChain: liveQuotes.byChain,
+        errors: liveQuotes.errors,
+      };
+      dataSource = candidates.length > 0 ? "live-quotes" : undefined;
+      if (!dataSource) {
+        const context = await getAgentsContextSnapshot();
+        confidenceCap = context.dataQuality.confidenceCap;
+      }
+    } else {
+      dataSource = "live-candidates";
+    }
+
+    const smartRouter = evaluateSmartRouterFromExecutions({
+      executions: arbitrage.executions,
+      confidenceCap,
+      candidates,
+    });
+
+    res.json(
+      evaluateFlashloanOpportunities({
+        smartRouter,
+        providerId,
+        dataSource,
+        liveQuoteScan,
+      }),
+    );
+  }),
 );
 
 export default router;

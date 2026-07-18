@@ -26,6 +26,10 @@ Collect or consume from `GET /api/agents/context` → `smartRouter` and `arbitra
 
 When live scanner candidates are unavailable, use server-computed `smartRouter.recommendations` derived from historical executions.
 
+Prefer `flashloanOpportunities` / `GET /api/agents/flashloan-opportunities` for
+flashloan-funded routes — that path quotes live DEX liquidity
+(`dataSource: "live-quotes"`) and screens for flashloan EV.
+
 ## Route evaluation
 
 Score every candidate using the weighted model in `smartRouter` (API) or re-derive when explaining:
@@ -93,6 +97,19 @@ For each **ROUTE** or **REDUCE SIZE** output include:
 - Recommended trade size
 - Risk level (LOW / MEDIUM / HIGH)
 - Execution priority (1 = highest)
+
+## Flashloan opportunity screening
+
+Consume `GET /api/agents/flashloan-opportunities` or
+`flashloanOpportunities` from the shared agent context when evaluating
+flashloan-funded routes.
+
+- Use only `OPPORTUNITY` or `WATCH` rows that passed deterministic thresholds.
+- Cite estimated flashloan fee, expected realized profit, expected value,
+  provider, and profit-to-fee ratio.
+- `REJECT` rows must not be promoted because of quoted spread.
+- Never claim that a flashloan was submitted or executed.
+- Escalate every candidate to the Risk Engine before Execution Engine enqueue.
 
 ## Coordination with other agents
 

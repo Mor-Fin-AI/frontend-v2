@@ -20,6 +20,16 @@ Intelligence-layer prompts for the multi-agent arbitrage ecosystem. Agents **rec
 | Governance | [prompts/governance-intelligence.md](./prompts/governance-intelligence.md) | MONITOR, PREPARE, URGENT, PAUSE OPS |
 | Ops / Health | [prompts/ops-health.md](./prompts/ops-health.md) | HEALTHY, DEGRADED, DOWN, ACTION REQUIRED |
 | Hermes (mentor) | [prompts/hermes-mentor.md](./prompts/hermes-mentor.md) | REVIEW, OPTIMIZE, EXPLAIN_FAILURE, TEMPLATE |
+| Claude (Academy mentor) | [prompts/claude-mentor.md](./prompts/claude-mentor.md) | TEACH, GUIDE, CHECK, HANDOFF |
+
+## Developer Academy AI Mentor API
+
+Endpoint contract for OpenClaw + Hermes (+ Claude) MVP integration:
+
+→ [AI-MENTOR-ACADEMY.md](./AI-MENTOR-ACADEMY.md)
+
+- `GET /api/agents/mentors` — discovery + auth scheme + OpenClaw status  
+- `POST /api/agents/mentors/ask` — mentor chat turn  
 
 ## Shared context
 

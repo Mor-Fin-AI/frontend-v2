@@ -20,6 +20,7 @@ import {
   resolveFollowupAgents,
   runHermesReviewPass,
   runMorResponseToHermes,
+  runCommanderSynthesis,
 } from "./mor-slack-delivery-lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +44,7 @@ function parseArgs(argv) {
   let followup = "auto";
   let hermesReview = true;
   let morResponse = true;
+  let synthesize = true;
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--to") to = argv[++i] ?? "";
@@ -54,6 +56,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--no-hermes-review") hermesReview = false;
     else if (argv[i] === "--mor-response") morResponse = true;
     else if (argv[i] === "--no-mor-response") morResponse = false;
+    else if (argv[i] === "--no-synthesize") synthesize = false;
     else positional.push(argv[i]);
   }
   return {
@@ -65,6 +68,7 @@ function parseArgs(argv) {
     followup,
     hermesReview,
     morResponse,
+    synthesize,
   };
 }
 
@@ -78,6 +82,7 @@ async function main() {
     followup,
     hermesReview,
     morResponse,
+    synthesize,
   } = parseArgs(process.argv.slice(2));
   if (!agentId || !message) {
     console.error(
@@ -166,6 +171,18 @@ async function main() {
       threadTs: threadTs || undefined,
     });
     console.log("→ MOR specialists responded to Hermes.");
+    if (synthesize && transcript.length > 1) {
+      await runCommanderSynthesis({
+        cfg,
+        transcript,
+        userTopic: message,
+        to,
+        token,
+        channel,
+        threadTs: threadTs || undefined,
+      });
+      console.log("→ Commander conclusion posted.");
+    }
     return;
   }
 
@@ -188,6 +205,19 @@ async function main() {
       transcript.push(hermesEntry);
       console.log("→ Hermes mentor review posted.");
     }
+  }
+
+  if (synthesize && transcript.length > 1) {
+    await runCommanderSynthesis({
+      cfg,
+      transcript,
+      userTopic: message,
+      to,
+      token,
+      channel,
+      threadTs: threadTs || undefined,
+    });
+    console.log("→ Commander conclusion posted.");
   }
 }
 

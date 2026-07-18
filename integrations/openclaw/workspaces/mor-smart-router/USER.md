@@ -10,9 +10,6 @@ _Learn about the person you're helping. Update this as you go._
 
 ## Context
 
-- Prefers simple, clear, non-technical writing that ordinary people can read easily.
-- Does not want overly descriptive sub-agent style responses.
-
 _(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
 
 ---
