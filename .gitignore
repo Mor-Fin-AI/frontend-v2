@@ -13,8 +13,7 @@
 # testing
 /coverage
 
-# vite
-/dist
+# vite (keep dist deployable on Vercel — do not gitignore /dist)
 /.next/
 /out/
 
