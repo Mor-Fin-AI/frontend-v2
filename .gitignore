@@ -17,8 +17,7 @@
 /dist
 /.next/
 /out/
-# NOTE: do NOT gitignore /public — Vercel Project Settings Output Directory is "public"
-# and gitignored output dirs are dropped from the deploy artifact.
+# Do not gitignore /web — Vercel static-build needs it after vercel-build.
 
 # misc
 .DS_Store

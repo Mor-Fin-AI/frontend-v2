@@ -4,10 +4,12 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  // Vercel Project Settings use Output Directory = "public"
+  // Source static files (favicon, images). Not used as Vercel output.
   publicDir: "static-assets",
   build: {
-    outDir: "public",
+    // Dedicated output dir — avoids Vercel Project Settings conflict with "public"
+    // and gitignore filtering of "dist".
+    outDir: "web",
     emptyOutDir: true,
   },
   resolve: {

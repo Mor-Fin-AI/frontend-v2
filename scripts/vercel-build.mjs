@@ -1,24 +1,26 @@
 #!/usr/bin/env node
 /**
- * Vercel / local production build.
- * Vite writes the SPA into `public/` (Vercel Project Output Directory).
- * Do NOT write `.vercel/output` here — that switches Vercel into Build Output
- * API mode and then fails Project Settings checks for `public`.
+ * Production build for Vercel (@vercel/static-build) and local preview.
+ * Output: ./web/index.html
+ *
+ * Using vercel.json "builds" ignores conflicting Project Settings
+ * (Output Directory / Framework Preset).
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const publicDir = path.join(root, "public");
+const outDir = path.join(root, "web");
 
 execSync("npx vite build", { stdio: "inherit", cwd: root });
 
-const indexPath = path.join(publicDir, "index.html");
+const indexPath = path.join(outDir, "index.html");
 if (!fs.existsSync(indexPath)) {
-  console.error("Build failed: public/index.html was not created.");
+  console.error("Build failed: web/index.html was not created.");
   process.exit(1);
 }
 
-const entries = fs.readdirSync(publicDir);
-console.log(`Build ready: public/ (${entries.length} entries, index.html ✓)`);
+console.log(
+  `Build ready: web/ (${fs.readdirSync(outDir).length} entries, index.html ✓)`,
+);
