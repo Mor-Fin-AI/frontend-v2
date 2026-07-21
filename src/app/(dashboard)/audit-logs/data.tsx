@@ -1,8 +1,8 @@
 import type React from 'react';
 import { Clock24Regular, Gift24Regular, Pulse24Regular, Shield24Regular } from '@fluentui/react-icons';
-import { ClockIcon } from '../../../../public/Svg/audit-log/ClockIcon';
-import { EventsIcon } from '../../../../public/Svg/audit-log/EventsIcon';
-import VotesEventIcon from '../../../../public/Svg/audit-log/VotesEventIcon';
+import { ClockIcon } from '../../../../static-assets/Svg/audit-log/ClockIcon';
+import { EventsIcon } from '../../../../static-assets/Svg/audit-log/EventsIcon';
+import VotesEventIcon from '../../../../static-assets/Svg/audit-log/VotesEventIcon';
 
 export interface AuditStat {
   title: string;

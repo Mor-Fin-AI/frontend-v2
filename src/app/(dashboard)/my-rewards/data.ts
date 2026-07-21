@@ -1,7 +1,7 @@
 import type React from 'react';
 import { ArrowTrending24Regular, Clock24Regular, Flag24Regular, Grid24Regular } from '@fluentui/react-icons';
-import { DollarIcon } from '../../../../public/Svg/rewards/DollarIcon';
-import { MilestoneIcon } from '../../../../public/Svg/rewards/MilestoneIcon';
+import { DollarIcon } from '../../../../static-assets/Svg/rewards/DollarIcon';
+import { MilestoneIcon } from '../../../../static-assets/Svg/rewards/MilestoneIcon';
 
 export interface RewardStat {
     title: string;

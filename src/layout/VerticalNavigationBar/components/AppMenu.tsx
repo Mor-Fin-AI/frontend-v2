@@ -23,8 +23,8 @@ import {
   Wallet24Regular,
 } from "@fluentui/react-icons";
 import { MenuItem } from "../menu";
-import { RewardIcon } from "../../../../public/Svg/sidebar/RewardIcon";
-import { DaoIcon } from "../../../../public/Svg/sidebar/DaoIcon";
+import { RewardIcon } from "../../../../static-assets/Svg/sidebar/RewardIcon";
+import { DaoIcon } from "../../../../static-assets/Svg/sidebar/DaoIcon";
 
 const iconMap = {
   home: Home24Regular,

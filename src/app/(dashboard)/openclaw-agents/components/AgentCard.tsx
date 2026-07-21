@@ -31,7 +31,9 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   cardOrchestrator: {
-    borderColor: tokens.colorBrandStroke1,
+    // `borderColor` is not typed in some Fluent UI style typings.
+    // Set the full border instead.
+    border: `1px solid ${tokens.colorBrandStroke1}`,
     backgroundImage: `linear-gradient(135deg, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground1} 55%)`,
   },
   header: {

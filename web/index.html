@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mor Finance</title>
+    <meta name="description" content="User Dashboard" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("morfinance-theme");
+          var isDark =
+            stored === "dark" ||
+            (stored !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (isDark) document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-DQ9FEpBu.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dx0sLq0i.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

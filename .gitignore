@@ -17,6 +17,7 @@
 /dist
 /.next/
 /out/
+# Do not gitignore /web — Vercel static-build needs it after vercel-build.
 
 # misc
 .DS_Store

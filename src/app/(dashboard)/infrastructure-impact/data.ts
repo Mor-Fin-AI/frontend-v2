@@ -1,8 +1,8 @@
 import type React from 'react';
 import { Checkmark24Regular } from '@fluentui/react-icons';
-import { RoadsIcon } from '../../../../public/Svg/infrastructure/RoadsIcon';
-import { DropletsIcon } from '../../../../public/Svg/infrastructure/DropletsIcon';
-import { DigitalIcon } from '../../../../public/Svg/infrastructure/DigitalIcon';
+import { RoadsIcon } from '../../../../static-assets/Svg/infrastructure/RoadsIcon';
+import { DropletsIcon } from '../../../../static-assets/Svg/infrastructure/DropletsIcon';
+import { DigitalIcon } from '../../../../static-assets/Svg/infrastructure/DigitalIcon';
 
 // ─── Stat Cards ──────────────────────────────────────────────────────────────
 

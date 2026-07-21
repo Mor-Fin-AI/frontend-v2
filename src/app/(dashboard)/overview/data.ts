@@ -1,7 +1,7 @@
 import { ShieldCheckmark24Regular, Globe24Regular, ArrowTrending24Regular, Calendar24Regular } from "@fluentui/react-icons";
-import { ShieldIcon } from "../../../../public/Svg/oveview/ShieldIcon";
-import { GlobeIcon } from "../../../../public/Svg/oveview/GlobeIcon";
-import { CalendarIcon } from "../../../../public/Svg/oveview/CalenderIcon";
+import { ShieldIcon } from "../../../../static-assets/Svg/oveview/ShieldIcon";
+import { GlobeIcon } from "../../../../static-assets/Svg/oveview/GlobeIcon";
+import { CalendarIcon } from "../../../../static-assets/Svg/oveview/CalenderIcon";
 
 export interface StatCardData {
     id: string;
