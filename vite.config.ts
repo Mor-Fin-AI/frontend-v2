@@ -7,9 +7,8 @@ export default defineConfig({
   // Source static files (favicon, images). Not used as Vercel output.
   publicDir: "static-assets",
   build: {
-    // Dedicated output dir — avoids Vercel Project Settings conflict with "public"
-    // and gitignore filtering of "dist".
-    outDir: "web",
+    // Must match Vercel Project Settings / vercel.json outputDirectory.
+    outDir: "public",
     emptyOutDir: true,
   },
   resolve: {

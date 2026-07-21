@@ -17,9 +17,11 @@
 /dist
 /.next/
 /out/
-/public
-# Do not gitignore /web — used as local preview; Vercel build recreates it.
-# /public is a build mirror for Vercel Project Settings (created by vercel-build).
+# IMPORTANT: do NOT gitignore /public — Vercel Project Settings use it as
+# Output Directory and will report "No Output Directory named public found"
+# if the folder is gitignored, even when the build creates it.
+/web
+
 
 # misc
 .DS_Store
