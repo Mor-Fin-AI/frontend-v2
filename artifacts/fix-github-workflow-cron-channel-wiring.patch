@@ -1,0 +1,5462 @@
+From 4d6262ec2f5cef7e859158ed26e3e9524803acb9 Mon Sep 17 00:00:00 2001
+From: gettruman <trumanvercel@gmail.com>
+Date: Mon, 6 Jul 2026 20:08:09 +0500
+Subject: [PATCH] Fix MOR GitHub workflow cron and Slack channel wiring
+
+---
+ README.md                                     |  17 +-
+ docs/agents/GITHUB-SLACK-INTEGRATION.md       | 163 +++++
+ docs/agents/SLACK.md                          | 219 +++++++
+ docs/agents/manifest.json                     | 338 +++++++++++
+ .../manifests/hermes-agent.manifest.json      |  61 ++
+ .../mor-openclaw-agent.manifest.json          | 108 ++++
+ .../mor-openclaw-slack-app-manifest.json      | 194 ++++++
+ docs/agents/prompts/github-agents-collab.md   |  31 +
+ docs/agents/prompts/github-audit.md           |  39 ++
+ docs/agents/prompts/github-codefix.md         |  48 ++
+ docs/agents/prompts/github-suggestion.md      |  39 ++
+ integrations/openclaw/README.md               |  62 ++
+ integrations/openclaw/subagents.env.example   |  30 +
+ package.json                                  |  19 +-
+ scripts/deliver-slack-agent.mjs               | 197 ++++++
+ scripts/deliver-slack-collab.mjs              | 119 ++++
+ scripts/deliver-slack-github-workflow.mjs     | 235 ++++++++
+ scripts/deliver-slack-roundtable.mjs          | 152 +++++
+ scripts/diagnose-mor-slack.mjs                |  58 ++
+ scripts/github-webhook-smee.mjs               |  83 +++
+ scripts/github-webhook-tunnel.mjs             | 150 +++++
+ scripts/install-mor-cron-jobs.mjs             | 391 ++++++++++++
+ scripts/install-slack-alerts.sh               |   6 +
+ scripts/mor-github-slack-lib.mjs              |  68 +++
+ scripts/mor-slack-delivery-lib.mjs            | 565 ++++++++++++++++++
+ scripts/mor-slack-slash.mjs                   | 223 +++++++
+ scripts/run-openclaw-gateway.mjs              |  53 ++
+ scripts/setup-openclaw.mjs                    | 558 +++++++++++++++++
+ scripts/test-slack-agent-identities.sh        |  54 ++
+ server/app.ts                                 |   7 +
+ server/data/githubSlackWorkflows.ts           |  71 +++
+ server/routes/github.ts                       |  22 +
+ server/routes/githubWebhook.ts                |  58 ++
+ server/routes/index.ts                        |   4 +
+ server/services/githubCodeReviewService.ts    | 336 +++++++++++
+ server/services/githubWebhookService.ts       | 295 +++++++++
+ server/services/slackPostService.ts           |  42 ++
+ 37 files changed, 5113 insertions(+), 2 deletions(-)
+ create mode 100644 docs/agents/GITHUB-SLACK-INTEGRATION.md
+ create mode 100644 docs/agents/SLACK.md
+ create mode 100644 docs/agents/manifest.json
+ create mode 100644 docs/agents/manifests/hermes-agent.manifest.json
+ create mode 100644 docs/agents/manifests/mor-openclaw-agent.manifest.json
+ create mode 100644 docs/agents/manifests/mor-openclaw-slack-app-manifest.json
+ create mode 100644 docs/agents/prompts/github-agents-collab.md
+ create mode 100644 docs/agents/prompts/github-audit.md
+ create mode 100644 docs/agents/prompts/github-codefix.md
+ create mode 100644 docs/agents/prompts/github-suggestion.md
+ create mode 100644 integrations/openclaw/README.md
+ create mode 100644 integrations/openclaw/subagents.env.example
+ create mode 100644 scripts/deliver-slack-agent.mjs
+ create mode 100644 scripts/deliver-slack-collab.mjs
+ create mode 100644 scripts/deliver-slack-github-workflow.mjs
+ create mode 100644 scripts/deliver-slack-roundtable.mjs
+ create mode 100644 scripts/diagnose-mor-slack.mjs
+ create mode 100644 scripts/github-webhook-smee.mjs
+ create mode 100644 scripts/github-webhook-tunnel.mjs
+ create mode 100644 scripts/install-mor-cron-jobs.mjs
+ create mode 100755 scripts/install-slack-alerts.sh
+ create mode 100644 scripts/mor-github-slack-lib.mjs
+ create mode 100644 scripts/mor-slack-delivery-lib.mjs
+ create mode 100644 scripts/mor-slack-slash.mjs
+ create mode 100644 scripts/run-openclaw-gateway.mjs
+ create mode 100644 scripts/setup-openclaw.mjs
+ create mode 100755 scripts/test-slack-agent-identities.sh
+ create mode 100644 server/data/githubSlackWorkflows.ts
+ create mode 100644 server/routes/github.ts
+ create mode 100644 server/routes/githubWebhook.ts
+ create mode 100644 server/services/githubCodeReviewService.ts
+ create mode 100644 server/services/githubWebhookService.ts
+ create mode 100644 server/services/slackPostService.ts
+
+diff --git a/README.md b/README.md
+index 1c690a1..a3f5b1c 100644
+--- a/README.md
++++ b/README.md
+@@ -13,11 +13,26 @@ Open [http://localhost:5173](http://localhost:5173).
+ 
+ ## Scripts
+ 
+-- `npm run dev` — development server
++- `npm run dev` — MOR API + dashboard
++- `npm run openclaw:setup` — generate OpenClaw agent workspaces + config
++- `npm run openclaw:gateway` — OpenClaw Control UI on http://127.0.0.1:18789/
++- `npm run dev:full` — MOR + OpenClaw together
+ - `npm run build` — production build
+ - `npm run preview` — preview production build
+ - `npm run lint` — ESLint
+ 
++## OpenClaw (submodule)
++
++OpenClaw source is in `openclaw/`. MOR agent config is in `integrations/openclaw/`.
++
++```bash
++git submodule update --init --recursive   # after clone
++npm run openclaw:setup
++npm run dev:full
++```
++
++See [integrations/openclaw/README.md](./integrations/openclaw/README.md).
++
+ ## Environment
+ 
+ Copy `.env.example` to `.env` and set:
+diff --git a/docs/agents/GITHUB-SLACK-INTEGRATION.md b/docs/agents/GITHUB-SLACK-INTEGRATION.md
+new file mode 100644
+index 0000000..c9e971b
+--- /dev/null
++++ b/docs/agents/GITHUB-SLACK-INTEGRATION.md
+@@ -0,0 +1,163 @@
++# GitHub ↔ Slack Agent Integration
++
++Connect GitHub activity to five Slack channels, each with a dedicated agent workflow. You can also install recurring workflow cron jobs so MOR subagents post scheduled audit, suggestion, and collaboration reports into their GitHub-focused Slack channels.
++
++## Channels
++
++| Channel | Env variable | Purpose |
++|---------|--------------|---------|
++| `#mor-agents` | `SLACK_CHANNEL_MOR_AGENTS` | Hermes + MOR specialists interact (full collab) |
++| `#mor-audit` | `SLACK_CHANNEL_MOR_AUDIT` | Code audit reviews by agents |
++| `#mor-github-events` | `SLACK_CHANNEL_MOR_GITHUB_EVENTS` | PR / issue / commit activity feed |
++| `#mor-suggestion` | `SLACK_CHANNEL_MOR_SUGGESTION` | Agent project improvement suggestions |
++| `#mor-codefix` | `SLACK_CHANNEL_MOR_CODEFIX` | Discuss fixes + PR templates (human approval) |
++
++Create these channels in Slack, invite the bot, copy channel IDs (`C…`).
++
++## Environment
++
++Add to `integrations/openclaw/subagents.env` and `openclaw/.env`:
++
++```bash
++# Slack channel IDs
++SLACK_CHANNEL_MOR_AGENTS=Cxxxxxxxx
++SLACK_CHANNEL_MOR_AUDIT=Cxxxxxxxx
++SLACK_CHANNEL_MOR_GITHUB_EVENTS=Cxxxxxxxx
++SLACK_CHANNEL_MOR_SUGGESTION=Cxxxxxxxx
++SLACK_CHANNEL_MOR_CODEFIX=Cxxxxxxxx
++
++# GitHub webhook
++GITHUB_WEBHOOK_SECRET=your-webhook-secret
++GITHUB_TOKEN=ghp_...          # optional — future PR automation
++
++# Auto-triggers (optional)
++GITHUB_AUTO_AUDIT_PR=true          # PR opened/sync → mor-audit thread
++GITHUB_AUTO_SUGGESTION=false       # PR opened → mor-suggestion
++GITHUB_AUTO_SUGGESTION_ISSUES=true # Issue opened/reopened → mor-suggestion
++GITHUB_AUTO_AGENTS_ISSUES=true     # Issue opened/reopened → mor-agents
++GITHUB_AUTO_CODEFIX=false          # @hermes or /mor_codefix in PR comment
++```
++
++## Scheduled workflow cron jobs
++
++The repo now supports recurring GitHub workflow jobs via `npm run openclaw:cron:install`.
++
++| Job | Workflow | Schedule |
++|-----|----------|----------|
++| MOR GitHub Audit Sweep | `mor-audit` | Weekdays 10am and 4pm |
++| MOR GitHub Suggestion Sweep | `mor-suggestion` | Weekdays 10:30am and 4:30pm |
++| MOR GitHub Agents Collaboration | `mor-agents` | Weekdays 11am and 5pm |
++
++These jobs route through `scripts/deliver-slack-github-workflow.mjs`, which assigns work to the existing MOR subagent plans for each channel.
++
++Install or refresh cron jobs:
++
++```bash
++npm run openclaw:cron:install -- --force
++```
++
++## Code review (repo diffs)
++
++Agents now receive **actual code** from GitHub events:
++
++| Event | Code source |
++|-------|-------------|
++| **Pull request** | GitHub API diff + file patches (`GITHUB_TOKEN` required) |
++| **Push** | Local `git diff before..after` when repo is checked out on this machine |
++| **All** | Saved to `integrations/openclaw/state/github-review-context.json` |
++
++### Enable automatic code audit
++
++```bash
++GITHUB_AUTO_REVIEW_CODE=true
++GITHUB_AUTO_AUDIT_PR=true
++GITHUB_TOKEN=ghp_...    # GitHub → Settings → Developer settings → PAT (repo scope)
++```
++
++On PR open/sync or push, agents in `#mor-audit` receive diffs and review real code — not just event metadata.
++
++Manual audit with latest saved context:
++
++```bash
++npm run openclaw:github:audit -- "review latest GitHub change"
++```
++
++Inspect saved context: `GET http://localhost:3001/api/github/review-context`
++
++
++GitHub cannot reach `http://localhost:3001`. Use a tunnel:
++
++```bash
++# Terminal 1 — API
++npm run dev:server
++
++# Terminal 2 — tunnel (prints webhook URL)
++npm run github:tunnel
++```
++
++Copy the printed URL into GitHub → **Settings → Webhooks** (not `localhost`).
++
++For deployed servers, use your public API URL instead of ngrok.
++
++### Manual ngrok
++
++1. Expose API: `ngrok http 3001` (or `npm run github:tunnel`)
++2. GitHub repo → **Settings → Webhooks → Add webhook**
++3. **Payload URL:** `https://<host>/api/github/webhook`
++4. **Content type:** `application/json`
++5. **Secret:** same as `GITHUB_WEBHOOK_SECRET`
++6. **Events:** Pull requests, Issues, Pushes, Issue comments
++
++Verify: `GET /api/github/workflows` lists channel configuration status.
++
++## Slash commands
++
++| Slash | Workflow |
++|-------|----------|
++| `/mor_agents` | Full Hermes ↔ MOR collab in `#mor-agents` |
++| `/mor_audit` | Audit sequence in `#mor-audit` |
++| `/mor_github` | GitHub events channel status |
++| `/mor_suggestion` | Suggestion round in `#mor-suggestion` |
++| `/mor_codefix` | Codefix dialogue in `#mor-codefix` |
++
++Run slash commands **in the target channel** so thread context is preserved.
++
++Reinstall Slack app from `docs/agents/slack-app-manifest.json` after adding commands.
++
++## Manual delivery
++
++```bash
++npm run openclaw:github:agents -- "review smart router integration"
++npm run openclaw:github:audit -- "audit PR #42"
++npm run openclaw:github:suggestion -- "suggest observability improvements"
++npm run openclaw:github:codefix -- "fix stale arbitrage telemetry"
++```
++
++## Architecture
++
++```
++GitHub webhook → POST /api/github/webhook
++              → #mor-github-events (formatted post)
++              → optional agent workflows (audit / suggestion / codefix / issue-driven agents)
++
++Scheduled cron → install-mor-cron-jobs.mjs
++               → deliver-slack-github-workflow.mjs
++               → channel-specific agent sequence or collab
++
++Slash / manual → deliver-slack-github-workflow.mjs
++              → channel-specific agent sequence or collab
++```
++
++## Agent safety
++
++- All workflows are **recommend-only**
++- Codefix outputs **TEMPLATE** and **READY_FOR_PR** — never auto-opens PRs
++- Financial execution paths require Risk Engine review
++- Hermes never claims production changes were made
++
++## Prompts
++
++- `docs/agents/prompts/github-agents-collab.md`
++- `docs/agents/prompts/github-audit.md`
++- `docs/agents/prompts/github-suggestion.md`
++- `docs/agents/prompts/github-codefix.md`
+diff --git a/docs/agents/SLACK.md b/docs/agents/SLACK.md
+new file mode 100644
+index 0000000..08bbf26
+--- /dev/null
++++ b/docs/agents/SLACK.md
+@@ -0,0 +1,219 @@
++# MOR Agents — Slack interaction guide
++
++Use this with [manifest.json](./manifest.json) to wire OpenClaw → Slack.
++
++## Engineering intelligence phase (current)
++
++Slack focuses on **engineering intelligence** — route quality, risk, liquidity, data health, execution diagnostics, and agent collaboration — **not** daily revenue or PnL rollups.
++
++→ Full policy: [prompts/slack-engineering-focus.md](./prompts/slack-engineering-focus.md)
++
++## Architecture
++
++```
++You (Slack DM / @mention)
++        ↓
++   main (🐾 Orchestrator)
++        ↓ sessions_spawn (parallel)
++   ┌────┴────┬──────────┬─────────────┬────────────────┐
++ mor-pnl  mor-liquidity mor-dd-risk mor-market-mode mor-capital-ladder
++        ↓ announce back to Slack
++   Unified alert / summary
++```
++
++- **Talk to `main`** in Slack for on-demand analysis.
++- **Sub-agents** run in background and **announce** results to your Slack thread.
++- **Cron jobs** (optional) push scheduled alerts from each agent.
++
++## 1. Enable Slack in OpenClaw
++
++```bash
++export SLACK_BOT_TOKEN=xoxb-...
++export SLACK_APP_TOKEN=xapp-...
++
++# Patch config (from repo root, with OPENCLAW_CONFIG_PATH set)
++export OPENCLAW_CONFIG_PATH=integrations/openclaw/openclaw.json
++export OPENCLAW_STATE_DIR=integrations/openclaw/state
++
++openclaw channels add --channel slack --use-env
++openclaw gateway restart
++```
++
++Or merge `integrations/openclaw/slack.patch.json5` into your `openclaw.json`.
++
++## 2. Route Slack → main orchestrator
++
++Default binding (already in template):
++
++```json
++"bindings": [{ "agentId": "main", "match": { "channel": "slack" } }]
++```
++
++DM the bot or @mention it in a channel.
++
++## 3. Sample Slack messages
++
++| Goal | Message to bot |
++|------|----------------|
++| Engineering review | `Run engineering roundtable — route quality, risk, data freshness, top 3 engineering actions (no revenue rollup)` |
++| Route quality | `Spawn mor-pnl — opportunity scoring and PRIORITIZE/RETIRE from live context` |
++| DD/Risk | `Spawn mor-dd-risk — borrow/lending health, APPROVE/REDUCE/BLOCK` |
++| Market | `Spawn mor-market-mode — market observations and deployment tier` |
++| Ops | `Spawn mor-ops — data freshness, latency, failure diagnostics` |
++| Hermes | `Spawn mor-hermes — code review, prompt improvements, failure analysis` |
++
++## 4. Scheduled Slack alerts (cron)
++
++Each agent runs on its own schedule and posts to Slack with its own identity.
++
++| Job | Agent | Schedule |
++|-----|-------|----------|
++| MOR Engineering Roundtable | main | Every 6h |
++| MOR Engineering Standup | main | Weekdays 08:00 |
++| MOR Engineering Digest | main | Weekdays 18:00 |
++| MOR Route Quality Scan | mor-pnl | Every 4h |
++| MOR DD/Risk Alert | mor-dd-risk | Every 2h at :30 |
++| MOR Risk Watch (30m) | mor-dd-risk | Every 30m |
++| MOR Market Observations | mor-market-mode | Hourly |
++| MOR Liquidity Analysis | mor-liquidity | Every 4h at :15 |
++| MOR Capital Ladder Engineering | mor-capital-ladder | Every 6h at :45 |
++| MOR Ops & Data Freshness | mor-ops | Every 2h |
++| MOR Governance Watch | mor-governance | Weekdays 9am & 3pm |
++| MOR Hermes Engineering Review | mor-hermes | Fridays 10am |
++| MOR GitHub Audit Sweep | main → `mor-audit` workflow | Weekdays 10am and 4pm |
++| MOR GitHub Suggestion Sweep | main → `mor-suggestion` workflow | Weekdays 10:30am and 4:30pm |
++| MOR GitHub Agents Collaboration | main → `mor-agents` workflow | Weekdays 11am and 5pm |
++
++**Orchestrator jobs** (`main`) spawn all specialists in parallel and synthesize one brief.
++
++**Specialist jobs** use `deliver-slack-agent.mjs` so each posts with its own Slack name + avatar in your active thread.
++
++Set your Slack user or channel ID:
++
++```bash
++export SLACK_ALERT_USER_ID=U0265N69A2W    # DM alerts
++# or
++export SLACK_ALERT_CHANNEL_ID=C0123456789  # #channel alerts
++
++# Gateway must be running
++npm run openclaw:gateway
++
++# Install all cron jobs (skip existing)
++npm run openclaw:cron:install
++
++# Reinstall (replace existing jobs)
++npm run openclaw:cron:install -- --force
++```
++
++Optional timezone: `export MOR_CRON_TZ=America/New_York`
++
++**How agents interact on Slack**
++
++| Job type | Behavior |
++|----------|----------|
++| **Orchestrator** (`main`) | Isolated agent turn spawns all 5 specialists in parallel, synthesizes one DM brief |
++| **Specialist** (`mor-*`) | Runs `deliver-slack-agent.mjs` — posts with that agent's Slack name + avatar |
++| **GitHub workflow** (`main` → `mor-audit` / `mor-suggestion` / `mor-agents`) | Runs `deliver-slack-github-workflow.mjs` — posts to the dedicated GitHub Slack channels via the workflow's assigned subagent sequence/collab |
++
++Specialist cron jobs do not go through Commander; each posts independently on its schedule. Commander jobs coordinate all specialists and post a single synthesized brief.
++
++List jobs: `openclaw cron list`  
++Recent runs: `openclaw cron runs --limit 20`  
++Manual run: `openclaw cron run <job-id> --wait`
++
++If `openclaw cron` fails with **scope upgrade pending approval**, run `npm run openclaw:cron:install` (uses gateway token for install), or approve via `openclaw devices list` → `openclaw devices approve <requestId>`.
++
++## 5. Agent manifest (machine-readable)
++
++- File: `docs/agents/manifest.json`
++- API: `GET http://localhost:3001/api/agents/manifest`
++
++## Rules
++
++- Agents **recommend only** — never execute trades.
++- Risk Engine approves; Execution Engine executes.
++- `mor-dd-risk` **BLOCK** → treat as highest-priority Slack alert.
++
++## How to reach specialists in Slack
++
++Sub-agents are **not separate Slack apps**. You will only see **one** app: **MOR Finance Intelligence** (sidebar → Apps).
++
++| Goal | What to do |
++|------|------------|
++| Talk to Commander | DM the bot or `/mor <message>` |
++| Full MOR review | `/mor_review` or `/mor_roundtable` — all specialists follow up on Slack |
++| Executive brief | `/mor_brief` — top metrics without full spawn |
++| Ops / health | `/mor_health` |
++| Governance | `/mor_governance` |
++| Talk to PnL Intel | `/mor_pnl <question>` in DM or any channel |
++| Talk to Risk Guard | `/mor_risk <question>` |
++| Talk to Market Mode | `/mor_mode <question>` |
++| Talk to Liquidity | `/mor_liquidity <question>` |
++| Talk to Capital | `/mor_capital <question>` |
++| MOR Finance snapshot | `/mor_finance` (underscore — **not** `/mor-finance`) |
++
++Slash commands post in the **same channel or DM** where you run them. Specialists reply with their own name + avatar; peers follow up in the same thread.
++
++**Valid commands use underscores:** `/mor_pnl`, `/mor_finance`, `/mor_roundtable` — hyphens like `/mor-pnl` or `/mor-finance` will not work.
++
++### Channel vs DM
++
++- In a **channel**: invite the bot (`/invite @MOR Intelligence`), then run `/mor_pnl` or `/mor_roundtable`. All specialists post in that channel (first message anchors a thread for follow-ups).
++- In a **DM**: same slash commands; delivery uses your Assistant thread when available.
++
++Slash commands are dispatched instantly via the `mor_slash` plugin (no LLM timeout). You should see `✅ … is posting in this channel` within a few seconds; full specialist analysis takes 30–90s.
++
++### Why specialist replies only show in History (not Chats & threads)
++
++Slack **Assistant** chats live in threaded conversations. If delivery posts to the DM root (no `thread_ts`), replies appear under the bot's **Messages** / **History** tab, not in your active **Chats & threads** panel.
++
++The deliver script now auto-detects your latest Assistant `thread_ts`. Main should pass `--thread-ts` from the inbound Slack session when invoking deliver.
++
++After updating `docs/agents/slack-app-manifest.json`, **reinstall the Slack app** so slash commands sync. Restart gateway: `npm run openclaw:gateway`.
++
++If Slack rejects the manifest with **PKCE cannot be disabled when enabled**, your app already has PKCE on — the manifest includes `"pkce_enabled": true` under `oauth_config` to match. Do not remove that field.
++
++### "You are not authorized to use this command"
++
++Slash commands (`/mor_pnl`, etc.) require `channels.slack.allowFrom` — not just `commands.ownerAllowFrom`. The repo config uses:
++
++```json
++"channels": { "slack": { "dmPolicy": "open", "allowFrom": ["*", "U0265N69A2W"] } },
++"commands": { "allowFrom": { "slack": ["*", "U0265N69A2W"] } }
++```
++
++After changing `integrations/openclaw/openclaw.json`, restart the gateway: `npm run openclaw:gateway`
++
++### Slash command failed: "the app did not respond"
++
++OpenClaw registers skill slash commands with **underscores** (`/mor_pnl`, `/mor_finance`), not hyphens (`/mor-pnl`, `/mor-finance`). The Slack app manifest must match. If you see a timeout:
++
++1. Reinstall the app from `docs/agents/slack-app-manifest.json` (includes `/mor_finance`)
++2. Run `npm run openclaw:setup` then restart gateway: `npm run openclaw:gateway`
++3. Confirm the `mor-slack` plugin loaded: `openclaw plugins list` (should show `mor_slash` tool)
++4. Use `/mor_pnl` (underscore), not `/mor-pnl`
++5. Fallback: `npm run openclaw:slash -- mor-pnl "check routes" --channel C…` or `--to U…`
++
++Each agent has its own configured **name + avatar** in `openclaw.json`. They only appear in Slack when that agent **delivers directly** (not when main relays text).
++
++| Agent | Slack name | How to DM with this identity |
++|-------|------------|------------------------------|
++| main | MOR Commander | Talk to the bot normally |
++| mor-pnl | MOR PnL Intel | `npm run openclaw:deliver -- mor-pnl "…" --to U…` |
++| mor-liquidity | MOR Liquidity | `npm run openclaw:deliver -- mor-liquidity "…"` |
++| mor-dd-risk | MOR Risk Guard | `npm run openclaw:deliver -- mor-dd-risk "…"` |
++| mor-market-mode | MOR Market Mode | `npm run openclaw:deliver -- mor-market-mode "…"` |
++| mor-capital-ladder | MOR Capital | `npm run openclaw:deliver -- mor-capital-ladder "…"` |
++
++**Why "tell MOR PnL Intel to msg me" shows MOR Intelligence:** main spawned the specialist for analysis, then relayed the reply via its own Slack bot. That is expected — use `openclaw:deliver` or ask main to run it via bash.
++
++**Test all six identities:** `npm run openclaw:test-identities`
++
++Requires `chat:write.customize` on the Slack app (in `docs/agents/slack-app-manifest.json`) and a reinstall. Restart gateway after scope changes.
++
++## Prerequisites
++
++```bash
++npm run dev              # MOR API on :3001
++npm run openclaw:gateway # OpenClaw on :18789
++```
+diff --git a/docs/agents/manifest.json b/docs/agents/manifest.json
+new file mode 100644
+index 0000000..730d91d
+--- /dev/null
++++ b/docs/agents/manifest.json
+@@ -0,0 +1,338 @@
++{
++  "manifestVersion": "1.0.0",
++  "service": "mor-finance-intelligence",
++  "mode": "recommend-only",
++  "limitationsDoc": "docs/agents/AGENT-LIMITATIONS.md",
++  "limitations": {
++    "general": [
++      "No autonomous trade execution",
++      "No direct treasury access",
++      "No capital allocation without Risk Engine approval",
++      "No protocol configuration changes without authorization",
++      "No contract or infrastructure deployment without authorization"
++    ],
++    "tradingRisk": [
++      "Recommend routes and trade sizing only",
++      "Borrow/lending requires DD/Risk Agent and Risk Engine validation",
++      "Never bypass risk limits, kill switches, or daily loss limits",
++      "Pause recommendations when market or data confidence is low"
++    ],
++    "dataQuality": [
++      "Detect stale or missing data and flag it",
++      "Report confidence scores for recommendations",
++      "Escalate conflicting signals instead of guessing"
++    ],
++    "mentors": {
++      "claude": "Education and documentation only — no production changes or deployments",
++      "hermes": "Code review and templates only — no auto-modify production or deployments"
++    },
++    "security": [
++      "No private keys or wallet secrets",
++      "No independent transaction signing",
++      "Owner-only financial dashboard data"
++    ]
++  },
++  "executionHierarchy": [
++    "Agents recommend",
++    "Risk Engine approves or rejects",
++    "Execution Engine executes"
++  ],
++  "slack": {
++    "orchestratorAgentId": "main",
++    "reportingPhase": "engineering-intelligence",
++    "reportingPolicyDoc": "docs/agents/prompts/slack-engineering-focus.md",
++    "excludedFromAutomatedAlerts": [
++      "Daily revenue notifications",
++      "Daily realized PnL rollups",
++      "Profit/loss standups and evening financial summaries"
++    ],
++    "recommendedSetup": "One Slack app → main orchestrator. Specialists post engineering intelligence (routes, risk, liquidity, data health) — not daily revenue rollups during deployment phase.",
++    "envRequired": [
++      "SLACK_BOT_TOKEN",
++      "SLACK_APP_TOKEN"
++    ],
++    "envOptional": [
++      "SLACK_ALERT_USER_ID",
++      "SLACK_ALERT_CHANNEL_ID"
++    ],
++    "defaultBinding": {
++      "agentId": "main",
++      "match": { "channel": "slack" }
++    },
++    "interaction": {
++      "dm": "DM the bot for full MOR intelligence reviews",
++      "channel": "@mention the bot in a channel (invite bot first)",
++      "slashCommand": "/openclaw (if configured in Slack app manifest)"
++    },
++    "samplePrompts": {
++      "fullReview": "Engineering intelligence roundtable: spawn all specialists, pull /api/agents/context. Synthesize route quality, risk posture, data freshness, and top 3 engineering actions. No revenue rollup.",
++      "routeQuality": "Spawn mor-pnl: route quality and opportunity scoring (PRIORITIZE/RETIRE) with confidence — not daily PnL.",
++      "riskAlert": "Spawn mor-dd-risk: borrow/lending health and failure patterns. BLOCK or REDUCE if thresholds breached.",
++      "marketMode": "Spawn mor-market-mode: market observations and deployment tier (BASELINE/BURST/5×/10×).",
++      "opsHealth": "Spawn mor-ops: data freshness, execution latency, failed execution diagnostics, infrastructure health."
++    },
++    "alertCronJobs": [
++      {
++        "id": "mor-alert-full",
++        "name": "MOR Engineering Roundtable",
++        "agentId": "main",
++        "schedule": "0 */6 * * *",
++        "scheduleHuman": "Every 6 hours",
++        "delivery": "roundtable",
++        "prompt": "MOR engineering roundtable: each specialist posts on Slack and follows up on prior agents. Pull GET /api/agents/context. Commander synthesizes: route quality, risk posture, data freshness, deployment tier, agent tensions, top 3 engineering actions. No revenue or daily PnL rollup. Never execute trades."
++      },
++      {
++        "id": "mor-alert-route-quality",
++        "name": "MOR Route Quality Scan",
++        "agentId": "mor-pnl",
++        "schedule": "0 */4 * * *",
++        "scheduleHuman": "Every 4 hours",
++        "prompt": "MOR route quality scan: GET /api/agents/context. Output PRIORITIZE/RETIRE with opportunity scores, failure patterns, cross-chain notes. Do not lead with dollar PnL or revenue."
++      },
++      {
++        "id": "mor-alert-risk",
++        "name": "MOR DD/Risk Alert",
++        "agentId": "mor-dd-risk",
++        "schedule": "30 */2 * * *",
++        "scheduleHuman": "Every 2 hours at :30",
++        "delivery": "slack-deliver",
++        "prompt": "MOR DD/Risk alert: GET /api/agents/context. Borrow/lending health, utilization, collateral. Output APPROVE/REDUCE/BLOCK. No PnL rollup."
++      },
++      {
++        "id": "mor-alert-market-mode",
++        "name": "MOR Market Observations",
++        "agentId": "mor-market-mode",
++        "schedule": "0 * * * *",
++        "scheduleHuman": "Hourly",
++        "prompt": "MOR market observations: classify BASELINE/BURST/5×/10× with route-quality, liquidity, and DD scores. Cross-chain context. No revenue rollup."
++      },
++      {
++        "id": "mor-alert-liquidity",
++        "name": "MOR Liquidity Analysis",
++        "agentId": "mor-liquidity",
++        "schedule": "15 */4 * * *",
++        "scheduleHuman": "Every 4 hours at :15",
++        "prompt": "MOR liquidity analysis: SAFE SIZE / REDUCE SIZE / AVOID ROUTE per route. Pool depth, slippage, cross-chain migration signals."
++      },
++      {
++        "id": "mor-alert-capital",
++        "name": "MOR Capital Ladder Engineering",
++        "agentId": "mor-capital-ladder",
++        "schedule": "45 */6 * * *",
++        "scheduleHuman": "Every 6 hours at :45",
++        "prompt": "MOR capital ladder engineering brief: tier posture, allocation logic, SCALE/PAUSE with risk alignment. Buffer % if SCALE — no daily revenue rollup."
++      },
++      {
++        "id": "mor-alert-ops",
++        "name": "MOR Ops & Data Freshness",
++        "agentId": "mor-ops",
++        "schedule": "0 */2 * * *",
++        "scheduleHuman": "Every 2 hours",
++        "delivery": "slack-deliver",
++        "prompt": "MOR ops watch: GET /api/agents/context. Data freshness flags, API health, execution latency, failed execution diagnostics, infrastructure signals. Optional prompt-improvement note."
++      },
++      {
++        "id": "mor-alert-governance",
++        "name": "MOR Governance Watch",
++        "agentId": "mor-governance",
++        "schedule": "0 9,15 * * 1-5",
++        "scheduleHuman": "Weekdays 9am and 3pm",
++        "delivery": "slack-deliver",
++        "prompt": "MOR governance watch: active proposals, timelocks, operational impact on routes and risk. MONITOR/PREPARE/URGENT — no financial rollup."
++      },
++      {
++        "id": "mor-alert-smart-router",
++        "name": "MOR Smart Router Scan",
++        "agentId": "mor-smart-router",
++        "schedule": "20 */4 * * *",
++        "scheduleHuman": "Every 4 hours at :20",
++        "prompt": "MOR smart router scan: GET /api/agents/context. Use smartRouter.recommendations — output ROUTE/AVOID with confidence, success probability, execution priority. Never rank by quoted spread alone."
++      },
++      {
++        "id": "mor-alert-hermes",
++        "name": "MOR Hermes Engineering Review",
++        "agentId": "mor-hermes",
++        "schedule": "0 10 * * 5",
++        "scheduleHuman": "Fridays 10am",
++        "delivery": "slack-deliver",
++        "prompt": "Hermes engineering review: GET /api/agents/context. REVIEW agent framework, dataQuality flags, prompt gaps. OPTIMIZE observability. TEMPLATE any prompt fixes. No production changes claimed."
++      }
++    ]
++  },
++  "agents": [
++    {
++      "id": "main",
++      "name": "MOR Orchestrator",
++      "emoji": "🐾",
++      "role": "orchestrator",
++      "slackRole": "Primary Slack contact — delegates to specialists via sub-agents",
++      "outputs": ["Unified intelligence summary", "Escalation to Risk Engine"],
++      "spawnTargets": [
++        "mor-pnl",
++        "mor-smart-router",
++        "mor-liquidity",
++        "mor-dd-risk",
++        "mor-market-mode",
++        "mor-capital-ladder",
++        "mor-governance",
++        "mor-ops",
++        "mor-hermes"
++      ],
++      "openclawWorkspace": "integrations/openclaw/workspaces/main",
++      "promptFile": null,
++      "kpi": "Route requests and synthesize specialist alerts"
++    },
++    {
++      "id": "mor-pnl",
++      "name": "PnL Intelligence",
++      "emoji": "📈",
++      "role": "specialist",
++      "slackRole": "Route quality and opportunity scoring — engineering phase (no daily PnL rollup)",
++      "outputs": ["PRIORITIZE", "MAINTAIN", "DEPRIORITIZE", "RETIRE"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-pnl",
++      "promptFile": "docs/agents/prompts/pnl-intelligence.md",
++      "kpi": "Maximize realized profitable opportunities"
++    },
++    {
++      "id": "mor-smart-router",
++      "name": "Smart Router",
++      "emoji": "🧭",
++      "role": "specialist",
++      "slackRole": "Execution-quality route ranking — confidence and success probability over spread",
++      "outputs": ["ROUTE", "REDUCE SIZE", "WATCH", "AVOID"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-smart-router",
++      "promptFile": "docs/agents/prompts/smart-router-intelligence.md",
++      "kpi": "Maximize realized net profit via selective high-confidence routing"
++    },
++    {
++      "id": "mor-liquidity",
++      "name": "Liquidity Intelligence",
++      "emoji": "💧",
++      "role": "specialist",
++      "slackRole": "Liquidity analysis and safe sizing alerts",
++      "outputs": ["SAFE SIZE", "REDUCE SIZE", "AVOID ROUTE"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-liquidity",
++      "promptFile": "docs/agents/prompts/liquidity-intelligence.md",
++      "kpi": "Maximum safe capital without reducing profitability"
++    },
++    {
++      "id": "mor-dd-risk",
++      "name": "DD / Risk",
++      "emoji": "🛡️",
++      "role": "specialist",
++      "slackRole": "DD/Risk and borrow/lending health alerts — highest urgency",
++      "outputs": ["APPROVE", "REDUCE", "BLOCK"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-dd-risk",
++      "promptFile": "docs/agents/prompts/dd-risk.md",
++      "kpi": "Protect treasury while enabling safe scaling"
++    },
++    {
++      "id": "mor-market-mode",
++      "name": "Market Mode",
++      "emoji": "📊",
++      "role": "specialist",
++      "slackRole": "Market observations and deployment tier alerts",
++      "outputs": ["BASELINE", "BURST", "5× DEPLOYMENT TIER", "10× DEPLOYMENT TIER"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-market-mode",
++      "promptFile": "docs/agents/prompts/market-mode-intelligence.md",
++      "kpi": "Accurate deployment-tier recommendations"
++    },
++    {
++      "id": "mor-capital-ladder",
++      "name": "Capital Ladder",
++      "emoji": "🏦",
++      "role": "specialist",
++      "slackRole": "Capital ladder recommendations — tier and allocation logic (no revenue rollup)",
++      "outputs": [
++        "MAINTAIN",
++        "SCALE",
++        "PAUSE",
++        "UPGRADE DEPLOYMENT TIER",
++        "DOWNGRADE DEPLOYMENT TIER"
++      ],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-capital-ladder",
++      "promptFile": "docs/agents/prompts/capital-ladder.md",
++      "kpi": "Compound treasury growth from validated data"
++    },
++    {
++      "id": "mor-governance",
++      "name": "Governance Intelligence",
++      "emoji": "🗳️",
++      "role": "specialist",
++      "slackRole": "Proposal and voting posture alerts",
++      "outputs": ["MONITOR", "PREPARE", "URGENT", "PAUSE OPS"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-governance",
++      "promptFile": "docs/agents/prompts/governance-intelligence.md",
++      "kpi": "Timely governance visibility before treasury moves"
++    },
++    {
++      "id": "mor-ops",
++      "name": "Ops / Health Watch",
++      "emoji": "🩺",
++      "role": "specialist",
++      "slackRole": "Data freshness, execution latency, failure diagnostics, infrastructure health",
++      "outputs": ["HEALTHY", "DEGRADED", "DOWN", "ACTION REQUIRED"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-ops",
++      "promptFile": "docs/agents/prompts/ops-health.md",
++      "kpi": "Reliable observability for all intelligence agents"
++    },
++    {
++      "id": "mor-hermes",
++      "name": "Hermes",
++      "emoji": "⚡",
++      "role": "mentor",
++      "slackRole": "Code review, optimizations, failure explanations, prompt templates — no auto-modify production",
++      "outputs": ["REVIEW", "OPTIMIZE", "EXPLAIN_FAILURE", "TEMPLATE"],
++      "openclawWorkspace": "integrations/openclaw/workspaces/mor-hermes",
++      "promptFile": "docs/agents/prompts/hermes-mentor.md",
++      "kpi": "Improve prompts, code, and workflows through mentor feedback only"
++    }
++  ],
++  "dataSources": {
++    "health": "GET /api/health",
++    "context": "GET /api/agents/context",
++    "smartRouter": "GET /api/agents/smart-router",
++    "githubWorkflows": "GET /api/github/workflows",
++    "manifest": "GET /api/agents/manifest"
++  },
++  "githubSlack": {
++    "doc": "docs/agents/GITHUB-SLACK-INTEGRATION.md",
++    "webhook": "POST /api/github/webhook",
++    "workflows": [
++      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" },
++      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
++      { "id": "mor-github-events", "channelEnv": "SLACK_CHANNEL_MOR_GITHUB_EVENTS", "slash": "/mor_github" },
++      { "id": "mor-suggestion", "channelEnv": "SLACK_CHANNEL_MOR_SUGGESTION", "slash": "/mor_suggestion" },
++      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" }
++    ],
++    "cronJobs": [
++      {
++        "id": "mor-github-audit-sweep",
++        "name": "MOR GitHub Audit Sweep",
++        "agentId": "main",
++        "workflowId": "mor-audit",
++        "schedule": "0 10,16 * * 1-5",
++        "scheduleHuman": "Weekdays 10am and 4pm",
++        "prompt": "MOR GitHub audit sweep: review the latest GitHub review context if available, otherwise inspect the current repo diff and recent engineering changes. Post a structured PASS/WARN/FAIL/NEEDS_HUMAN audit in #mor-audit with file-specific risks and required follow-ups."
++      },
++      {
++        "id": "mor-github-suggestion-sweep",
++        "name": "MOR GitHub Suggestion Sweep",
++        "agentId": "main",
++        "workflowId": "mor-suggestion",
++        "schedule": "30 10,16 * * 1-5",
++        "scheduleHuman": "Weekdays 10:30am and 4:30pm",
++        "prompt": "MOR GitHub suggestion sweep: review the latest GitHub context, working-tree diff, and MOR system state. Share 3-7 ranked engineering suggestions in #mor-suggestion with impact, effort, and recommended owners."
++      },
++      {
++        "id": "mor-github-agents-collab",
++        "name": "MOR GitHub Agents Collaboration",
++        "agentId": "main",
++        "workflowId": "mor-agents",
++        "schedule": "0 11,17 * * 1-5",
++        "scheduleHuman": "Weekdays 11am and 5pm",
++        "prompt": "MOR GitHub agents collaboration: run a full Hermes ↔ MOR engineering discussion over the latest GitHub context, active repo changes, and MOR live context. Have agents interact in #mor-agents and synthesize next actions for the team."
++      }
++    ]
++  }
++}
+diff --git a/docs/agents/manifests/hermes-agent.manifest.json b/docs/agents/manifests/hermes-agent.manifest.json
+new file mode 100644
+index 0000000..426b640
+--- /dev/null
++++ b/docs/agents/manifests/hermes-agent.manifest.json
+@@ -0,0 +1,61 @@
++{
++  "manifestVersion": "1.0.0",
++  "manifestType": "mor-agent",
++  "slackAppManifest": "docs/agents/manifests/hermes-slack-app-manifest.json",
++  "note": "For Slack app creation use hermes-slack-app-manifest.json (has display_information). This file is the MOR agent config only.",
++  "agentId": "mor-hermes",
++  "name": "Hermes",
++  "displayName": "Hermes",
++  "emoji": "⚡",
++  "role": "mentor",
++  "platform": "openclaw",
++  "mode": "recommend-only",
++  "description": "Engineering mentor — GitHub code review, PR audits, fix templates, prompt improvements. Never auto-modifies production.",
++  "openclawWorkspace": "integrations/openclaw/workspaces/mor-hermes",
++  "promptFile": "docs/agents/prompts/hermes-mentor.md",
++  "collaborationProtocol": "docs/agents/prompts/hermes-mor-collaboration.md",
++  "githubIntegration": {
++    "enabled": true,
++    "tokenEnv": "GITHUB_TOKEN",
++    "reviewContextPathEnv": "GITHUB_REVIEW_CONTEXT_PATH",
++    "reviewContextApi": "GET /api/github/review-context",
++    "capabilities": [
++      "fetch-pr-diff",
++      "review-changed-files",
++      "audit-code-security",
++      "output-fix-templates",
++      "prepare-pr-body"
++    ],
++    "workflows": [
++      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
++      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" },
++      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" }
++    ]
++  },
++  "outputs": ["REVIEW", "OPTIMIZE", "EXPLAIN_FAILURE", "TEMPLATE", "DIAGNOSE", "FIX_PLAN", "READY_FOR_PR"],
++  "slack": {
++    "displayName": "Hermes",
++    "slashCommands": ["/mor_hermes", "/mor_audit", "/mor_codefix", "/mor_collab"],
++    "avatar": "https://ui-avatars.com/api/?name=HER&background=0891b2&color=fff&size=128&bold=true"
++  },
++  "skills": ["mor-finance", "mor-hermes", "mor-collab"],
++  "envRequired": ["MOR_API_BASE", "MOR_REPO", "SLACK_BOT_TOKEN", "OPENAI_API_KEY"],
++  "envForGithubReview": ["GITHUB_TOKEN"],
++  "envOptional": [
++    "GITHUB_REVIEW_CONTEXT_PATH",
++    "SLACK_CHANNEL_MOR_AUDIT",
++    "SLACK_CHANNEL_MOR_CODEFIX",
++    "SLACK_CHANNEL_MOR_AGENTS"
++  ],
++  "dataSources": [
++    "GET /api/agents/context",
++    "GET /api/github/review-context",
++    "integrations/openclaw/state/github-review-context.json",
++    "MOR_REPO git diff + framework paths"
++  ],
++  "limitations": [
++    "No autonomous PR merge or deploy",
++    "No production code changes without human approval",
++    "TEMPLATE and READY_FOR_PR only — never run gh pr create autonomously"
++  ]
++}
+diff --git a/docs/agents/manifests/mor-openclaw-agent.manifest.json b/docs/agents/manifests/mor-openclaw-agent.manifest.json
+new file mode 100644
+index 0000000..64eb83d
+--- /dev/null
++++ b/docs/agents/manifests/mor-openclaw-agent.manifest.json
+@@ -0,0 +1,108 @@
++{
++  "manifestVersion": "1.0.0",
++  "manifestType": "mor-agent",
++  "slackAppManifest": "docs/agents/manifests/mor-openclaw-slack-app-manifest.json",
++  "note": "For Slack app creation use mor-openclaw-slack-app-manifest.json (has display_information). This file is the MOR agent config only.",
++  "agentId": "main",
++  "name": "MOR Commander",
++  "displayName": "MOR Commander",
++  "emoji": "🐾",
++  "role": "orchestrator",
++  "platform": "openclaw",
++  "mode": "recommend-only",
++  "description": "OpenClaw orchestrator — delegates to MOR specialists, synthesizes GitHub + engineering intelligence, coordinates Hermes mentor dialogue.",
++  "openclawWorkspace": "integrations/openclaw/workspaces/main",
++  "gatewayUrl": "http://127.0.0.1:18789",
++  "githubIntegration": {
++    "enabled": true,
++    "tokenEnv": "GITHUB_TOKEN",
++    "webhookPath": "POST /api/github/webhook",
++    "workflowsApi": "GET /api/github/workflows",
++    "reviewContextApi": "GET /api/github/review-context",
++    "smeeUrlEnv": "SMEE_WEBHOOK_URL",
++    "webhookSecretEnv": "GITHUB_WEBHOOK_SECRET",
++    "autoTriggers": {
++      "reviewCode": "GITHUB_AUTO_REVIEW_CODE",
++      "auditPr": "GITHUB_AUTO_AUDIT_PR",
++      "suggestion": "GITHUB_AUTO_SUGGESTION",
++      "suggestionIssues": "GITHUB_AUTO_SUGGESTION_ISSUES",
++      "agentsIssues": "GITHUB_AUTO_AGENTS_ISSUES",
++      "codefix": "GITHUB_AUTO_CODEFIX"
++    },
++    "slackWorkflows": [
++      { "id": "mor-github-events", "channelEnv": "SLACK_CHANNEL_MOR_GITHUB_EVENTS", "slash": "/mor_github" },
++      { "id": "mor-agents", "channelEnv": "SLACK_CHANNEL_MOR_AGENTS", "slash": "/mor_agents" },
++      { "id": "mor-audit", "channelEnv": "SLACK_CHANNEL_MOR_AUDIT", "slash": "/mor_audit" },
++      { "id": "mor-suggestion", "channelEnv": "SLACK_CHANNEL_MOR_SUGGESTION", "slash": "/mor_suggestion" },
++      { "id": "mor-codefix", "channelEnv": "SLACK_CHANNEL_MOR_CODEFIX", "slash": "/mor_codefix" }
++    ]
++  },
++  "spawnTargets": [
++    "mor-pnl",
++    "mor-smart-router",
++    "mor-liquidity",
++    "mor-dd-risk",
++    "mor-market-mode",
++    "mor-capital-ladder",
++    "mor-governance",
++    "mor-ops",
++    "mor-hermes"
++  ],
++  "outputs": ["Unified intelligence summary", "Escalation to Risk Engine", "Commander synthesis"],
++  "slack": {
++    "displayName": "MOR Commander",
++    "slashCommands": [
++      "/mor",
++      "/mor_roundtable",
++      "/mor_review",
++      "/mor_brief",
++      "/mor_finance",
++      "/mor_agents",
++      "/mor_github"
++    ],
++    "avatar": "https://ui-avatars.com/api/?name=CMD&background=0f172a&color=fff&size=128&bold=true"
++  },
++  "skills": [
++    "mor-finance",
++    "mor-pnl",
++    "mor-smart-router",
++    "mor-liquidity",
++    "mor-risk",
++    "mor-mode",
++    "mor-capital",
++    "mor-review",
++    "mor-governance",
++    "mor-health",
++    "mor-brief",
++    "mor-roundtable",
++    "mor-hermes",
++    "mor-collab"
++  ],
++  "envRequired": ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "MOR_API_BASE", "MOR_REPO", "OPENAI_API_KEY"],
++  "envForGithub": ["GITHUB_TOKEN", "GITHUB_WEBHOOK_SECRET", "SMEE_WEBHOOK_URL"],
++  "envOptional": [
++    "SLACK_CHANNEL_MOR_AGENTS",
++    "SLACK_CHANNEL_MOR_AUDIT",
++    "SLACK_CHANNEL_MOR_GITHUB_EVENTS",
++    "SLACK_CHANNEL_MOR_SUGGESTION",
++    "SLACK_CHANNEL_MOR_CODEFIX",
++    "GITHUB_AUTO_REVIEW_CODE",
++    "GITHUB_AUTO_AUDIT_PR",
++    "GITHUB_AUTO_SUGGESTION",
++    "GITHUB_AUTO_SUGGESTION_ISSUES",
++    "GITHUB_AUTO_AGENTS_ISSUES",
++    "GITHUB_AUTO_CODEFIX"
++  ],
++  "dataSources": [
++    "GET /api/health",
++    "GET /api/agents/context",
++    "GET /api/agents/manifest",
++    "GET /api/github/workflows",
++    "GET /api/github/review-context"
++  ],
++  "limitations": [
++    "Orchestrator recommends only — does not execute trades",
++    "Delegates code review to mor-hermes for deep GitHub analysis",
++    "Synthesizes specialist + Hermes threads on Slack"
++  ]
++}
+diff --git a/docs/agents/manifests/mor-openclaw-slack-app-manifest.json b/docs/agents/manifests/mor-openclaw-slack-app-manifest.json
+new file mode 100644
+index 0000000..9560426
+--- /dev/null
++++ b/docs/agents/manifests/mor-openclaw-slack-app-manifest.json
+@@ -0,0 +1,194 @@
++{
++  "display_information": {
++    "name": "MOR Commander \u2014 OpenClaw",
++    "description": "MOR Finance orchestrator: specialists, roundtable, GitHub events, route intelligence",
++    "background_color": "#0f172a"
++  },
++  "features": {
++    "bot_user": {
++      "display_name": "MOR Commander",
++      "always_online": true
++    },
++    "app_home": {
++      "home_tab_enabled": true,
++      "messages_tab_enabled": true,
++      "messages_tab_read_only_enabled": false
++    },
++    "assistant_view": {
++      "assistant_description": "MOR OpenClaw orchestrator. Spawns PnL, Risk, Liquidity, Ops specialists. Engineering intelligence \u2014 not daily PnL rollups.",
++      "suggested_prompts": [
++        {
++          "title": "Engineering roundtable",
++          "message": "/mor_roundtable Pull GET /api/agents/context. All specialists follow up in thread."
++        },
++        {
++          "title": "Route quality",
++          "message": "/mor_pnl Route quality scan \u2014 PRIORITIZE/RETIRE with confidence."
++        },
++        {
++          "title": "Smart router",
++          "message": "/mor_router Rank routes by execution probability from smartRouter API."
++        },
++        {
++          "title": "GitHub events",
++          "message": "/mor_github Status of mor-github-events channel and webhook feed."
++        }
++      ]
++    },
++    "slash_commands": [
++      {
++        "command": "/mor",
++        "description": "MOR Finance intelligence (routes to main orchestrator)",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_finance",
++        "description": "MOR engineering snapshot \u2014 intelligence layer health (no revenue rollup)",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_roundtable",
++        "description": "All specialists \u2014 Slack thread with cross follow-ups",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_brief",
++        "description": "Engineering brief \u2014 ops, routes, risk, data quality",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_health",
++        "description": "Ops / Health \u2014 API status and data freshness",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_governance",
++        "description": "Governance \u2014 proposals and voting posture",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_review",
++        "description": "Full MOR review \u2014 spawn all specialists and synthesize",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_pnl",
++        "description": "Route quality \u2014 opportunity scoring and route actions",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_router",
++        "description": "Smart Router \u2014 execution-quality ranking by confidence",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_risk",
++        "description": "DD/Risk \u2014 borrow/lending health and safety alerts",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_mode",
++        "description": "Market observations \u2014 deployment tier classification",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_liquidity",
++        "description": "Liquidity Intelligence \u2014 pool depth and sizing",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_capital",
++        "description": "Capital Ladder \u2014 tier posture and allocation logic",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_hermes",
++        "description": "Hermes \u2014 code review; MOR specialists respond",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_collab",
++        "description": "Hermes \u2194 MOR full dialogue \u2014 specialists, mentor, synthesis",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_agents",
++        "description": "MOR Agents \u2014 Hermes and specialists collaborate",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_audit",
++        "description": "MOR Audit \u2014 code audit discussion by agents",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_github",
++        "description": "MOR GitHub events channel status",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_suggestion",
++        "description": "MOR Suggestions \u2014 agent project improvement ideas",
++        "should_escape": false
++      },
++      {
++        "command": "/mor_codefix",
++        "description": "MOR Codefix \u2014 discuss fix and prepare PR template",
++        "should_escape": false
++      }
++    ]
++  },
++  "oauth_config": {
++    "pkce_enabled": true,
++    "scopes": {
++      "bot": [
++        "app_mentions:read",
++        "assistant:write",
++        "channels:history",
++        "channels:read",
++        "chat:write",
++        "chat:write.customize",
++        "commands",
++        "emoji:read",
++        "files:read",
++        "files:write",
++        "groups:history",
++        "groups:read",
++        "im:history",
++        "im:read",
++        "im:write",
++        "mpim:history",
++        "mpim:read",
++        "mpim:write",
++        "pins:read",
++        "pins:write",
++        "reactions:read",
++        "reactions:write",
++        "usergroups:read",
++        "users:read"
++      ]
++    }
++  },
++  "settings": {
++    "socket_mode_enabled": true,
++    "event_subscriptions": {
++      "bot_events": [
++        "app_home_opened",
++        "app_mention",
++        "assistant_thread_context_changed",
++        "assistant_thread_started",
++        "channel_rename",
++        "member_joined_channel",
++        "member_left_channel",
++        "message.channels",
++        "message.groups",
++        "message.im",
++        "message.mpim",
++        "pin_added",
++        "pin_removed",
++        "reaction_added",
++        "reaction_removed"
++      ]
++    }
++  }
++}
+diff --git a/docs/agents/prompts/github-agents-collab.md b/docs/agents/prompts/github-agents-collab.md
+new file mode 100644
+index 0000000..f27397a
+--- /dev/null
++++ b/docs/agents/prompts/github-agents-collab.md
+@@ -0,0 +1,31 @@
++# GitHub ↔ Slack agent workflows
++
++Load shared context from `shared-system-context.md` and `hermes-mor-collaboration.md`.
++
++## Channel
++
++`#mor-agents` — Hermes and MOR OpenClaw specialists interact in threaded dialogue.
++
++## Role
++
++You facilitate **cross-agent engineering dialogue** between Hermes (mentor) and MOR intelligence specialists. This channel is for agent-to-agent collaboration visible to the team — not financial execution.
++
++## Flow
++
++1. MOR specialists post domain intelligence (ops, risk, routes, liquidity, etc.)
++2. Hermes reviews with REVIEW / OPTIMIZE / TEMPLATE
++3. MOR specialists respond to Hermes with evidence
++4. Commander synthesizes next engineering actions
++
++## Rules
++
++- Reference other agents by Slack display name
++- Never claim autonomous code merge or production deploy
++- No trade execution or treasury actions
++- GitHub context (PR/issue/commit) may appear in thread — tie recommendations to that change when present
++
++## Output labels
++
++Hermes: **REVIEW**, **OPTIMIZE**, **EXPLAIN_FAILURE**, **TEMPLATE**  
++MOR specialists: domain action labels (HEALTHY, APPROVE, PRIORITIZE, ROUTE, etc.)  
++Commander: unified synthesis with confidence and escalation
+diff --git a/docs/agents/prompts/github-audit.md b/docs/agents/prompts/github-audit.md
+new file mode 100644
+index 0000000..4e1c161
+--- /dev/null
++++ b/docs/agents/prompts/github-audit.md
+@@ -0,0 +1,39 @@
++# GitHub Audit Workflow
++
++Load `shared-system-context.md`, `agent-limitations.md`, and `hermes-mentor.md`.
++
++## Channel
++
++`#mor-audit` — structured code audit discussions by agents.
++
++## Role
++
++You perform **engineering audits** on GitHub-linked changes (PRs, commits, diffs). Hermes leads code quality review; MOR Ops validates operational impact; MOR Risk flags safety concerns.
++
++## Audit checklist
++
++1. **Correctness** — logic bugs, edge cases, error handling
++2. **Security** — secrets, auth, injection, unsafe defaults
++3. **Reliability** — data freshness, failure modes, observability
++4. **Agent safety** — recommend-only boundaries, no autonomous execution paths
++5. **Operational impact** — API, Slack, OpenClaw, on-chain services
++
++## Output labels
++
++| Label | When |
++|-------|------|
++| **PASS** | No blocking issues; minor notes only |
++| **WARN** | Non-blocking issues; ship with follow-ups |
++| **FAIL** | Blocking issues — do not merge without fixes |
++| **NEEDS_HUMAN** | Requires owner decision |
++
++Hermes adds: **REVIEW**, **OPTIMIZE**, **TEMPLATE** for concrete fixes.
++
++## Rules
++
++Audit the **specific GitHub change** referenced in the thread. Use `GitHub code review context` (diff + file snippets) when present.
++
++- Cite **file paths** and line-level concerns from the diff
++- Do not review metadata only — review actual code
++- Never approve merge autonomously — recommend only
++- End with prioritized fix list (P0/P1/P2)
+diff --git a/docs/agents/prompts/github-codefix.md b/docs/agents/prompts/github-codefix.md
+new file mode 100644
+index 0000000..615ec16
+--- /dev/null
++++ b/docs/agents/prompts/github-codefix.md
+@@ -0,0 +1,48 @@
++# GitHub Codefix Workflow
++
++Load `shared-system-context.md`, `hermes-mentor.md`, and `agent-limitations.md`.
++
++## Channel
++
++`#mor-codefix` — agents discuss fixes and prepare PR proposals.
++
++## Role
++
++You help the team **diagnose, discuss, and fix code** linked to GitHub PRs/issues. Hermes leads technical analysis; specialists validate domain impact.
++
++## Phases
++
++1. **Understand** — restate the bug/feature request from GitHub context
++2. **Diagnose** — root cause with file references
++3. **Propose fix** — concrete patch plan (files, functions, tests)
++4. **PR template** — branch name, commit message, PR title/body, test plan
++5. **Human gate** — explicit approval required before any PR is opened
++
++## Output labels
++
++| Label | When |
++|-------|------|
++| **DIAGNOSE** | Root cause analysis |
++| **FIX_PLAN** | Step-by-step implementation plan |
++| **TEMPLATE** | PR description + patch outline |
++| **BLOCKED** | Missing info or unsafe to proceed |
++| **READY_FOR_PR** | Fix plan approved — awaiting human `approve` to open PR |
++
++## PR template block (when READY_FOR_PR)
++
++```
++Branch: fix/<short-description>
++Title: <concise title>
++Body:
++## Summary
++## Changes
++## Test plan
++## Risk notes
++```
++
++## Hard rules
++
++- **Never** push branches, open PRs, or merge without explicit human approval in thread
++- **Never** modify production secrets or financial execution paths without authorization
++- If fix touches arbitrage execution, Risk Engine review is mandatory
++- Use `gh pr create` only when operator runs approved script — agents output TEMPLATE only
+diff --git a/docs/agents/prompts/github-suggestion.md b/docs/agents/prompts/github-suggestion.md
+new file mode 100644
+index 0000000..839f347
+--- /dev/null
++++ b/docs/agents/prompts/github-suggestion.md
+@@ -0,0 +1,39 @@
++# GitHub Suggestion Workflow
++
++Load `shared-system-context.md` and `agent-limitations.md`.
++
++## Channel
++
++`#mor-suggestion` — agents propose project improvements.
++
++## Role
++
++You analyze the codebase and GitHub activity to produce **actionable engineering suggestions** for MOR Finance. Focus on architecture, agent framework, routing intelligence, observability, and developer experience.
++
++## Suggestion categories
++
++- **Architecture** — service boundaries, API design, scoring pipeline
++- **Agents** — prompt quality, collaboration flows, missing specialists
++- **Routing** — smart router, execution feedback loops
++- **Observability** — metrics, alerts, data quality
++- **DX** — scripts, docs, Slack/GitHub integration
++
++## Output format
++
++For each suggestion:
++
++```
++Title: <short name>
++Category: <architecture|agents|routing|observability|dx>
++Impact: HIGH | MEDIUM | LOW
++Effort: S | M | L
++Suggestion: <what to do and why>
++Evidence: <file paths, API signals, or GitHub context>
++```
++
++## Rules
++
++- 3–7 suggestions per round; rank by impact/effort
++- Tie suggestions to live context or GitHub change when available
++- No autonomous implementation — propose only
++- Flag if suggestion touches financial execution (requires Risk Engine review)
+diff --git a/integrations/openclaw/README.md b/integrations/openclaw/README.md
+new file mode 100644
+index 0000000..86ea791
+--- /dev/null
++++ b/integrations/openclaw/README.md
+@@ -0,0 +1,62 @@
++# OpenClaw integration (in this repo)
++
++OpenClaw lives in this monorepo:
++
++| Path | Purpose |
++|------|---------|
++| `openclaw/` | OpenClaw source ([git submodule](https://github.com/openclaw/openclaw)) |
++| `integrations/openclaw/` | MOR config, agent workspaces, skill, runtime state |
++| `docs/agents/prompts/` | Agent prompt source of truth |
++
++## Quick start
++
++```bash
++# 1. Generate workspaces + config (once, or after prompt changes)
++npm run openclaw:setup
++
++# 2. Start MOR dashboard + API
++npm run dev
++
++# 3. Start OpenClaw gateway (uses integrations/openclaw/openclaw.json)
++npm run openclaw:gateway
++
++# Or both together:
++npm run dev:full
++```
++
++- **MOR dashboard:** http://localhost:5173/openclaw-agents  
++- **OpenClaw Control UI:** http://127.0.0.1:18789/
++
++## First-time OpenClaw CLI
++
++The gateway script uses the global `openclaw` CLI. Install if needed:
++
++```bash
++npm install -g openclaw@latest
++openclaw doctor --generate-gateway-token
++# Paste token into integrations/openclaw/openclaw.json → gateway.auth.token
++```
++
++Optional: install deps in the submodule for local development:
++
++```bash
++cd openclaw && npm install
++```
++
++## Sub-agents
++
++See [SUBAGENTS.md](./SUBAGENTS.md) for spawn patterns, env vars, and tool policy.
++
++Copy `subagents.env.example` → `subagents.env` (or run `npm run openclaw:setup`).
++
++| Variable | Default |
++|----------|---------|
++| `OPENCLAW_CONFIG_PATH` | `integrations/openclaw/openclaw.json` (auto) |
++| `OPENCLAW_STATE_DIR` | `integrations/openclaw/state/` |
++| `OPENCLAW_GATEWAY_URL` | `http://127.0.0.1:18789` |
++
++## Update submodule
++
++```bash
++git submodule update --remote openclaw
++```
+diff --git a/integrations/openclaw/subagents.env.example b/integrations/openclaw/subagents.env.example
+new file mode 100644
+index 0000000..873c300
+--- /dev/null
++++ b/integrations/openclaw/subagents.env.example
+@@ -0,0 +1,30 @@
++# MOR sub-agent environment (OpenClaw gateway process)
++# Copy to integrations/openclaw/subagents.env and adjust paths.
++
++MOR_API_BASE=http://localhost:3001/api
++MOR_DASHBOARD_URL=http://localhost:5173
++MOR_REPO={{REPO_ROOT}}
++
++# OpenClaw state for this repo (set by npm run openclaw:gateway)
++# OPENCLAW_CONFIG_PATH=integrations/openclaw/openclaw.json
++# OPENCLAW_STATE_DIR=integrations/openclaw/state
++
++# Optional: Supabase JWT for protected MOR API routes
++# MOR_AGENT_ACCESS_TOKEN=
++
++# Slack workflow channels (channel IDs — C…)
++# SLACK_CHANNEL_MOR_AGENTS=
++# SLACK_CHANNEL_MOR_AUDIT=
++# SLACK_CHANNEL_MOR_GITHUB_EVENTS=
++# SLACK_CHANNEL_MOR_SUGGESTION=
++# SLACK_CHANNEL_MOR_CODEFIX=
++
++# GitHub webhook integration
++# GITHUB_WEBHOOK_SECRET=
++# GITHUB_TOKEN=
++# GITHUB_AUTO_REVIEW_CODE=true
++# GITHUB_AUTO_AUDIT_PR=true
++# GITHUB_AUTO_SUGGESTION=false
++# GITHUB_AUTO_SUGGESTION_ISSUES=true
++# GITHUB_AUTO_AGENTS_ISSUES=true
++# GITHUB_AUTO_CODEFIX=false
+diff --git a/package.json b/package.json
+index 98a7156..1f822e7 100644
+--- a/package.json
++++ b/package.json
+@@ -7,6 +7,21 @@
+     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+     "dev:client": "vite",
+     "dev:server": "tsx watch server/index.ts",
++    "openclaw:setup": "node scripts/setup-openclaw.mjs",
++    "openclaw:gateway": "node scripts/run-openclaw-gateway.mjs",
++    "openclaw:alerts:install": "bash scripts/install-slack-alerts.sh",
++    "openclaw:cron:install": "node scripts/install-mor-cron-jobs.mjs",
++    "openclaw:test-identities": "bash scripts/test-slack-agent-identities.sh",
++    "openclaw:deliver": "node scripts/deliver-slack-agent.mjs",
++    "openclaw:roundtable": "node scripts/deliver-slack-roundtable.mjs",
++    "openclaw:collab": "node scripts/deliver-slack-collab.mjs",
++    "openclaw:github:agents": "node scripts/deliver-slack-github-workflow.mjs --workflow mor-agents",
++    "openclaw:github:audit": "node scripts/deliver-slack-github-workflow.mjs --workflow mor-audit",
++    "openclaw:github:suggestion": "node scripts/deliver-slack-github-workflow.mjs --workflow mor-suggestion",
++    "openclaw:github:codefix": "node scripts/deliver-slack-github-workflow.mjs --workflow mor-codefix",
++    "openclaw:slash": "node scripts/mor-slack-slash.mjs",
++    "openclaw:slash:diagnose": "node scripts/diagnose-mor-slack.mjs",
++    "dev:full": "concurrently -n mor,openclaw \"npm run dev\" \"npm run openclaw:gateway\"",
+     "build": "tsc --noEmit && vite build",
+     "build:server": "tsc -p server/tsconfig.json",
+     "start:server": "node server/dist/index.js",
+@@ -15,7 +30,9 @@
+     "seed:admin": "tsx scripts/seed-admin.ts",
+     "seed:user": "tsx scripts/seed-user.ts",
+     "contracts:sync": "cp \"dsa contracts copy/deployments/latest.json\" src/lib/contracts/deployments.arbitrum.json",
+-    "ngrok": "ngrok http 5173"
++    "ngrok": "ngrok http 5173",
++    "github:tunnel": "node scripts/github-webhook-tunnel.mjs",
++    "github:tunnel:smee": "node scripts/github-webhook-smee.mjs"
+   },
+   "dependencies": {
+     "@fluentui-contrib/react-chat": "^0.2.2",
+diff --git a/scripts/deliver-slack-agent.mjs b/scripts/deliver-slack-agent.mjs
+new file mode 100644
+index 0000000..2326f5e
+--- /dev/null
++++ b/scripts/deliver-slack-agent.mjs
+@@ -0,0 +1,197 @@
++#!/usr/bin/env node
++/**
++ * Deliver a Slack DM as a MOR specialist (custom name + avatar).
++ * With default follow-ups, peer specialists post in the same thread and reference each other.
++ */
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++import {
++  VALID_AGENTS,
++  loadConfig,
++  resolveSlackChannel,
++  isSlackPublicChannel,
++  resolveActiveThreadTs,
++  fetchMorContext,
++  fetchHermesContext,
++  fetchAgentContext,
++  deliverAgentToSlack,
++  resolveFollowupAgents,
++  runHermesReviewPass,
++  runMorResponseToHermes,
++} from "./mor-slack-delivery-lib.mjs";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const CONFIG_PATH =
++  process.env.OPENCLAW_CONFIG_PATH ??
++  path.join(REPO_ROOT, "integrations/openclaw/openclaw.json");
++
++for (const envPath of [
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++function parseArgs(argv) {
++  const positional = [];
++  let to = process.env.SLACK_ALERT_USER_ID ?? "";
++  let channelId = process.env.SLACK_CHANNEL_ID ?? "";
++  let threadTs = process.env.SLACK_THREAD_TS ?? "";
++  let followup = "auto";
++  let hermesReview = true;
++  let morResponse = true;
++
++  for (let i = 0; i < argv.length; i++) {
++    if (argv[i] === "--to") to = argv[++i] ?? "";
++    else if (argv[i] === "--channel") channelId = argv[++i] ?? "";
++    else if (argv[i] === "--thread-ts") threadTs = argv[++i] ?? "";
++    else if (argv[i] === "--followup") followup = argv[++i] ?? "all";
++    else if (argv[i] === "--no-followup") followup = "none";
++    else if (argv[i] === "--hermes-review") hermesReview = true;
++    else if (argv[i] === "--no-hermes-review") hermesReview = false;
++    else if (argv[i] === "--mor-response") morResponse = true;
++    else if (argv[i] === "--no-mor-response") morResponse = false;
++    else positional.push(argv[i]);
++  }
++  return {
++    agentId: positional[0] ?? "",
++    message: positional[1] ?? "",
++    to,
++    channelId,
++    threadTs,
++    followup,
++    hermesReview,
++    morResponse,
++  };
++}
++
++async function main() {
++  const {
++    agentId,
++    message,
++    to,
++    channelId: channelIdArg,
++    threadTs: threadTsArg,
++    followup,
++    hermesReview,
++    morResponse,
++  } = parseArgs(process.argv.slice(2));
++  if (!agentId || !message) {
++    console.error(
++      'Usage: deliver-slack-agent.mjs <agentId> "<message>" [--channel C…] [--to SLACK_USER_ID] [--thread-ts TS] [--followup all|auto|none|id1,id2]',
++    );
++    process.exit(1);
++  }
++  if (!VALID_AGENTS.has(agentId)) {
++    console.error(`Invalid agentId. Use one of: ${[...VALID_AGENTS].join(", ")}`);
++    process.exit(1);
++  }
++  if (!to && !channelIdArg) {
++    console.error("Set SLACK_ALERT_USER_ID or pass --to <slack-user-id> or --channel <C…>");
++    process.exit(1);
++  }
++  const token = process.env.SLACK_BOT_TOKEN;
++  if (!token) {
++    console.error("SLACK_BOT_TOKEN is required");
++    process.exit(1);
++  }
++
++  const cfg = loadConfig(CONFIG_PATH);
++  const channel = await resolveSlackChannel({ channelId: channelIdArg, userId: to, token });
++  let threadTs =
++    threadTsArg ||
++    (isSlackPublicChannel(channel) ? "" : await resolveActiveThreadTs(channel, to, token));
++  const contextBlock = await fetchAgentContext(agentId);
++  const transcript = [];
++
++  console.log(`→ Running ${agentId} turn… (${isSlackPublicChannel(channel) ? "channel" : "DM"})`);
++  const primary = await deliverAgentToSlack({
++    cfg,
++    agentId,
++    message,
++    to,
++    token,
++    channel,
++    threadTs: threadTs || undefined,
++    transcript: [],
++    contextBlock,
++  });
++  transcript.push(primary);
++  if (!threadTs && isSlackPublicChannel(channel) && primary.ts) {
++    threadTs = primary.ts;
++  }
++  console.log("OK — custom Slack identity confirmed.");
++  console.log(primary.text);
++
++  const peers =
++    agentId === "main"
++      ? []
++      : resolveFollowupAgents(agentId, followup === "all" ? "all" : followup);
++
++  if (!peers.length) return;
++
++  const followupPrompt = `Follow up on the thread above. User topic: ${message}. Reference prior specialists by name and add your domain view.`;
++  console.log(`→ Follow-ups: ${peers.join(", ")}`);
++
++  for (const peerId of peers) {
++    const entry = await deliverAgentToSlack({
++      cfg,
++      agentId: peerId,
++      message: followupPrompt,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++      transcript,
++      contextBlock: await fetchAgentContext(peerId),
++    });
++    transcript.push(entry);
++  }
++
++  if (peers.length) {
++    console.log(`→ ${peers.length} follow-up post(s) in thread.`);
++  }
++
++  if (agentId === "mor-hermes" && morResponse) {
++    await runMorResponseToHermes({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++    console.log("→ MOR specialists responded to Hermes.");
++    return;
++  }
++
++  if (
++    hermesReview &&
++    agentId !== "mor-hermes" &&
++    agentId !== "main" &&
++    !transcript.some((e) => e.id === "mor-hermes")
++  ) {
++    const hermesEntry = await runHermesReviewPass({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++    if (hermesEntry) {
++      transcript.push(hermesEntry);
++      console.log("→ Hermes mentor review posted.");
++    }
++  }
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/deliver-slack-collab.mjs b/scripts/deliver-slack-collab.mjs
+new file mode 100644
+index 0000000..8f0f624
+--- /dev/null
++++ b/scripts/deliver-slack-collab.mjs
+@@ -0,0 +1,119 @@
++#!/usr/bin/env node
++/**
++ * Hermes ↔ MOR Intelligence collaboration on Slack.
++ * MOR specialists → Hermes mentor review → MOR response → Commander synthesis.
++ */
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++import {
++  MOR_INTEL_ORDER,
++  loadConfig,
++  resolveSlackChannel,
++  isSlackPublicChannel,
++  resolveActiveThreadTs,
++  runHermesMorCollaboration,
++} from "./mor-slack-delivery-lib.mjs";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const CONFIG_PATH =
++  process.env.OPENCLAW_CONFIG_PATH ??
++  path.join(REPO_ROOT, "integrations/openclaw/openclaw.json");
++
++for (const envPath of [
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++function parseArgs(argv) {
++  let message = "";
++  let to = process.env.SLACK_ALERT_USER_ID ?? "";
++  let channelId = process.env.SLACK_CHANNEL_ID ?? "";
++  let threadTs = process.env.SLACK_THREAD_TS ?? "";
++  let agents = [...MOR_INTEL_ORDER];
++  let synthesize = true;
++  let hermesReview = true;
++  let morResponse = true;
++
++  const positional = [];
++  for (let i = 0; i < argv.length; i++) {
++    const arg = argv[i];
++    if (arg === "--to") to = argv[++i] ?? "";
++    else if (arg === "--channel") channelId = argv[++i] ?? "";
++    else if (arg === "--thread-ts") threadTs = argv[++i] ?? "";
++    else if (arg === "--agents") {
++      agents = (argv[++i] ?? "")
++        .split(",")
++        .map((s) => s.trim())
++        .filter(Boolean);
++    } else if (arg === "--no-synthesize") synthesize = false;
++    else if (arg === "--no-hermes-review") hermesReview = false;
++    else if (arg === "--no-mor-response") morResponse = false;
++    else positional.push(arg);
++  }
++
++  message =
++    positional.join(" ").trim() ||
++    "Hermes ↔ MOR collaboration: engineering intelligence dialogue with mentor review.";
++
++  return { message, to, channelId, threadTs, agents, synthesize, hermesReview, morResponse };
++}
++
++async function main() {
++  const {
++    message,
++    to,
++    channelId: channelIdArg,
++    threadTs: threadTsArg,
++    agents,
++    synthesize,
++    hermesReview,
++    morResponse,
++  } = parseArgs(process.argv.slice(2));
++
++  if (!to && !channelIdArg) {
++    console.error("Set SLACK_ALERT_USER_ID or pass --to <slack-user-id> or --channel <C…>");
++    process.exit(1);
++  }
++  const token = process.env.SLACK_BOT_TOKEN;
++  if (!token) {
++    console.error("SLACK_BOT_TOKEN is required");
++    process.exit(1);
++  }
++
++  const cfg = loadConfig(CONFIG_PATH);
++  const channel = await resolveSlackChannel({ channelId: channelIdArg, userId: to, token });
++  const threadTs =
++    threadTsArg ||
++    (isSlackPublicChannel(channel) ? "" : await resolveActiveThreadTs(channel, to, token));
++
++  console.log(
++    `→ Hermes ↔ MOR collab (${isSlackPublicChannel(channel) ? "channel" : "DM"}): ${agents.length} specialists`,
++  );
++
++  const { transcript } = await runHermesMorCollaboration({
++    cfg,
++    message,
++    to,
++    token,
++    channel,
++    threadTs: threadTs || undefined,
++    agents,
++    hermesReview,
++    morResponse,
++    synthesize,
++  });
++
++  console.log(
++    `OK — ${transcript.length} posts in Hermes ↔ MOR dialogue${synthesize ? " + Commander synthesis" : ""}.`,
++  );
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/deliver-slack-github-workflow.mjs b/scripts/deliver-slack-github-workflow.mjs
+new file mode 100644
+index 0000000..2d91dfa
+--- /dev/null
++++ b/scripts/deliver-slack-github-workflow.mjs
+@@ -0,0 +1,235 @@
++#!/usr/bin/env node
++/**
++ * GitHub ↔ Slack workflow delivery.
++ * Workflows: mor-agents | mor-audit | mor-suggestion | mor-codefix
++ */
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++import {
++  loadConfig,
++  resolveSlackChannel,
++  isSlackPublicChannel,
++  resolveActiveThreadTs,
++  deliverAgentToSlack,
++  runCommanderSynthesis,
++  runHermesMorCollaboration,
++  runMorResponseToHermes,
++  fetchHermesContext,
++  fetchMorContext,
++  loadGithubReviewContextBlock,
++} from "./mor-slack-delivery-lib.mjs";
++import {
++  loadWorkflowPrompt,
++  resolveWorkflowChannel,
++  workflowInstructions,
++  WORKFLOW_AGENT_PLANS,
++} from "./mor-github-slack-lib.mjs";
++import { postSlackMessage } from "./mor-slack-delivery-lib.mjs";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const CONFIG_PATH =
++  process.env.OPENCLAW_CONFIG_PATH ??
++  path.join(REPO_ROOT, "integrations/openclaw/openclaw.json");
++
++for (const envPath of [
++  path.join(REPO_ROOT, ".env"),
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++function parseArgs(argv) {
++  let workflow = "";
++  let message = "";
++  let channelId = "";
++  let threadTs = "";
++
++  const positional = [];
++  for (let i = 0; i < argv.length; i++) {
++    const arg = argv[i];
++    if (arg === "--workflow") workflow = argv[++i] ?? "";
++    else if (arg === "--channel") channelId = argv[++i] ?? "";
++    else if (arg === "--thread-ts") threadTs = argv[++i] ?? "";
++    else if (arg === "--review-context") {
++      process.env.GITHUB_REVIEW_CONTEXT_PATH = argv[++i] ?? "";
++    } else positional.push(arg);
++  }
++
++  message = positional.join(" ").trim();
++  if (!channelId && workflow) {
++    channelId = resolveWorkflowChannel(workflow) ?? "";
++  }
++
++  return { workflow, message, channelId, threadTs };
++}
++
++async function runSequenceWorkflow({
++  cfg,
++  token,
++  channel,
++  threadTs: initialThreadTs,
++  message,
++  workflow,
++  plan,
++  promptBlock,
++}) {
++  const transcript = [];
++  let threadTs = initialThreadTs ?? "";
++
++  const implicitGithubReviewContext =
++    !process.env.GITHUB_REVIEW_CONTEXT_PATH?.trim() && !message.includes("## GitHub code review context")
++      ? loadGithubReviewContextBlock(REPO_ROOT)
++      : "";
++
++  const topic = [
++    workflowInstructions(workflow),
++    promptBlock ? `## Workflow prompt\n${promptBlock.slice(0, 6000)}` : "",
++    message,
++    implicitGithubReviewContext,
++  ]
++    .filter(Boolean)
++    .join("\n\n");
++
++  for (const agentId of plan.agents) {
++    console.log(`→ ${workflow}: ${agentId}`);
++    const contextBlock =
++      agentId === "mor-hermes" ? await fetchHermesContext() : await fetchMorContext();
++
++    const entry = await deliverAgentToSlack({
++      cfg,
++      agentId,
++      message: topic,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++      transcript,
++      contextBlock,
++    });
++    transcript.push(entry);
++    if (!threadTs && isSlackPublicChannel(channel) && entry.ts) {
++      threadTs = entry.ts;
++    }
++  }
++
++  if (plan.morResponse) {
++    await runMorResponseToHermes({
++      cfg,
++      transcript,
++      userTopic: message,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++      responders: ["mor-ops"],
++    });
++  }
++
++  if (plan.synthesize) {
++    await runCommanderSynthesis({
++      cfg,
++      transcript,
++      userTopic: message,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++  }
++
++  return { transcript, threadTs };
++}
++
++async function main() {
++  const { workflow, message, channelId: channelArg, threadTs: threadTsArg } = parseArgs(
++    process.argv.slice(2),
++  );
++
++  if (!workflow || (!WORKFLOW_AGENT_PLANS[workflow] && workflow !== "mor-github-events")) {
++    console.error(
++      "Usage: deliver-slack-github-workflow.mjs --workflow <mor-agents|mor-audit|mor-suggestion|mor-codefix> [message] [--channel C…] [--thread-ts TS]",
++    );
++    process.exit(1);
++  }
++
++  const token = process.env.SLACK_BOT_TOKEN?.trim();
++  if (!token) {
++    console.error("SLACK_BOT_TOKEN required");
++    process.exit(1);
++  }
++
++  const channel = await resolveSlackChannel({
++    channelId: channelArg,
++    userId: "",
++    token,
++  });
++
++  if (workflow === "mor-github-events") {
++    await postSlackMessage({
++      channel,
++      text: [
++        ":github: *MOR GitHub Events*",
++        "This channel receives PR, issue, and push notifications from `POST /api/github/webhook`.",
++        "Configure `SLACK_CHANNEL_MOR_GITHUB_EVENTS` and `GITHUB_WEBHOOK_SECRET` in env.",
++        "Optional auto-triggers: `GITHUB_AUTO_REVIEW_CODE`, `GITHUB_AUTO_AUDIT_PR`, `GITHUB_AUTO_SUGGESTION`, `GITHUB_AUTO_CODEFIX`, `GITHUB_AUTO_AGENTS_ISSUES`, `GITHUB_AUTO_SUGGESTION_ISSUES`.",
++        "Set `GITHUB_TOKEN` so agents receive PR diffs and file snippets for code review.",
++        message ? `\n_Manual note:_ ${message}` : "",
++      ]
++        .filter(Boolean)
++        .join("\n"),
++      name: "MOR GitHub",
++      avatar:
++        "https://ui-avatars.com/api/?name=GH&background=24292f&color=fff&size=128&bold=true",
++      token,
++      threadTs: threadTsArg || undefined,
++    });
++    console.log(`Posted GitHub events status to ${channel}`);
++    return;
++  }
++
++  let threadTs = threadTsArg;
++  if (!threadTs && isSlackPublicChannel(channel)) {
++    threadTs = await resolveActiveThreadTs(channel, "", token);
++  }
++
++  const cfg = loadConfig(CONFIG_PATH);
++  const promptBlock = loadWorkflowPrompt(workflow, REPO_ROOT);
++  const topic =
++    message.trim() ||
++    `MOR ${workflow} workflow — review linked GitHub context and post structured output.`;
++
++  const plan = WORKFLOW_AGENT_PLANS[workflow];
++
++  if (plan.mode === "collab") {
++    await runHermesMorCollaboration({
++      cfg,
++      channel,
++      token,
++      threadTs,
++      message: `${workflowInstructions(workflow)}\n\n${topic}`,
++      synthesize: true,
++      hermesReview: true,
++      morResponse: true,
++    });
++    console.log(`Delivered ${workflow} collaboration to ${channel}`);
++    return;
++  }
++
++  await runSequenceWorkflow({
++    cfg,
++    token,
++    channel,
++    threadTs,
++    message: topic,
++    workflow,
++    plan,
++    promptBlock,
++  });
++  console.log(`Delivered ${workflow} sequence to ${channel}`);
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/deliver-slack-roundtable.mjs b/scripts/deliver-slack-roundtable.mjs
+new file mode 100644
+index 0000000..2f3e5f5
+--- /dev/null
++++ b/scripts/deliver-slack-roundtable.mjs
+@@ -0,0 +1,152 @@
++#!/usr/bin/env node
++/**
++ * Sequential MOR specialist roundtable on Slack — each agent sees prior posts and follows up.
++ */
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++import {
++  VALID_AGENTS,
++  ROUNDTABLE_ORDER,
++  loadConfig,
++  resolveSlackChannel,
++  isSlackPublicChannel,
++  resolveActiveThreadTs,
++  fetchMorContext,
++  deliverAgentToSlack,
++  runMorResponseToHermes,
++  runCommanderSynthesis,
++} from "./mor-slack-delivery-lib.mjs";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const CONFIG_PATH =
++  process.env.OPENCLAW_CONFIG_PATH ??
++  path.join(REPO_ROOT, "integrations/openclaw/openclaw.json");
++
++for (const envPath of [
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++function parseArgs(argv) {
++  let message = "";
++  let to = process.env.SLACK_ALERT_USER_ID ?? "";
++  let channelId = process.env.SLACK_CHANNEL_ID ?? "";
++  let threadTs = process.env.SLACK_THREAD_TS ?? "";
++  let agents = [...ROUNDTABLE_ORDER];
++  let synthesize = true;
++  let morResponse = true;
++
++  const positional = [];
++  for (let i = 0; i < argv.length; i++) {
++    const arg = argv[i];
++    if (arg === "--to") to = argv[++i] ?? "";
++    else if (arg === "--channel") channelId = argv[++i] ?? "";
++    else if (arg === "--thread-ts") threadTs = argv[++i] ?? "";
++    else if (arg === "--agents") {
++      const raw = argv[++i] ?? "all";
++      agents =
++        raw === "all"
++          ? [...ROUNDTABLE_ORDER]
++          : raw
++              .split(",")
++              .map((s) => s.trim())
++              .filter((id) => VALID_AGENTS.has(id) && id !== "main");
++    } else if (arg === "--no-synthesize") synthesize = false;
++    else if (arg === "--no-mor-response") morResponse = false;
++    else positional.push(arg);
++  }
++  message =
++    positional.join(" ").trim() ||
++    "MOR roundtable: review live context and follow up on each other.";
++  return { message, to, channelId, threadTs, agents, synthesize, morResponse };
++}
++
++async function main() {
++  const {
++    message,
++    to,
++    channelId: channelIdArg,
++    threadTs: threadTsArg,
++    agents,
++    synthesize,
++    morResponse,
++  } = parseArgs(process.argv.slice(2));
++  if (!to && !channelIdArg) {
++    console.error("Set SLACK_ALERT_USER_ID or pass --to <slack-user-id> or --channel <C…>");
++    process.exit(1);
++  }
++  const token = process.env.SLACK_BOT_TOKEN;
++  if (!token) {
++    console.error("SLACK_BOT_TOKEN is required");
++    process.exit(1);
++  }
++
++  const cfg = loadConfig(CONFIG_PATH);
++  const channel = await resolveSlackChannel({ channelId: channelIdArg, userId: to, token });
++  let threadTs =
++    threadTsArg ||
++    (isSlackPublicChannel(channel) ? "" : await resolveActiveThreadTs(channel, to, token));
++  const contextBlock = await fetchMorContext();
++  const transcript = [];
++
++  console.log(`→ Roundtable: ${agents.join(" → ")} (${isSlackPublicChannel(channel) ? "channel" : "DM"})`);
++  if (threadTs) console.log(`→ Thread: ${threadTs}`);
++
++  for (const agentId of agents) {
++    console.log(`→ Turn: ${agentId}`);
++    const entry = await deliverAgentToSlack({
++      cfg,
++      agentId,
++      message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++      transcript,
++      contextBlock,
++    });
++    transcript.push(entry);
++    if (!threadTs && isSlackPublicChannel(channel) && entry.ts) {
++      threadTs = entry.ts;
++    }
++  }
++
++  if (morResponse && transcript.some((e) => e.id === "mor-hermes")) {
++    await runMorResponseToHermes({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++    console.log("→ MOR specialists responded to Hermes.");
++  }
++
++  if (synthesize) {
++    await runCommanderSynthesis({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++  }
++
++  console.log(
++    `OK — ${transcript.length} specialist posts${morResponse ? " + MOR↔Hermes dialogue" : ""}${synthesize ? " + Commander synthesis" : ""}.`,
++  );
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/diagnose-mor-slack.mjs b/scripts/diagnose-mor-slack.mjs
+new file mode 100644
+index 0000000..6fe7489
+--- /dev/null
++++ b/scripts/diagnose-mor-slack.mjs
+@@ -0,0 +1,58 @@
++#!/usr/bin/env node
++/**
++ * Quick checks for MOR Slack slash setup.
++ */
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++import { dispatchMorSlackSlash } from "./mor-slack-slash.mjs";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO = path.resolve(__dirname, "..");
++
++for (const envPath of [
++  path.join(REPO, "integrations/openclaw/subagents.env"),
++  path.join(REPO, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++const user = process.env.SLACK_ALERT_USER_ID ?? "";
++const token = process.env.SLACK_BOT_TOKEN ?? "";
++
++console.log("MOR Slack slash diagnostics\n");
++console.log(`  MOR_REPO:            ${process.env.MOR_REPO ?? REPO}`);
++console.log(`  SLACK_BOT_TOKEN:     ${token ? "set" : "MISSING"}`);
++console.log(`  SLACK_ALERT_USER_ID: ${user || "MISSING"}`);
++console.log(`  Gateway config:      ${process.env.OPENCLAW_CONFIG_PATH ?? "integrations/openclaw/openclaw.json"}`);
++
++if (!token || !user) {
++  console.error("\n❌ Set SLACK_BOT_TOKEN and SLACK_ALERT_USER_ID in openclaw/.env");
++  process.exit(1);
++}
++
++console.log("\n→ Dispatch test (background mor-pnl)…");
++const result = dispatchMorSlackSlash({
++  skillName: "mor-pnl",
++  message: "diagnostic slash test",
++  userId: user,
++  background: true,
++});
++console.log(`  Started pid ${result.pid} → ${result.targetLabel}`);
++console.log("\n✅ If gateway is running, check Slack DM for MOR PnL Intel within ~30s.");
++console.log("\nSlash commands (underscores):");
++for (const cmd of [
++  "/mor_pnl",
++  "/mor_risk",
++  "/mor_roundtable",
++  "/mor_review",
++  "/mor_brief",
++  "/mor_finance",
++]) {
++  console.log(`  ${cmd}`);
++}
++console.log("\nIf slash fails in Slack:");
++console.log("  1. Reinstall app from docs/agents/slack-app-manifest.json");
++console.log("  2. Restart gateway: npm run openclaw:gateway");
++console.log("  3. Use /mor_finance (full name), not /mor_finan");
+diff --git a/scripts/github-webhook-smee.mjs b/scripts/github-webhook-smee.mjs
+new file mode 100644
+index 0000000..cf78f82
+--- /dev/null
++++ b/scripts/github-webhook-smee.mjs
+@@ -0,0 +1,83 @@
++#!/usr/bin/env node
++/**
++ * Forward GitHub webhooks via smee.io (no ngrok account required).
++ *
++ * 1. Open https://smee.io/new → copy your channel URL
++ * 2. Add to .env: SMEE_WEBHOOK_URL=https://smee.io/xxxxxxxx
++ * 3. GitHub webhook Payload URL = that same smee.io URL
++ * 4. npm run github:tunnel:smee
++ */
++import { spawn, spawnSync } from "node:child_process";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++
++for (const envPath of [path.join(REPO_ROOT, ".env"), path.join(REPO_ROOT, "openclaw/.env")]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++const PORT = Number(process.env.GITHUB_TUNNEL_PORT ?? 3001);
++const smeeUrl = process.env.SMEE_WEBHOOK_URL?.trim();
++const target = `http://127.0.0.1:${PORT}/api/github/webhook`;
++
++async function checkLocalApi() {
++  try {
++    const res = await fetch(`http://127.0.0.1:${PORT}/api/health`, { signal: AbortSignal.timeout(3000) });
++    return res.ok;
++  } catch {
++    return false;
++  }
++}
++
++async function main() {
++  if (!smeeUrl || !smeeUrl.startsWith("https://smee.io/")) {
++    console.error(`
++SMEE_WEBHOOK_URL is not set.
++
++Steps:
++  1. Open https://smee.io/new
++  2. Copy the channel URL (https://smee.io/xxxxxxxx)
++  3. Add to .env:
++       SMEE_WEBHOOK_URL=https://smee.io/xxxxxxxx
++  4. In GitHub → Settings → Webhooks, set Payload URL to that SAME smee.io URL
++  5. Run: npm run github:tunnel:smee
++`);
++    process.exit(1);
++  }
++
++  const apiUp = await checkLocalApi();
++  if (!apiUp) {
++    console.warn(`Warning: API not responding on http://localhost:${PORT}`);
++    console.warn("Start it first: npm run dev:server\n");
++  } else {
++    console.log(`API OK on http://localhost:${PORT}\n`);
++  }
++
++  console.log("═".repeat(60));
++  console.log("GitHub webhook URL (paste into GitHub → Settings → Webhooks):");
++  console.log();
++  console.log(`  ${smeeUrl}`);
++  console.log();
++  console.log(`Forwarding → ${target}`);
++  console.log("Secret: same as GITHUB_WEBHOOK_SECRET in .env");
++  console.log("═".repeat(60));
++  console.log("\nStarting smee client… Press Ctrl+C to stop.\n");
++
++  const child = spawn(
++    "npx",
++    ["--yes", "smee-client", "--url", smeeUrl, "--target", target, "--path", "/api/github/webhook"],
++    { stdio: "inherit", cwd: REPO_ROOT },
++  );
++
++  child.on("exit", (code) => process.exit(code ?? 0));
++  process.on("SIGINT", () => child.kill("SIGTERM"));
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/github-webhook-tunnel.mjs b/scripts/github-webhook-tunnel.mjs
+new file mode 100644
+index 0000000..66502fb
+--- /dev/null
++++ b/scripts/github-webhook-tunnel.mjs
+@@ -0,0 +1,150 @@
++#!/usr/bin/env node
++/**
++ * Expose local API (port 3001) for GitHub webhooks via ngrok.
++ * Prints the webhook URL to paste into GitHub → Settings → Webhooks.
++ */
++import { spawn, spawnSync } from "node:child_process";
++
++const PORT = Number(process.env.GITHUB_TUNNEL_PORT ?? 3001);
++const NGROK_API = "http://127.0.0.1:4040/api/tunnels";
++const MAX_WAIT_MS = 30_000;
++
++function ensureNgrok() {
++  const check = spawnSync("ngrok", ["version"], { encoding: "utf8" });
++  if (check.error || check.status !== 0) {
++    console.error(`
++ngrok is not installed.
++
++Install:
++  brew install ngrok
++
++Or sign up at https://ngrok.com and follow their install docs.
++Then run: npm run github:tunnel
++`);
++    process.exit(1);
++  }
++}
++
++async function waitForTunnel() {
++  const started = Date.now();
++  while (Date.now() - started < MAX_WAIT_MS) {
++    try {
++      const res = await fetch(NGROK_API);
++      if (!res.ok) {
++        await sleep(400);
++        continue;
++      }
++      const data = await res.json();
++      const tunnels = data.tunnels ?? [];
++      const https =
++        tunnels.find((t) => t.proto === "https" && String(t.public_url).startsWith("https://")) ??
++        tunnels.find((t) => String(t.public_url).startsWith("https://"));
++      if (https?.public_url) return String(https.public_url).replace(/\/$/, "");
++    } catch {
++      // ngrok API not ready yet
++    }
++    await sleep(400);
++  }
++  return null;
++}
++
++function sleep(ms) {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
++
++async function checkLocalApi() {
++  try {
++    const res = await fetch(`http://127.0.0.1:${PORT}/api/health`, { signal: AbortSignal.timeout(3000) });
++    return res.ok;
++  } catch {
++    return false;
++  }
++}
++
++async function main() {
++  ensureNgrok();
++
++  const apiUp = await checkLocalApi();
++  if (!apiUp) {
++    console.warn(`Warning: API not responding on http://localhost:${PORT}`);
++    console.warn("Start it first: npm run dev:server   (or npm run dev)\n");
++  } else {
++    console.log(`API OK on http://localhost:${PORT}\n`);
++  }
++
++  console.log(`Starting ngrok tunnel → localhost:${PORT} ...\n`);
++
++  const ngrok = spawn("ngrok", ["http", String(PORT)], {
++    stdio: ["ignore", "pipe", "pipe"],
++  });
++
++  let authHintPrinted = false;
++  ngrok.stderr.on("data", (chunk) => {
++    const line = String(chunk).trim();
++    if (line) console.error(`[ngrok] ${line}`);
++    if (!authHintPrinted && line.includes("ERR_NGROK_4018")) {
++      authHintPrinted = true;
++      console.error(`
++ngrok needs a free account token (one-time setup):
++
++  1. Sign up: https://dashboard.ngrok.com/signup
++  2. Copy authtoken: https://dashboard.ngrok.com/get-started/your-authtoken
++  3. Run: ngrok config add-authtoken <YOUR_TOKEN>
++  4. Retry: npm run github:tunnel
++
++No ngrok account? Use smee.io instead:
++  1. https://smee.io/new → copy URL → SMEE_WEBHOOK_URL in .env
++  2. npm run github:tunnel:smee
++`);
++    }
++  });
++
++  ngrok.on("error", (err) => {
++    console.error(`Failed to start ngrok: ${err.message}`);
++    process.exit(1);
++  });
++
++  ngrok.on("exit", (code) => {
++    if (code !== 0 && code !== null) {
++      console.error(`ngrok exited with code ${code}`);
++      process.exit(code ?? 1);
++    }
++  });
++
++  const publicUrl = await waitForTunnel();
++  if (!publicUrl) {
++    console.error("Timed out waiting for ngrok tunnel. Check ngrok auth: ngrok config add-authtoken <token>");
++    ngrok.kill("SIGTERM");
++    process.exit(1);
++  }
++
++  const webhookUrl = `${publicUrl}/api/github/webhook`;
++
++  console.log("═".repeat(60));
++  console.log("GitHub webhook URL (paste into GitHub → Settings → Webhooks):");
++  console.log();
++  console.log(`  ${webhookUrl}`);
++  console.log();
++  console.log("Settings:");
++  console.log("  Content type: application/json");
++  console.log("  Secret:       same as GITHUB_WEBHOOK_SECRET in .env");
++  console.log("  Events:       Pull requests, Issues, Pushes, Issue comments (or all)");
++  console.log();
++  console.log("Local dashboard: http://127.0.0.1:4040");
++  console.log("═".repeat(60));
++  console.log("\nTunnel running. Press Ctrl+C to stop.\n");
++
++  process.on("SIGINT", () => {
++    ngrok.kill("SIGTERM");
++    process.exit(0);
++  });
++  process.on("SIGTERM", () => {
++    ngrok.kill("SIGTERM");
++    process.exit(0);
++  });
++}
++
++main().catch((err) => {
++  console.error(err.message ?? err);
++  process.exit(1);
++});
+diff --git a/scripts/install-mor-cron-jobs.mjs b/scripts/install-mor-cron-jobs.mjs
+new file mode 100644
+index 0000000..1f55716
+--- /dev/null
++++ b/scripts/install-mor-cron-jobs.mjs
+@@ -0,0 +1,391 @@
++#!/usr/bin/env node
++/**
++ * Install MOR OpenClaw cron jobs — each agent posts to Slack on its own schedule.
++ * Specialists use deliver-slack-agent.mjs (custom name + avatar + assistant thread).
++ * Main orchestrator jobs spawn all specialists and synthesize.
++ */
++import { spawnSync } from "node:child_process";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const MANIFEST_PATH = path.join(REPO_ROOT, "docs/agents/manifest.json");
++const CONFIG_PATH =
++  process.env.OPENCLAW_CONFIG_PATH ??
++  path.join(REPO_ROOT, "integrations/openclaw/openclaw.json");
++
++for (const envPath of [
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++const STATE_DIR =
++  process.env.OPENCLAW_STATE_DIR ??
++  path.join(REPO_ROOT, "integrations/openclaw/state");
++
++const SLACK_USER = process.env.SLACK_ALERT_USER_ID ?? "";
++const SLACK_CHANNEL = process.env.SLACK_ALERT_CHANNEL_ID ?? "";
++const TZ = process.env.MOR_CRON_TZ ?? process.env.TZ ?? "";
++const FORCE = process.argv.includes("--force");
++const CLEANUP_LEGACY = !process.argv.includes("--no-cleanup-legacy");
++const DEVICE_AUTH_PATH = path.join(STATE_DIR, "identity", "device-auth.json");
++const DEVICE_ID_PATH = path.join(STATE_DIR, "identity", "device.json");
++const DEVICE_AUTH_BACKUP = `${DEVICE_AUTH_PATH}.cron-install-backup`;
++const DEVICE_ID_BACKUP = `${DEVICE_ID_PATH}.cron-install-backup`;
++
++function gatewayToken() {
++  try {
++    const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
++    return cfg.gateway?.auth?.token ?? process.env.OPENCLAW_GATEWAY_TOKEN ?? "";
++  } catch {
++    return process.env.OPENCLAW_GATEWAY_TOKEN ?? "";
++  }
++}
++
++const GATEWAY_TOKEN = gatewayToken();
++
++if (!SLACK_USER && !SLACK_CHANNEL) {
++  console.error("Set SLACK_ALERT_USER_ID (DM) or SLACK_ALERT_CHANNEL_ID (channel)");
++  process.exit(1);
++}
++
++const DELIVER_TO = SLACK_CHANNEL ? SLACK_CHANNEL : SLACK_USER;
++const SLACK_TO_ARG = SLACK_CHANNEL ? `channel:${SLACK_CHANNEL}` : `user:${SLACK_USER}`;
++
++const EXTRA_JOBS = [
++  {
++    id: "mor-cron-engineering-standup",
++    name: "MOR Engineering Standup",
++    agentId: "main",
++    schedule: "0 8 * * 1-5",
++    kind: "roundtable",
++    prompt:
++      "MOR engineering standup roundtable: overnight signal changes, data freshness, route quality shifts, risk posture, top 3 engineering actions. No revenue or PnL rollup. Never execute trades.",
++  },
++  {
++    id: "mor-cron-engineering-digest",
++    name: "MOR Engineering Digest",
++    agentId: "main",
++    schedule: "0 18 * * 1-5",
++    kind: "roundtable",
++    prompt:
++      "MOR engineering digest roundtable: what improved/degraded in intelligence quality, agent disagreements, failure diagnostics, tomorrow engineering priorities. No financial performance rollup. Never execute trades.",
++  },
++  {
++    id: "mor-cron-risk-watch",
++    name: "MOR Risk Watch (30m)",
++    agentId: "mor-dd-risk",
++    schedule: "*/30 * * * *",
++    kind: "deliver",
++    prompt:
++      "MOR DD/Risk watch: GET /api/agents/context. Borrow/lending health, utilization, failure rate. Output APPROVE, REDUCE, or BLOCK. No PnL rollup.",
++  },
++];
++
++/** Legacy ad-hoc jobs (wrong channel / too aggressive) — removed on install when CLEANUP_LEGACY. */
++const LEGACY_JOB_PATTERNS = [
++  /proj-agent/i,
++  /every 30s/i,
++  /every 1m/i,
++  /every 2m/i,
++  /mor-pnl-report-every-2m/i,
++  /morning standup/i,
++  /evening rollup/i,
++  /pnl route alert/i,
++  /full intelligence brief/i,
++  /revenue/i,
++  /profit rollup/i,
++];
++
++function loadManifestJobs() {
++  const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
++  const fromManifest = (manifest.slack?.alertCronJobs ?? []).map((job) => ({
++    id: job.id,
++    name: job.name,
++    agentId: job.agentId,
++    schedule: job.schedule,
++    prompt: job.prompt,
++    kind:
++      job.delivery === "roundtable"
++        ? "roundtable"
++        : job.delivery === "slack-deliver" || (job.agentId !== "main" && job.agentId)
++          ? "deliver"
++          : job.agentId === "main"
++            ? "roundtable"
++            : "deliver",
++  }));
++
++  const githubWorkflowJobs = (manifest.githubSlack?.cronJobs ?? []).map((job) => ({
++    id: job.id,
++    name: job.name,
++    agentId: job.agentId ?? "main",
++    schedule: job.schedule,
++    prompt: job.prompt,
++    workflowId: job.workflowId,
++    kind: "github-workflow",
++  }));
++
++  return [...fromManifest, ...EXTRA_JOBS, ...githubWorkflowJobs];
++}
++
++function withSharedSecretGatewayAuth(fn) {
++  const moved = [];
++  try {
++    for (const [from, to] of [
++      [DEVICE_AUTH_PATH, DEVICE_AUTH_BACKUP],
++      [DEVICE_ID_PATH, DEVICE_ID_BACKUP],
++    ]) {
++      if (fs.existsSync(from)) {
++        fs.renameSync(from, to);
++        moved.push([from, to]);
++      }
++    }
++    return fn();
++  } finally {
++    for (const [from, to] of moved) {
++      if (fs.existsSync(to)) {
++        fs.renameSync(to, from);
++      }
++    }
++  }
++}
++
++function runOpenClaw(args) {
++  const env = {
++    ...process.env,
++    OPENCLAW_CONFIG_PATH: CONFIG_PATH,
++    OPENCLAW_STATE_DIR: STATE_DIR,
++    MOR_REPO: REPO_ROOT,
++    ...(GATEWAY_TOKEN ? { OPENCLAW_GATEWAY_TOKEN: GATEWAY_TOKEN } : {}),
++  };
++  const fullArgs =
++    GATEWAY_TOKEN && !args.includes("--token") ? [...args, "--token", GATEWAY_TOKEN] : args;
++  const result = spawnSync("openclaw", fullArgs, {
++    cwd: REPO_ROOT,
++    env,
++    encoding: "utf8",
++    stdio: ["ignore", "pipe", "pipe"],
++  });
++  const out = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
++  return { ok: result.status === 0, out, code: result.status ?? 1 };
++}
++
++function runOpenClawCron(args) {
++  return withSharedSecretGatewayAuth(() => runOpenClaw(args));
++}
++
++function listJobs() {
++  const { ok, out } = runOpenClawCron(["cron", "list", "--json"]);
++  if (!ok) {
++    console.warn("Could not list cron jobs (is the gateway running?):", out.slice(0, 200));
++    return [];
++  }
++  try {
++    const parsed = JSON.parse(out);
++    return Array.isArray(parsed) ? parsed : (parsed.jobs ?? []);
++  } catch {
++    return [];
++  }
++}
++
++function removeJobByName(name, existing) {
++  const match = existing.find((j) => j.name === name);
++  if (!match?.id) return;
++  console.log(`  remove existing: ${name}`);
++  runOpenClawCron(["cron", "remove", match.id]);
++}
++
++function removeLegacyJobs(existing) {
++  if (!CLEANUP_LEGACY) return 0;
++  let removed = 0;
++  for (const job of existing) {
++    if (!LEGACY_JOB_PATTERNS.some((re) => re.test(job.name ?? ""))) continue;
++    console.log(`  remove legacy: ${job.name}`);
++    const result = runOpenClawCron(["cron", "remove", job.id]);
++    if (result.ok) removed++;
++  }
++  return removed;
++}
++
++function installAgentJob(job) {
++  const args = [
++    "cron",
++    "create",
++    job.schedule,
++    job.prompt,
++    "--name",
++    job.name,
++    "--agent",
++    job.agentId,
++    "--session",
++    "isolated",
++    "--announce",
++    "--channel",
++    "slack",
++    "--to",
++    SLACK_TO_ARG,
++    "--best-effort-deliver",
++  ];
++  if (TZ) args.push("--tz", TZ);
++  return runOpenClawCron(args);
++}
++
++function installDeliverJob(job) {
++  const argv = [
++    "node",
++    path.join(REPO_ROOT, "scripts/deliver-slack-agent.mjs"),
++    job.agentId,
++    job.prompt,
++    "--to",
++    DELIVER_TO,
++    "--no-followup",
++  ];
++
++  const args = [
++    "cron",
++    "create",
++    job.schedule,
++    "--name",
++    job.name,
++    "--agent",
++    job.agentId,
++    "--command-argv",
++    JSON.stringify(argv),
++    "--command-cwd",
++    REPO_ROOT,
++    "--no-deliver",
++  ];
++  if (TZ) args.push("--tz", TZ);
++  return runOpenClawCron(args);
++}
++
++function installRoundtableJob(job) {
++  const argv = [
++    "node",
++    path.join(REPO_ROOT, "scripts/deliver-slack-roundtable.mjs"),
++    job.prompt,
++    "--to",
++    DELIVER_TO,
++  ];
++
++  const args = [
++    "cron",
++    "create",
++    job.schedule,
++    "--name",
++    job.name,
++    "--agent",
++    job.agentId,
++    "--command-argv",
++    JSON.stringify(argv),
++    "--command-cwd",
++    REPO_ROOT,
++    "--no-deliver",
++  ];
++  if (TZ) args.push("--tz", TZ);
++  return runOpenClawCron(args);
++}
++
++function installGithubWorkflowJob(job) {
++  const argv = [
++    "node",
++    path.join(REPO_ROOT, "scripts/deliver-slack-github-workflow.mjs"),
++    "--workflow",
++    job.workflowId,
++    job.prompt,
++  ];
++
++  const args = [
++    "cron",
++    "create",
++    job.schedule,
++    "--name",
++    job.name,
++    "--agent",
++    job.agentId ?? "main",
++    "--command-argv",
++    JSON.stringify(argv),
++    "--command-cwd",
++    REPO_ROOT,
++    "--no-deliver",
++  ];
++  if (TZ) args.push("--tz", TZ);
++  return runOpenClawCron(args);
++}
++
++async function main() {
++  let existing = listJobs();
++  const legacyRemoved = removeLegacyJobs(existing);
++  if (legacyRemoved > 0) {
++    existing = listJobs();
++    console.log(`Removed ${legacyRemoved} legacy cron job(s)\n`);
++  }
++
++  const jobs = loadManifestJobs();
++  const existingNames = new Set(existing.map((j) => j.name));
++
++  console.log("MOR cron install");
++  console.log(`  Target: ${SLACK_CHANNEL ? `channel ${SLACK_CHANNEL}` : `DM ${SLACK_USER}`}`);
++  console.log(`  Jobs:   ${jobs.length}`);
++  if (TZ) console.log(`  TZ:     ${TZ}`);
++  console.log("");
++
++  let installed = 0;
++  let skipped = 0;
++  let failed = 0;
++
++  for (const job of jobs) {
++    if (existingNames.has(job.name) && !FORCE) {
++      console.log(`⊘ skip (exists): ${job.name}`);
++      skipped++;
++      continue;
++    }
++    if (existingNames.has(job.name) && FORCE) {
++      removeJobByName(job.name, existing);
++    }
++
++    console.log(`→ ${job.name}`);
++    console.log(`    ${job.schedule} | ${job.agentId} | ${job.kind}`);
++
++    const result =
++      job.kind === "deliver"
++        ? installDeliverJob(job)
++        : job.kind === "roundtable"
++          ? installRoundtableJob(job)
++          : job.kind === "github-workflow"
++            ? installGithubWorkflowJob(job)
++            : installAgentJob(job);
++
++    if (result.ok) {
++      console.log("    ✓ installed");
++      installed++;
++      existingNames.add(job.name);
++    } else {
++      const lines = result.out.split("\n").filter(Boolean);
++      const errLine =
++        lines.find((line) => /failed|error|rejected|unknown/i.test(line)) ??
++        lines.at(-1) ??
++        "unknown error";
++      console.log(`    ✗ failed: ${errLine}`);
++      failed++;
++    }
++  }
++
++  console.log("");
++  console.log(`Done: ${installed} installed, ${skipped} skipped, ${failed} failed`);
++  console.log("List: openclaw cron list");
++  console.log("Runs: openclaw cron runs --limit 10");
++  if (skipped > 0) console.log("Reinstall all: npm run openclaw:cron:install -- --force");
++
++  if (failed > 0) process.exit(1);
++}
++
++main().catch((err) => {
++  console.error(err);
++  process.exit(1);
++});
+diff --git a/scripts/install-slack-alerts.sh b/scripts/install-slack-alerts.sh
+new file mode 100755
+index 0000000..a885149
+--- /dev/null
++++ b/scripts/install-slack-alerts.sh
+@@ -0,0 +1,6 @@
++#!/usr/bin/env bash
++# Register MOR Slack cron jobs (delegates to install-mor-cron-jobs.mjs).
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
++exec node "$REPO_ROOT/scripts/install-mor-cron-jobs.mjs" "$@"
+diff --git a/scripts/mor-github-slack-lib.mjs b/scripts/mor-github-slack-lib.mjs
+new file mode 100644
+index 0000000..b7d1b38
+--- /dev/null
++++ b/scripts/mor-github-slack-lib.mjs
+@@ -0,0 +1,68 @@
++import fs from "node:fs";
++import path from "node:path";
++
++const WORKFLOW_CHANNELS = {
++  "mor-agents": "SLACK_CHANNEL_MOR_AGENTS",
++  "mor-audit": "SLACK_CHANNEL_MOR_AUDIT",
++  "mor-github-events": "SLACK_CHANNEL_MOR_GITHUB_EVENTS",
++  "mor-suggestion": "SLACK_CHANNEL_MOR_SUGGESTION",
++  "mor-codefix": "SLACK_CHANNEL_MOR_CODEFIX",
++};
++
++const WORKFLOW_PROMPTS = {
++  "mor-agents": "docs/agents/prompts/github-agents-collab.md",
++  "mor-audit": "docs/agents/prompts/github-audit.md",
++  "mor-suggestion": "docs/agents/prompts/github-suggestion.md",
++  "mor-codefix": "docs/agents/prompts/github-codefix.md",
++};
++
++export function resolveWorkflowChannel(workflowId) {
++  const envKey = WORKFLOW_CHANNELS[workflowId];
++  if (!envKey) return null;
++  const value = String(process.env[envKey] ?? "").trim();
++  return /^[CG][A-Z0-9]+$/i.test(value) ? value : null;
++}
++
++export function loadWorkflowPrompt(workflowId, repoRoot) {
++  const rel = WORKFLOW_PROMPTS[workflowId];
++  if (!rel) return "";
++  const abs = path.join(repoRoot, rel);
++  if (!fs.existsSync(abs)) return "";
++  return fs.readFileSync(abs, "utf8");
++}
++
++export function workflowInstructions(workflowId) {
++  const blocks = {
++    "mor-agents":
++      "Channel workflow: mor-agents. Run full Hermes ↔ MOR collaboration. Specialists interact, Hermes reviews, MOR responds, Commander synthesizes.",
++    "mor-audit":
++      "Channel workflow: mor-audit. Code audit on GitHub-linked change. Hermes REVIEW + MOR Ops/Risk. Output PASS/WARN/FAIL/NEEDS_HUMAN with prioritized fixes.",
++    "mor-suggestion":
++      "Channel workflow: mor-suggestion. Propose 3–7 ranked engineering suggestions with impact/effort. Categories: architecture, agents, routing, observability, dx.",
++    "mor-codefix":
++      "Channel workflow: mor-codefix. Diagnose issue, FIX_PLAN, TEMPLATE for PR. Never open PR without human approval. Output READY_FOR_PR only when fix plan is complete.",
++  };
++  return blocks[workflowId] ?? "";
++}
++
++export const WORKFLOW_AGENT_PLANS = {
++  "mor-agents": { mode: "collab" },
++  "mor-audit": {
++    mode: "sequence",
++    agents: ["mor-hermes", "mor-ops", "mor-dd-risk"],
++    hermesReview: false,
++    synthesize: true,
++  },
++  "mor-suggestion": {
++    mode: "sequence",
++    agents: ["mor-ops", "mor-pnl", "mor-hermes", "main"],
++    hermesReview: false,
++    synthesize: true,
++  },
++  "mor-codefix": {
++    mode: "sequence",
++    agents: ["mor-hermes", "mor-ops"],
++    morResponse: true,
++    synthesize: true,
++  },
++};
+diff --git a/scripts/mor-slack-delivery-lib.mjs b/scripts/mor-slack-delivery-lib.mjs
+new file mode 100644
+index 0000000..da784ff
+--- /dev/null
++++ b/scripts/mor-slack-delivery-lib.mjs
+@@ -0,0 +1,565 @@
++import fs from "node:fs";
++import path from "node:path";
++import { execSync } from "node:child_process";
++
++export const VALID_AGENTS = new Set([
++  "main",
++  "mor-pnl",
++  "mor-smart-router",
++  "mor-liquidity",
++  "mor-dd-risk",
++  "mor-market-mode",
++  "mor-capital-ladder",
++  "mor-governance",
++  "mor-ops",
++  "mor-hermes",
++]);
++
++/** Default Slack roundtable order — each agent sees all prior posts in the thread. */
++export const ROUNDTABLE_ORDER = [
++  "mor-ops",
++  "mor-dd-risk",
++  "mor-pnl",
++  "mor-smart-router",
++  "mor-liquidity",
++  "mor-market-mode",
++  "mor-capital-ladder",
++  "mor-governance",
++  "mor-hermes",
++];
++
++/** Peers that typically follow up when one specialist speaks first. */
++export const FOLLOWUP_PEERS = {
++  "mor-ops": ["mor-dd-risk", "mor-governance", "mor-hermes"],
++  "mor-dd-risk": ["mor-capital-ladder", "mor-ops", "mor-pnl"],
++  "mor-pnl": ["mor-liquidity", "mor-dd-risk", "mor-market-mode", "mor-smart-router"],
++  "mor-smart-router": ["mor-pnl", "mor-liquidity", "mor-dd-risk"],
++  "mor-liquidity": ["mor-dd-risk", "mor-pnl", "mor-capital-ladder", "mor-smart-router"],
++  "mor-market-mode": ["mor-capital-ladder", "mor-pnl", "mor-dd-risk"],
++  "mor-capital-ladder": ["mor-dd-risk", "mor-market-mode", "mor-governance"],
++  "mor-governance": ["mor-dd-risk", "mor-capital-ladder", "mor-ops", "mor-hermes"],
++  "mor-hermes": ["mor-ops", "mor-dd-risk"],
++};
++
++export const COLLABORATION_INSTRUCTIONS = `## Slack collaboration (required when other specialists already posted)
++
++When prior MOR specialist messages appear below:
++1. **Name them** — reference by Slack display name (e.g. "*MOR Risk Guard* said BLOCK — I agree because…")
++2. **Follow up** — add your domain; do not repeat their bullets
++3. **Resolve tension** — if you disagree, cite evidence from live context
++4. **Hand off** — one line on what still needs verification (optional)
++
++Keep 4–8 bullets. Recommend only — never execute trades.`;
++
++export const ENGINEERING_SLACK_INSTRUCTIONS = `## Slack engineering intelligence phase
++
++Focus on engineering signals: route quality scores, liquidity, risk posture, data freshness, execution latency, failure diagnostics, infrastructure health, cross-chain observations, and agent-to-agent synthesis.
++
++Do NOT lead with daily revenue, realized PnL rollups, or treasury balance headlines. Financial metrics may support evidence only. Suggest prompt/workflow improvements when outputs were weak.`;
++
++export const HERMES_SLACK_INSTRUCTIONS = `## Hermes mentor mode
++
++You are Hermes — engineering mentor only. Output labels: REVIEW, OPTIMIZE, EXPLAIN_FAILURE, TEMPLATE.
++
++Review code/prompts/workflows; suggest optimizations and templates. Never claim you modified production code or deployed anything. No financial execution.`;
++
++export const MOR_RESPOND_TO_HERMES_INSTRUCTIONS = `## Responding to Hermes (mentor dialogue)
++
++Hermes posted a mentor review in this thread. You are a MOR intelligence specialist — respond to Hermes directly:
++
++1. **Name Hermes** and cite their specific REVIEW/OPTIMIZE/TEMPLATE points
++2. **Agree or disagree** with evidence from live context (not speculation)
++3. **Qualify** what is actionable now vs needs human approval
++4. Do not claim code changes were made. Recommend only — never execute trades.`;
++
++/** MOR specialists in engineering roundtable (excludes Hermes + Commander). */
++export const MOR_INTEL_ORDER = ROUNDTABLE_ORDER.filter((id) => id !== "mor-hermes");
++
++/** Default MOR agents that respond after Hermes mentor pass. */
++export const MOR_HERMES_RESPONDERS = ["mor-ops", "mor-dd-risk"];
++
++export const HERMES_REVIEW_PROMPT =
++  "Hermes mentor pass: review all prior MOR specialist posts in this thread. Output REVIEW findings, OPTIMIZE suggestions, EXPLAIN_FAILURE for data anomalies, and TEMPLATE blocks where helpful. Reference each specialist by name. No production changes claimed.";
++
++export const MOR_RESPONSE_TO_HERMES_PROMPT =
++  "Respond to Hermes mentor review above. Address their REVIEW/OPTIMIZE points with your domain evidence. Agree, disagree, or qualify — cite live context. User topic:";
++
++export function loadConfig(configPath) {
++  return JSON.parse(fs.readFileSync(configPath, "utf8"));
++}
++
++export function resolveAgent(cfg, agentId) {
++  const agent = cfg.agents?.list?.find((a) => a.id === agentId);
++  if (!agent) throw new Error(`Unknown agent: ${agentId}`);
++  const ident = agent.identity ?? {};
++  return {
++    id: agentId,
++    model: agent.model ?? cfg.agents?.defaults?.model ?? "gpt-4.1-mini",
++    name: ident.name ?? agent.name ?? agentId,
++    theme: ident.theme ?? "",
++    avatar: ident.avatar ?? "",
++    workspace: agent.workspace ?? "",
++  };
++}
++
++export async function slackApi(token, method, body = {}) {
++  const res = await fetch(`https://slack.com/api/${method}`, {
++    method: "POST",
++    headers: {
++      Authorization: `Bearer ${token}`,
++      "Content-Type": "application/x-www-form-urlencoded",
++    },
++    body: new URLSearchParams(
++      Object.fromEntries(Object.entries(body).map(([key, value]) => [key, String(value)])),
++    ),
++  });
++  const data = await res.json();
++  if (!data.ok) throw new Error(`Slack ${method}: ${data.error}`);
++  return data;
++}
++
++export async function openSlackDm(userId, token) {
++  const data = await slackApi(token, "conversations.open", { users: userId });
++  return data.channel.id;
++}
++
++/** Slack channel id (C…/G…) or DM channel opened for userId. */
++export async function resolveSlackChannel({ channelId, userId, token }) {
++  const id = String(channelId ?? "").trim();
++  if (/^[CG][A-Z0-9]+$/i.test(id)) return id;
++  if (!userId) {
++    throw new Error("Set SLACK_ALERT_USER_ID or pass --to <slack-user-id> or --channel <C…>");
++  }
++  return openSlackDm(userId.replace(/^slack:/, ""), token);
++}
++
++export function isSlackPublicChannel(channelId) {
++  return /^[CG][A-Z0-9]+$/i.test(String(channelId ?? "").trim());
++}
++
++export async function resolveActiveThreadTs(channelId, userId, token) {
++  const data = await slackApi(token, "conversations.history", {
++    channel: channelId,
++    limit: 50,
++  });
++  const messages = data.messages ?? [];
++
++  for (const message of messages) {
++    if (message.assistant_thread?.thread_ts) {
++      return String(message.assistant_thread.thread_ts);
++    }
++    if (message.user === userId && message.thread_ts) {
++      return String(message.thread_ts);
++    }
++  }
++
++  for (const message of messages) {
++    if (message.user === userId && message.ts) return String(message.ts);
++    if (message.thread_ts) return String(message.thread_ts);
++  }
++
++  return "";
++}
++
++export async function postSlackMessage({ channel, text, name, avatar, token, threadTs }) {
++  const body = { channel, text, username: name };
++  if (avatar) body.icon_url = avatar;
++  if (threadTs) body.thread_ts = threadTs;
++  const data = await slackApi(token, "chat.postMessage", body);
++  return { message: data.message, ts: String(data.ts ?? data.message?.ts ?? "") };
++}
++
++export async function fetchMorContext() {
++  const base = (process.env.MOR_API_BASE ?? "http://localhost:3001/api").replace(/\/$/, "");
++  const parts = [];
++  try {
++    const healthRes = await fetch(`${base}/health`);
++    if (healthRes.ok) parts.push(`## API health\n${await healthRes.text()}`);
++  } catch (err) {
++    parts.push(`## API health\nunavailable: ${err.message}`);
++  }
++  try {
++    const ctxRes = await fetch(`${base}/agents/context`);
++    if (ctxRes.ok) {
++      parts.push(`## Live context (GET /api/agents/context)\n${await ctxRes.text()}`);
++    } else {
++      parts.push(`## Live context\nHTTP ${ctxRes.status}`);
++    }
++  } catch (err) {
++    parts.push(`## Live context\nunavailable: ${err.message}`);
++  }
++  return parts.join("\n\n");
++}
++
++const HERMES_REVIEW_PATHS = [
++  "docs/agents/prompts",
++  "docs/agents/manifest.json",
++  "server/services/agentsContextService.ts",
++  "server/services/lendingService.ts",
++  "server/services/arbitrageService.ts",
++  "scripts/mor-slack-delivery-lib.mjs",
++  "scripts/deliver-slack-agent.mjs",
++  "integrations/openclaw/openclaw.template.json",
++];
++
++export function loadGithubReviewContextBlock(repoRoot = process.cwd()) {
++  const contextPath =
++    process.env.GITHUB_REVIEW_CONTEXT_PATH?.trim() ||
++    path.join(repoRoot, "integrations/openclaw/state/github-review-context.json");
++
++  if (!fs.existsSync(contextPath)) return "";
++
++  try {
++    const ctx = JSON.parse(fs.readFileSync(contextPath, "utf8"));
++    const parts = [
++      "## GitHub code review context",
++      `Repository: ${ctx.repository ?? "unknown"}`,
++      `Event: ${ctx.event ?? ""}${ctx.action ? ` (${ctx.action})` : ""}`,
++      `Title: ${ctx.title ?? ""}`,
++      ctx.url ? `URL: ${ctx.url}` : "",
++      "",
++      "### Changed files",
++      ctx.diffStat || ctx.changedFiles?.map((f) => f.path).join(", ") || "(none)",
++      "",
++      "### Unified diff (truncated)",
++      ctx.diffSnippet ? `\`\`\`diff\n${String(ctx.diffSnippet).slice(0, 14000)}\n\`\`\`` : "(add GITHUB_TOKEN for PR diffs)",
++    ];
++
++    if (Array.isArray(ctx.fileSnippets) && ctx.fileSnippets.length > 0) {
++      parts.push("", "### File snippets");
++      for (const file of ctx.fileSnippets.slice(0, 6)) {
++        parts.push(`#### ${file.path}`, "```", String(file.content).slice(0, 4000), "```");
++      }
++    }
++
++    parts.push("", "Review the actual code above — cite file paths and line-level issues.");
++    return parts.filter(Boolean).join("\n");
++  } catch {
++    return "";
++  }
++}
++
++export async function fetchHermesContext() {
++  const repo = process.env.MOR_REPO ?? process.cwd();
++  const parts = [await fetchMorContext()];
++
++  const githubReview = loadGithubReviewContextBlock(repo);
++  if (githubReview) parts.push(githubReview);
++
++  const paths = HERMES_REVIEW_PATHS.map((rel) => `- ${path.join(repo, rel)}`).join("\n");
++  parts.push(`## Repository review targets (MOR_REPO)\n${paths}`);
++
++  try {
++    const diff = execSync("git diff --stat HEAD", {
++      cwd: repo,
++      encoding: "utf8",
++      timeout: 5000,
++    }).trim();
++    if (diff) {
++      parts.push(`## Git diff stat (working tree)\n\`\`\`\n${diff.slice(0, 2500)}\n\`\`\``);
++    }
++  } catch {
++    // git unavailable or not a repo
++  }
++
++  return parts.join("\n\n");
++}
++
++export async function fetchAgentContext(agentId) {
++  const repo = process.env.MOR_REPO ?? process.cwd();
++  const githubReview = loadGithubReviewContextBlock(repo);
++  if (agentId === "mor-hermes") return fetchHermesContext();
++  const base = await fetchMorContext();
++  if (!githubReview) return base;
++  return `${base}\n\n${githubReview}`;
++}
++
++export function formatTranscript(transcript) {
++  if (!transcript.length) return "";
++  return transcript
++    .map((entry) => `### ${entry.name} (${entry.id})\n${entry.text}`)
++    .join("\n\n");
++}
++
++export async function runAgentTurn({ agent, agentId, message, contextBlock, transcript = [] }) {
++  const apiKey = process.env.OPENAI_API_KEY;
++  if (!apiKey) return message;
++
++  const model = agent.model.replace(/^openai\//, "");
++  const prior = formatTranscript(transcript);
++  const respondingToHermes =
++    agentId !== "mor-hermes" && transcriptHasHermes(transcript);
++  const system = [
++    `You are ${agent.name}.`,
++    agent.theme ? agent.theme : "",
++    "MOR Finance intelligence — recommend only, never execute trades.",
++    "Never access private keys, sign transactions, deploy contracts, or move treasury funds.",
++    ENGINEERING_SLACK_INSTRUCTIONS,
++    agentId === "mor-hermes" ? HERMES_SLACK_INSTRUCTIONS : "",
++    respondingToHermes ? MOR_RESPOND_TO_HERMES_INSTRUCTIONS : "",
++    "Check dataQuality in context; if recommendPaused or stale flags, cap confidence at 50 and prefer PAUSE/MAINTAIN.",
++    "Use the live context below when present. If context is missing or stale, say so.",
++    prior ? COLLABORATION_INSTRUCTIONS : "",
++    "Reply concisely in Slack mrkdwn. No preamble about being an AI.",
++  ]
++    .filter(Boolean)
++    .join("\n\n");
++
++  const userParts = [message];
++  if (prior) userParts.push(`---\n## Prior specialist posts this round\n${prior}`);
++  if (contextBlock) userParts.push(`---\n${contextBlock}`);
++  const userContent = userParts.join("\n\n");
++
++  const res = await fetch("https://api.openai.com/v1/chat/completions", {
++    method: "POST",
++    headers: {
++      Authorization: `Bearer ${apiKey}`,
++      "Content-Type": "application/json",
++    },
++    body: JSON.stringify({
++      model,
++      messages: [
++        { role: "system", content: system },
++        { role: "user", content: userContent },
++      ],
++      temperature: 0.4,
++    }),
++  });
++
++  const data = await res.json();
++  if (!res.ok) {
++    throw new Error(data.error?.message ?? `OpenAI HTTP ${res.status}`);
++  }
++  return data.choices?.[0]?.message?.content?.trim() || message;
++}
++
++export function resolveFollowupAgents(primaryId, mode) {
++  if (mode === "none" || mode === "off" || mode === "false") return [];
++  if (mode === "hermes" || mode === "mentor") {
++    return primaryId === "mor-hermes" ? [] : ["mor-hermes"];
++  }
++  if (mode === "all") {
++    return ROUNDTABLE_ORDER.filter((id) => id !== primaryId);
++  }
++  if (mode === "auto" || !mode) {
++    return FOLLOWUP_PEERS[primaryId] ?? [];
++  }
++  return mode
++    .split(",")
++    .map((s) => s.trim())
++    .filter((id) => VALID_AGENTS.has(id) && id !== primaryId && id !== "main");
++}
++
++function transcriptHasHermes(transcript) {
++  return transcript.some((entry) => entry.id === "mor-hermes");
++}
++
++function transcriptHasMorSpecialists(transcript) {
++  return transcript.some((entry) => entry.id !== "mor-hermes" && entry.id !== "main");
++}
++
++export async function deliverAgentToSlack({
++  cfg,
++  agentId,
++  message,
++  to,
++  token,
++  channel,
++  threadTs,
++  transcript,
++  contextBlock,
++}) {
++  const agent = resolveAgent(cfg, agentId);
++  let reply;
++  try {
++    reply = await runAgentTurn({
++      agent,
++      agentId,
++      message,
++      contextBlock,
++      transcript,
++    });
++  } catch (err) {
++    console.warn(`→ ${agentId} turn failed (${err.message}); using fallback text`);
++    reply = message;
++  }
++
++  const posted = await postSlackMessage({
++    channel,
++    text: reply,
++    name: agent.name,
++    avatar: agent.avatar,
++    token,
++    threadTs,
++  });
++
++  const username = posted.message?.username ?? "(default bot)";
++  if (username !== agent.name) {
++    throw new Error(`expected ${agent.name}, got ${username}`);
++  }
++
++  console.log(`Delivered as: ${agent.name}`);
++  return { id: agentId, name: agent.name, text: reply, ts: posted.ts };
++}
++
++/** Hermes reviews MOR specialist transcript (phase 2). */
++export async function runHermesReviewPass({
++  cfg,
++  transcript,
++  userTopic,
++  to,
++  token,
++  channel,
++  threadTs,
++}) {
++  if (!transcriptHasMorSpecialists(transcript)) return null;
++  console.log("→ Hermes mentor review");
++  return deliverAgentToSlack({
++    cfg,
++    agentId: "mor-hermes",
++    message: `${HERMES_REVIEW_PROMPT} User topic: ${userTopic}`,
++    to,
++    token,
++    channel,
++    threadTs,
++    transcript,
++    contextBlock: await fetchHermesContext(),
++  });
++}
++
++/** MOR specialists respond to Hermes (phase 3). */
++export async function runMorResponseToHermes({
++  cfg,
++  transcript,
++  userTopic,
++  to,
++  token,
++  channel,
++  threadTs,
++  responders = MOR_HERMES_RESPONDERS,
++}) {
++  if (!transcriptHasHermes(transcript)) return [];
++
++  const entries = [];
++  for (const agentId of responders) {
++    console.log(`→ MOR response to Hermes: ${agentId}`);
++    const entry = await deliverAgentToSlack({
++      cfg,
++      agentId,
++      message: `${MOR_RESPONSE_TO_HERMES_PROMPT} ${userTopic}`,
++      to,
++      token,
++      channel,
++      threadTs,
++      transcript,
++      contextBlock: await fetchAgentContext(agentId),
++    });
++    transcript.push(entry);
++    entries.push(entry);
++  }
++  return entries;
++}
++
++/** Commander synthesizes Hermes ↔ MOR dialogue (phase 4). */
++export async function runCommanderSynthesis({
++  cfg,
++  transcript,
++  userTopic,
++  to,
++  token,
++  channel,
++  threadTs,
++}) {
++  console.log("→ Commander synthesis (Hermes ↔ MOR dialogue)");
++  const synthesisPrompt = `Synthesize this MOR engineering dialogue for the user. Include Hermes mentor findings AND how MOR specialists responded. Reference each agent by name. Summarize agreements, tensions, open questions. Top 3 engineering actions. No revenue rollup. User focus: ${userTopic}`;
++  return deliverAgentToSlack({
++    cfg,
++    agentId: "main",
++    message: synthesisPrompt,
++    to,
++    token,
++    channel,
++    threadTs,
++    transcript,
++    contextBlock: await fetchMorContext(),
++  });
++}
++
++/**
++ * Full Hermes ↔ MOR collaboration on Slack.
++ * MOR intel → Hermes review → MOR response → optional Commander synthesis.
++ */
++export async function runHermesMorCollaboration({
++  cfg,
++  message,
++  to,
++  token,
++  channel,
++  threadTs: initialThreadTs,
++  agents = MOR_INTEL_ORDER,
++  hermesReview = true,
++  morResponse = true,
++  synthesize = true,
++}) {
++  const transcript = [];
++  let threadTs = initialThreadTs ?? "";
++  const contextBlock = await fetchMorContext();
++
++  for (const agentId of agents) {
++    console.log(`→ MOR intel: ${agentId}`);
++    const entry = await deliverAgentToSlack({
++      cfg,
++      agentId,
++      message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++      transcript,
++      contextBlock,
++    });
++    transcript.push(entry);
++    if (!threadTs && isSlackPublicChannel(channel) && entry.ts) {
++      threadTs = entry.ts;
++    }
++  }
++
++  if (hermesReview) {
++    const hermesEntry = await runHermesReviewPass({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++    if (hermesEntry) transcript.push(hermesEntry);
++  }
++
++  if (morResponse) {
++    await runMorResponseToHermes({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++  }
++
++  if (synthesize) {
++    await runCommanderSynthesis({
++      cfg,
++      transcript,
++      userTopic: message,
++      to,
++      token,
++      channel,
++      threadTs: threadTs || undefined,
++    });
++  }
++
++  return { transcript, threadTs };
++}
+diff --git a/scripts/mor-slack-slash.mjs b/scripts/mor-slack-slash.mjs
+new file mode 100644
+index 0000000..d868f15
+--- /dev/null
++++ b/scripts/mor-slack-slash.mjs
+@@ -0,0 +1,223 @@
++#!/usr/bin/env node
++/**
++ * Unified MOR Slack slash dispatcher — channel or DM, specialist or roundtable.
++ */
++import { spawn } from "node:child_process";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++
++for (const envPath of [
++  path.join(REPO_ROOT, "integrations/openclaw/subagents.env"),
++  path.join(REPO_ROOT, "openclaw/.env"),
++]) {
++  if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
++}
++
++const SKILL_ROUTES = {
++  "mor-pnl": { mode: "agent", agentId: "mor-pnl", followup: "all", hermesReview: true },
++  "mor-smart-router": { mode: "agent", agentId: "mor-smart-router", followup: "all", hermesReview: true },
++  "mor-risk": { mode: "agent", agentId: "mor-dd-risk", followup: "all", hermesReview: true },
++  "mor-liquidity": { mode: "agent", agentId: "mor-liquidity", followup: "all", hermesReview: true },
++  "mor-mode": { mode: "agent", agentId: "mor-market-mode", followup: "all", hermesReview: true },
++  "mor-capital": { mode: "agent", agentId: "mor-capital-ladder", followup: "all", hermesReview: true },
++  "mor-governance": { mode: "agent", agentId: "mor-governance", followup: "all", hermesReview: true },
++  "mor-health": { mode: "agent", agentId: "mor-ops", followup: "all", hermesReview: true },
++  "mor-brief": { mode: "brief" },
++  "mor-finance": { mode: "brief" },
++  "mor-roundtable": { mode: "roundtable" },
++  "mor-review": { mode: "roundtable" },
++  "mor-collab": { mode: "collab" },
++  "mor-hermes": { mode: "agent", agentId: "mor-hermes", followup: "none", morResponse: true },
++  "mor-agents": { mode: "github-workflow", workflow: "mor-agents" },
++  "mor-audit": { mode: "github-workflow", workflow: "mor-audit" },
++  "mor-github-events": { mode: "github-events" },
++  "mor-suggestion": { mode: "github-workflow", workflow: "mor-suggestion" },
++  "mor-codefix": { mode: "github-workflow", workflow: "mor-codefix" },
++};
++
++const DEFAULT_MESSAGES = {
++  "mor-pnl": "Route quality scan — opportunity scoring, persistence, and failure patterns from /api/agents/context (no revenue rollup).",
++  "mor-smart-router": "Smart router scan — ranked routes by execution probability and net profit from /api/agents/context smartRouter.",
++  "mor-risk": "DD/Risk check — borrow/lending health, utilization, collateral, failure rate.",
++  "mor-liquidity": "Liquidity analysis — pool depth, slippage risk, and safe sizing.",
++  "mor-mode": "Market observations — classify deployment tier and cross-chain conditions.",
++  "mor-capital": "Capital ladder — tier posture and allocation logic (engineering phase, no PnL rollup).",
++  "mor-governance": "Governance scan — proposals, timelocks, and operational impact.",
++  "mor-health": "Ops health — API status, data freshness, execution latency, failure diagnostics.",
++  "mor-brief": "Engineering intelligence brief — ops, risk, routes, liquidity, data quality (no revenue rollup).",
++  "mor-finance": "MOR engineering snapshot — intelligence layer health from live API context.",
++  "mor-roundtable": "Engineering roundtable — specialists review, follow up, and summarize tensions.",
++  "mor-review": "Full engineering intelligence review — roundtable with Commander synthesis.",
++  "mor-collab": "Hermes ↔ MOR collaboration — full engineering dialogue with mentor review.",
++  "mor-hermes": "Hermes mentor — code review; MOR Ops & Risk respond in thread.",
++  "mor-agents": "MOR Agents channel — Hermes and specialists collaborate on engineering topics.",
++  "mor-audit": "MOR Audit channel — code audit review with Hermes and MOR specialists.",
++  "mor-github-events": "Post latest GitHub workflow status to mor-github-events channel.",
++  "mor-suggestion": "MOR Suggestions channel — agents propose ranked project improvements.",
++  "mor-codefix": "MOR Codefix channel — diagnose, plan fix, and prepare PR template (human approval required).",
++};
++
++function parseArgs(argv) {
++  let skill = "";
++  let message = "";
++  let to = "";
++  let channelId = "";
++  let threadTs = "";
++  let background = false;
++
++  for (let i = 0; i < argv.length; i++) {
++    const arg = argv[i];
++    if (arg === "--skill") skill = argv[++i] ?? "";
++    else if (arg === "--to") to = argv[++i] ?? "";
++    else if (arg === "--channel") channelId = argv[++i] ?? "";
++    else if (arg === "--thread-ts") threadTs = argv[++i] ?? "";
++    else if (arg === "--background") background = true;
++    else if (!skill && !message) skill = arg;
++    else message = message ? `${message} ${arg}` : arg;
++  }
++  return { skill, message, to, channelId, threadTs, background };
++}
++
++function shellQuote(value) {
++  return `'${String(value).replace(/'/g, `'\\''`)}'`;
++}
++
++function buildDeliverArgs({ route, message, to, channelId, threadTs }) {
++  const text = message.trim() || DEFAULT_MESSAGES[route.skillName] || "MOR intelligence check.";
++  const args = [];
++
++  if (route.mode === "roundtable") {
++    args.push(path.join(REPO_ROOT, "scripts/deliver-slack-roundtable.mjs"), text);
++  } else if (route.mode === "collab") {
++    args.push(path.join(REPO_ROOT, "scripts/deliver-slack-collab.mjs"), text);
++  } else if (route.mode === "github-workflow") {
++    args.push(
++      path.join(REPO_ROOT, "scripts/deliver-slack-github-workflow.mjs"),
++      "--workflow",
++      route.workflow,
++      text,
++    );
++  } else if (route.mode === "github-events") {
++    args.push(
++      path.join(REPO_ROOT, "scripts/deliver-slack-github-workflow.mjs"),
++      "--workflow",
++      "mor-github-events",
++      text || "Manual GitHub events channel check — awaiting webhook activity.",
++    );
++  } else if (route.mode === "brief") {
++    const briefMessage = [
++      "MOR engineering intelligence brief for Slack (deployment phase — no revenue/PnL rollup):",
++      text,
++      "Pull GET /api/health and /api/agents/context.",
++      "5–8 bullets: data freshness, route quality scores, liquidity, risk label, market tier, capital posture, governance, ops/infra.",
++      "Include execution latency or failure patterns if present. End with top 3 engineering actions. Recommend only.",
++    ].join(" ");
++    args.push(
++      path.join(REPO_ROOT, "scripts/deliver-slack-agent.mjs"),
++      "main",
++      briefMessage,
++      "--followup",
++      "none",
++    );
++  } else {
++    args.push(
++      path.join(REPO_ROOT, "scripts/deliver-slack-agent.mjs"),
++      route.agentId,
++      text,
++      "--followup",
++      route.followup ?? "all",
++    );
++    if (route.agentId === "mor-hermes" && route.morResponse !== false) {
++      args.push("--mor-response");
++    } else if (route.agentId && route.agentId !== "mor-hermes" && route.agentId !== "main") {
++      args.push("--hermes-review");
++    }
++  }
++
++  if (channelId) args.push("--channel", channelId);
++  if (to) args.push("--to", to);
++  if (threadTs) args.push("--thread-ts", threadTs);
++  return args;
++}
++
++export function dispatchMorSlackSlash(params) {
++  const skillName = String(params.skillName ?? params.skill ?? "").trim();
++  const route = SKILL_ROUTES[skillName];
++  if (!route) {
++    throw new Error(`Unknown MOR slash skill: ${skillName}`);
++  }
++
++  const to = String(params.to ?? params.userId ?? "").trim();
++  const channelId = String(params.channelId ?? "").trim();
++  if (!to && !channelId) {
++    throw new Error("Need --to <user> or --channel <C…>");
++  }
++
++  const message = String(params.message ?? params.command ?? "").trim();
++  const threadTs = String(params.threadTs ?? "").trim();
++  const args = buildDeliverArgs({
++    route: { ...route, skillName },
++    message,
++    to,
++    channelId,
++    threadTs,
++  });
++
++  const child = spawn(process.execPath, args, {
++    cwd: REPO_ROOT,
++    env: {
++      ...process.env,
++      MOR_REPO: process.env.MOR_REPO ?? REPO_ROOT,
++    },
++    detached: Boolean(params.background),
++    stdio: params.background ? "ignore" : "inherit",
++  });
++  if (params.background) child.unref();
++
++  const targetLabel = channelId ? `channel ${channelId}` : `DM ${to}`;
++  return {
++    skillName,
++    mode: route.mode,
++    targetLabel,
++    pid: child.pid,
++    background: Boolean(params.background),
++  };
++}
++
++async function main() {
++  const { skill, message, to, channelId, threadTs, background } = parseArgs(
++    process.argv.slice(2),
++  );
++  if (!skill) {
++    console.error(
++      "Usage: mor-slack-slash.mjs <skillName> [message] [--channel C…] [--to U…] [--thread-ts TS] [--background]",
++    );
++    process.exit(1);
++  }
++
++  const result = dispatchMorSlackSlash({
++    skillName: skill,
++    message,
++    to,
++    channelId,
++    threadTs,
++    background,
++  });
++  console.log(
++    background
++      ? `Started MOR ${result.mode} for ${result.targetLabel} (pid ${result.pid})`
++      : `Finished MOR ${result.mode} for ${result.targetLabel}`,
++  );
++}
++
++if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
++  main().catch((err) => {
++    console.error(err.message ?? err);
++    process.exit(1);
++  });
++}
+diff --git a/scripts/run-openclaw-gateway.mjs b/scripts/run-openclaw-gateway.mjs
+new file mode 100644
+index 0000000..4f93628
+--- /dev/null
++++ b/scripts/run-openclaw-gateway.mjs
+@@ -0,0 +1,53 @@
++#!/usr/bin/env node
++import { spawn } from "node:child_process";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import dotenv from "dotenv";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const INTEGRATION_DIR = path.join(REPO_ROOT, "integrations/openclaw");
++const CONFIG_PATH = path.join(INTEGRATION_DIR, "openclaw.json");
++const STATE_DIR = path.join(INTEGRATION_DIR, "state");
++const SUBAGENTS_ENV = path.join(INTEGRATION_DIR, "subagents.env");
++const OPENCLAW_DIR = path.join(REPO_ROOT, "openclaw");
++const PORT = process.env.OPENCLAW_PORT ?? "18789";
++
++if (!fs.existsSync(CONFIG_PATH)) {
++  console.error("Missing integrations/openclaw/openclaw.json — run: npm run openclaw:setup");
++  process.exit(1);
++}
++
++if (fs.existsSync(SUBAGENTS_ENV)) {
++  dotenv.config({ path: SUBAGENTS_ENV });
++}
++const ROOT_ENV = path.join(REPO_ROOT, ".env");
++if (fs.existsSync(ROOT_ENV)) {
++  dotenv.config({ path: ROOT_ENV });
++}
++const OPENCLAW_ENV = path.join(OPENCLAW_DIR, ".env");
++if (fs.existsSync(OPENCLAW_ENV)) {
++  dotenv.config({ path: OPENCLAW_ENV });
++}
++
++const env = {
++  ...process.env,
++  OPENCLAW_CONFIG_PATH: CONFIG_PATH,
++  OPENCLAW_STATE_DIR: STATE_DIR,
++  MOR_REPO: process.env.MOR_REPO ?? REPO_ROOT,
++  MOR_API_BASE: process.env.MOR_API_BASE ?? "http://localhost:3001/api",
++  MOR_DASHBOARD_URL: process.env.MOR_DASHBOARD_URL ?? "http://localhost:5173",
++};
++
++function run(cmd, args, cwd) {
++  const child = spawn(cmd, args, { cwd, env, stdio: "inherit", shell: false });
++  child.on("exit", (code) => process.exit(code ?? 0));
++}
++
++const localCli = path.join(OPENCLAW_DIR, "openclaw.mjs");
++if (process.env.OPENCLAW_USE_LOCAL === "1" && fs.existsSync(localCli)) {
++  run(process.execPath, [localCli, "gateway", "--port", PORT], OPENCLAW_DIR);
++} else {
++  run("openclaw", ["gateway", "--port", PORT], REPO_ROOT);
++}
+diff --git a/scripts/setup-openclaw.mjs b/scripts/setup-openclaw.mjs
+new file mode 100644
+index 0000000..e7ef2e1
+--- /dev/null
++++ b/scripts/setup-openclaw.mjs
+@@ -0,0 +1,558 @@
++#!/usr/bin/env node
++/**
++ * Bootstrap MOR OpenClaw integration inside this repo.
++ * - Agent workspaces under integrations/openclaw/workspaces/
++ * - Config at integrations/openclaw/openclaw.json
++ * - State at integrations/openclaw/state/
++ */
++import fs from "node:fs/promises";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const REPO_ROOT = path.resolve(__dirname, "..");
++const INTEGRATION_DIR = path.join(REPO_ROOT, "integrations/openclaw");
++const STATE_DIR = path.join(INTEGRATION_DIR, "state");
++const PROMPTS_DIR = path.join(REPO_ROOT, "docs/agents/prompts");
++const TEMPLATE_PATH = path.join(INTEGRATION_DIR, "openclaw.template.json");
++const CONFIG_PATH = path.join(INTEGRATION_DIR, "openclaw.json");
++
++const AGENTS = [
++  { id: "mor-pnl", name: "PnL Intelligence Agent", emoji: "📈", prompt: "pnl-intelligence.md", skills: ["mor-finance", "mor-pnl"] },
++  { id: "mor-smart-router", name: "Smart Router Agent", emoji: "🧭", prompt: "smart-router-intelligence.md", skills: ["mor-finance", "mor-smart-router"] },
++  { id: "mor-liquidity", name: "Liquidity Intelligence Agent", emoji: "💧", prompt: "liquidity-intelligence.md", skills: ["mor-finance", "mor-liquidity"] },
++  { id: "mor-dd-risk", name: "DD / Risk Agent", emoji: "🛡️", prompt: "dd-risk.md", skills: ["mor-finance", "mor-risk"] },
++  { id: "mor-market-mode", name: "Market Mode Intelligence Agent", emoji: "📊", prompt: "market-mode-intelligence.md", skills: ["mor-finance", "mor-mode"] },
++  { id: "mor-capital-ladder", name: "Capital Ladder Agent", emoji: "🏦", prompt: "capital-ladder.md", skills: ["mor-finance", "mor-capital"] },
++  { id: "mor-governance", name: "Governance Intelligence Agent", emoji: "🗳️", prompt: "governance-intelligence.md", skills: ["mor-finance", "mor-governance"] },
++  { id: "mor-ops", name: "Ops / Health Watch Agent", emoji: "🩺", prompt: "ops-health.md", skills: ["mor-finance", "mor-health"] },
++  { id: "mor-hermes", name: "Hermes Engineering Mentor", emoji: "⚡", prompt: "hermes-mentor.md", skills: ["mor-finance", "mor-hermes"] },
++];
++
++const SPAWN_TARGETS = AGENTS.map((a) => a.id);
++
++const MAIN_SKILLS = [
++  "mor-finance",
++  "mor-pnl",
++  "mor-smart-router",
++  "mor-liquidity",
++  "mor-risk",
++  "mor-mode",
++  "mor-capital",
++  "mor-review",
++  "mor-governance",
++  "mor-health",
++  "mor-brief",
++  "mor-roundtable",
++  "mor-hermes",
++  "mor-collab",
++];
++
++const MOR_SKILL_NAMES = MAIN_SKILLS;
++
++const COLLABORATION_SECTION = `## Slack collaboration (cross-agent follow-up)
++
++Specialists **interact on Slack in the same thread** and reference each other by display name.
++
++When another MOR specialist posted before you:
++1. **Name them** (e.g. "*MOR Risk Guard* said BLOCK — …")
++2. **Follow up** with your domain view; do not repeat their bullets
++3. **Agree or disagree** with evidence from live context
++
++Delivery scripts auto-chain follow-ups (\`--followup all\`). Full ordered roundtable:
++
++\`node scripts/deliver-slack-roundtable.mjs "<topic>" --to <SenderId> --thread-ts <MessageThreadId>\`
++`;
++
++/** Slack display names + avatars (requires chat:write.customize scope). */
++const AGENT_PROFILES = {
++  main: {
++    slackName: "MOR Commander",
++    displayEmoji: "🐾",
++    slackEmoji: ":compass:",
++    theme: "Orchestrator — delegates to MOR specialists",
++    avatar:
++      "https://ui-avatars.com/api/?name=CMD&background=0f172a&color=fff&size=128&bold=true",
++  },
++  "mor-pnl": {
++    slackName: "MOR PnL Intel",
++    displayEmoji: "📈",
++    slackEmoji: ":chart_with_upwards_trend:",
++    theme: "Route quality and opportunity scoring",
++    avatar:
++      "https://ui-avatars.com/api/?name=PNL&background=16a34a&color=fff&size=128&bold=true",
++  },
++  "mor-smart-router": {
++    slackName: "MOR Smart Router",
++    displayEmoji: "🧭",
++    slackEmoji: ":compass:",
++    theme: "Execution-quality route ranking by confidence and success probability",
++    avatar:
++      "https://ui-avatars.com/api/?name=RT&background=0d9488&color=fff&size=128&bold=true",
++  },
++  "mor-liquidity": {
++    slackName: "MOR Liquidity",
++    displayEmoji: "💧",
++    slackEmoji: ":droplet:",
++    theme: "Pool depth and safe sizing",
++    avatar:
++      "https://ui-avatars.com/api/?name=LIQ&background=0284c7&color=fff&size=128&bold=true",
++  },
++  "mor-dd-risk": {
++    slackName: "MOR Risk Guard",
++    displayEmoji: "🛡️",
++    slackEmoji: ":shield:",
++    theme: "Debt discharge and treasury safety",
++    avatar:
++      "https://ui-avatars.com/api/?name=RISK&background=dc2626&color=fff&size=128&bold=true",
++  },
++  "mor-market-mode": {
++    slackName: "MOR Market Mode",
++    displayEmoji: "📊",
++    slackEmoji: ":bar_chart:",
++    theme: "Deployment tier classification",
++    avatar:
++      "https://ui-avatars.com/api/?name=MODE&background=7c3aed&color=fff&size=128&bold=true",
++  },
++  "mor-capital-ladder": {
++    slackName: "MOR Capital",
++    displayEmoji: "🏦",
++    slackEmoji: ":bank:",
++    theme: "Treasury allocation and scaling",
++    avatar:
++      "https://ui-avatars.com/api/?name=CAP&background=d97706&color=fff&size=128&bold=true",
++  },
++  "mor-governance": {
++    slackName: "MOR Governance",
++    displayEmoji: "🗳️",
++    slackEmoji: ":ballot_box_with_ballot:",
++    theme: "Proposals, voting, and timelock posture",
++    avatar:
++      "https://ui-avatars.com/api/?name=GOV&background=4338ca&color=fff&size=128&bold=true",
++  },
++  "mor-ops": {
++    slackName: "MOR Ops Watch",
++    displayEmoji: "🩺",
++    slackEmoji: ":stethoscope:",
++    theme: "API health and operational readiness",
++    avatar:
++      "https://ui-avatars.com/api/?name=OPS&background=475569&color=fff&size=128&bold=true",
++  },
++  "mor-hermes": {
++    slackName: "Hermes",
++    displayEmoji: "⚡",
++    slackEmoji: ":zap:",
++    theme: "Engineering mentor — code review, optimizations, failure analysis, templates",
++    avatar:
++      "https://ui-avatars.com/api/?name=HER&background=0891b2&color=fff&size=128&bold=true",
++  },
++};
++
++function identityBlock(agentId) {
++  const profile = AGENT_PROFILES[agentId];
++  if (!profile) return undefined;
++  return {
++    name: profile.slackName,
++    emoji: profile.slackEmoji,
++    theme: profile.theme,
++    avatar: profile.avatar,
++  };
++}
++
++function applyAgentIdentities(config) {
++  for (const agent of config.agents?.list ?? []) {
++    const identity = identityBlock(agent.id);
++    if (identity) agent.identity = identity;
++    const spec = AGENTS.find((a) => a.id === agent.id);
++    if (spec?.skills) agent.skills = spec.skills;
++    if (agent.id === "main") {
++      agent.skills = MAIN_SKILLS;
++      agent.subagents = {
++        ...agent.subagents,
++        allowAgents: SPAWN_TARGETS,
++      };
++    }
++  }
++  if (config.agents?.defaults) {
++    config.agents.defaults.skills = MAIN_SKILLS;
++    config.agents.defaults.subagents = {
++      ...config.agents.defaults.subagents,
++      maxChildrenPerAgent: 9,
++      maxConcurrent: 9,
++      allowAgents: SPAWN_TARGETS,
++    };
++  }
++  if (config.tools?.agentToAgent) {
++    config.tools.agentToAgent.allow = ["main", ...SPAWN_TARGETS];
++  }
++}
++
++function morSkillEnv() {
++  return {
++    MOR_API_BASE: "http://localhost:3001/api",
++    MOR_DASHBOARD_URL: "http://localhost:5173",
++    MOR_REPO: REPO_ROOT,
++  };
++}
++
++function applySkillsEntries(config) {
++  config.skills = config.skills ?? { load: {}, entries: {} };
++  config.skills.load.extraDirs = [path.join(INTEGRATION_DIR, "skills")];
++  config.skills.entries = config.skills.entries ?? {};
++  for (const name of MOR_SKILL_NAMES) {
++    config.skills.entries[name] = {
++      enabled: true,
++      env: morSkillEnv(),
++    };
++  }
++}
++
++const MOR_TOOLS = `### MOR Finance API
++
++- Repo: \`${REPO_ROOT}\`
++- API: \`http://localhost:3001/api\`
++- Dashboard: \`http://localhost:5173\`
++- Live snapshot: \`GET /api/agents/context\`
++- Skill: \`mor-finance\`
++
++**Never execute trades.** Recommend only → Risk Engine → Execution Engine.`;
++
++async function readText(filePath) {
++  return fs.readFile(filePath, "utf8");
++}
++
++async function writeAgentWorkspace({ id, name, emoji, prompt }) {
++  const ws = path.join(INTEGRATION_DIR, "workspaces", id);
++  await fs.mkdir(path.join(ws, "memory"), { recursive: true });
++  const profile = AGENT_PROFILES[id];
++
++  const shared = await readText(path.join(PROMPTS_DIR, "shared-system-context.md"));
++  const limitations = await readText(path.join(PROMPTS_DIR, "agent-limitations.md"));
++  const slackFocus = await readText(path.join(PROMPTS_DIR, "slack-engineering-focus.md"));
++  const hermesCollab = await readText(path.join(PROMPTS_DIR, "hermes-mor-collaboration.md"));
++  const role = await readText(path.join(PROMPTS_DIR, prompt));
++
++  const agentsMd = `# MOR Finance — ${name}
++
++You are a specialist agent in the MOR Finance intelligence layer. You **never execute trades**.
++
++${limitations}
++
++---
++
++${slackFocus}
++
++---
++
++${hermesCollab}
++
++---
++
++${shared}
++
++---
++
++${role}
++
++---
++
++${COLLABORATION_SECTION}
++
++---
++
++## Session workflow
++
++1. Check API health: \`GET http://localhost:3001/api/health\`
++2. Pull live context: \`GET http://localhost:3001/api/agents/context\`
++3. Apply your role framework to current data
++4. Output: **Summary**, **Evidence**, **Recommendation**, **Confidence** (0–100), **Risk notes**, **Escalation**
++
++Full prompt library: \`${PROMPTS_DIR}/\`
++
++## Sub-agent note
++
++When spawned by the main orchestrator, you receive AGENTS.md + TOOLS.md only. Pull live data from MOR API; output your role's action labels.
++`;
++
++  const identityMd = `# IDENTITY.md — ${profile?.slackName ?? name}
++
++- **Name:** ${profile?.slackName ?? name}
++- **Emoji:** ${profile?.displayEmoji ?? emoji}
++- **Theme:** ${profile?.theme ?? "MOR Finance specialist"}
++- **Avatar:** ${profile?.avatar ?? ""}
++- **Creature:** MOR Finance intelligence agent
++- **Vibe:** Analytical, measured, production-data-driven
++- **Mission:** Recommend only — never execute. Risk Engine approves; Execution Engine executes.
++
++When announcing to Slack, you post as **${profile?.slackName ?? name}** with your own profile (not the orchestrator).
++`;
++
++  await fs.writeFile(path.join(ws, "AGENTS.md"), agentsMd);
++  await fs.writeFile(path.join(ws, "IDENTITY.md"), identityMd);
++  await fs.writeFile(path.join(ws, "TOOLS.md"), `# TOOLS.md — ${name}\n\n${MOR_TOOLS}\n`);
++}
++
++async function writeMainWorkspace() {
++  const ws = path.join(INTEGRATION_DIR, "workspaces", "main");
++  await fs.mkdir(path.join(ws, "memory"), { recursive: true });
++
++  const limitations = await readText(path.join(PROMPTS_DIR, "agent-limitations.md"));
++  const slackFocus = await readText(path.join(PROMPTS_DIR, "slack-engineering-focus.md"));
++  const hermesCollab = await readText(path.join(PROMPTS_DIR, "hermes-mor-collaboration.md"));
++
++  const orchestrator = `# MOR Finance — Orchestrator (main)
++
++You coordinate MOR specialist sub-agents. **Never execute trades.** Agents recommend → Risk Engine → Execution Engine.
++
++${limitations}
++
++---
++
++${slackFocus}
++
++---
++
++${hermesCollab}
++
++---
++
++## Sub-agent environment
++
++- \`requireAgentId: true\` — always pass explicit \`agentId\` to \`sessions_spawn\`
++- \`delegationMode: prefer\` — delegate analysis to specialists; synthesize results for the user
++- Env: \`MOR_API_BASE\`, \`MOR_REPO\` (see skill \`mor-finance\` and \`integrations/openclaw/SUBAGENTS.md\`)
++
++## Specialist agents (spawn targets)
++
++| agentId | Role | Output labels |
++|---------|------|---------------|
++| mor-pnl | Route profitability | PRIORITIZE, MAINTAIN, DEPRIORITIZE, RETIRE |
++| mor-smart-router | Execution-quality routing | ROUTE, REDUCE SIZE, WATCH, AVOID |
++| mor-liquidity | Pool depth / sizing | SAFE SIZE, REDUCE SIZE, AVOID ROUTE |
++| mor-dd-risk | Debt discharge / risk | APPROVE, REDUCE, BLOCK |
++| mor-market-mode | Operating mode | BASELINE, BURST, 5×, 10× DEPLOYMENT TIER |
++| mor-capital-ladder | Treasury allocation | MAINTAIN, SCALE, PAUSE, UPGRADE/DOWNGRADE TIER |
++| mor-governance | Governance proposals | MONITOR, PREPARE, URGENT, PAUSE OPS |
++| mor-ops | API / platform health | HEALTHY, DEGRADED, DOWN, ACTION REQUIRED |
++| mor-hermes | Engineering mentor | REVIEW, OPTIMIZE, EXPLAIN_FAILURE, TEMPLATE |
++
++## Channels & nodes
++
++- **Slack** — primary alerts and slash commands (\`/mor_pnl\`, \`/mor_health\`, etc.)
++- **Webchat / Control UI** — \`http://127.0.0.1:18789/\` (same main agent)
++- **Paired nodes** — browser, canvas, screen via \`openclaw nodes status\` (local loopback auto-approved)
++
++## Workflow
++
++1. \`GET http://localhost:3001/api/health\` then \`GET /api/agents/context\`
++2. For full reviews, run **roundtable** on Slack (all specialists follow up on each other), then synthesize
++3. In-gateway parallel \`sessions_spawn\` is for fast analysis without Slack thread — prefer deliver scripts for user-visible collaboration
++4. Synthesize: Summary, Evidence, unified Recommendation, Confidence, Risk notes, Escalation
++
++## Slack identity (important)
++
++Spawned sub-agents **report to you first**. The \`message\` tool always posts as **MOR Commander** — never prefix text like \`MOR PnL Intel:\` to fake another agent's avatar.
++
++### Direct specialist routing (do this first)
++
++When the user names a specialist **or** asks why they are not getting reports from one, **run deliver immediately** — do not only explain spawn routing.
++
++| User intent | Action |
++|-------------|--------|
++| \`/mor_pnl\`, \`/mor_risk\`, etc. | Deliver that specialist (slash skill) |
++| "why isn't mor-pnl reporting", "have pnl report to me" | Deliver that specialist **now** |
++| "full brief", "run all agents", \`/mor_review\`, \`/mor_roundtable\` | **Roundtable** on Slack — all specialists follow up on each other, then Commander synthesizes |
++
++Natural language → agent id: pnl → \`mor-pnl\`, router/smart router → \`mor-smart-router\`, liquidity → \`mor-liquidity\`, risk/dd → \`mor-dd-risk\`, mode → \`mor-market-mode\`, capital → \`mor-capital-ladder\`, hermes/code review → \`mor-hermes\`.
++
++\`\`\`bash
++node scripts/deliver-slack-collab.mjs "<topic>" --to <SenderId> --thread-ts <MessageThreadId>
++node scripts/deliver-slack-roundtable.mjs "<user message>" --to <SenderId> --thread-ts <MessageThreadId>
++\`\`\`
++
++Single specialist slash (use \`--followup all\` so all peers chime in on Slack):
++
++\`\`\`bash
++node scripts/deliver-slack-agent.mjs mor-pnl "<message>" --to <SenderId> --thread-ts <MessageThreadId> --followup all
++\`\`\`
++
++Cron specialist jobs already deliver direct to \`SLACK_ALERT_USER_ID\` on schedule.
++
++### One Slack app, many specialists
++
++| Slash | Specialist |
++|-------|------------|
++| \`/mor_roundtable\` | All specialists — ordered thread with follow-ups |
++| \`/mor_review\` | Same as roundtable + Commander synthesis |
++| \`/mor_brief\` | Executive brief (no spawn) |
++| \`/mor_health\` | MOR Ops Watch |
++| \`/mor_hermes\` | Hermes — code review & prompt improvements |
++| \`/mor_collab\` | Full Hermes ↔ MOR dialogue (all specialists + mentor + synthesis) |
++| \`/mor_governance\` | MOR Governance |
++| \`/mor_pnl\` | MOR PnL Intel |
++| \`/mor_router\` | MOR Smart Router |
++
++When a slash command fires, run **bash** deliver (not \`message\`, not \`openclaw agent\` CLI):
++
++\`\`\`bash
++node scripts/deliver-slack-agent.mjs mor-pnl "<user text>" --to <SenderId> --thread-ts <MessageThreadId> --followup all
++\`\`\`
++
++Map: \`mor-risk\` → \`mor-dd-risk\`, \`mor-mode\` → \`mor-market-mode\`, \`mor-capital\` → \`mor-capital-ladder\`.
++
++Identity demo: \`npm run openclaw:test-identities\`
++
++## Example spawn
++
++\`\`\`
++sessions_spawn({
++  agentId: "mor-pnl",
++  task: "Analyze /api/agents/context. Output route actions: PRIORITIZE/MAINTAIN/DEPRIORITIZE/RETIRE."
++})
++\`\`\`
++
++Prompts: \`${PROMPTS_DIR}/\`
++Sub-agent docs: \`${INTEGRATION_DIR}/SUBAGENTS.md\`
++`;
++
++  await fs.writeFile(path.join(ws, "AGENTS.md"), orchestrator);
++  await fs.writeFile(
++    path.join(ws, "IDENTITY.md"),
++    `# IDENTITY.md — ${AGENT_PROFILES.main.slackName}
++
++- **Name:** ${AGENT_PROFILES.main.slackName}
++- **Emoji:** ${AGENT_PROFILES.main.displayEmoji}
++- **Theme:** ${AGENT_PROFILES.main.theme}
++- **Avatar:** ${AGENT_PROFILES.main.avatar}
++- **Role:** Delegate to MOR specialist sub-agents and synthesize intelligence.
++
++When you reply directly in Slack, post as **${AGENT_PROFILES.main.slackName}**.
++When the user wants a specialist's own Slack name/avatar, run \`npm run openclaw:deliver -- <agentId> "…" --to <userId>\` — never impersonate via text prefix.
++`
++  );
++  await fs.writeFile(
++    path.join(ws, "TOOLS.md"),
++    `# TOOLS.md — MOR Orchestrator\n\n${MOR_TOOLS}\n\nUse \`sessions_spawn\` with explicit \`agentId\` for each specialist.\n`
++  );
++
++  const heartbeat = `# HEARTBEAT.md — MOR Slack alerts
++
++On heartbeat, check MOR intelligence and alert on Slack when warranted:
++
++1. \`GET http://localhost:3001/api/health\` — skip if API down
++2. \`GET /api/agents/context\` — review summary metrics
++3. If failure rate >20%, LTV stressed, or opportunity drop → spawn mor-dd-risk + mor-pnl
++4. If metrics stable → reply \`HEARTBEAT_OK\`
++
++**Never execute trades.** Recommend only.
++`;
++  await fs.writeFile(path.join(ws, "HEARTBEAT.md"), heartbeat);
++}
++
++async function writeSubagentsEnv() {
++  const examplePath = path.join(INTEGRATION_DIR, "subagents.env.example");
++  const envPath = path.join(INTEGRATION_DIR, "subagents.env");
++  try {
++    await fs.access(envPath);
++    return;
++  } catch {
++    const example = await readText(examplePath);
++    await fs.writeFile(envPath, example.replaceAll("{{REPO_ROOT}}", REPO_ROOT));
++  }
++}
++
++async function writeConfig() {
++  let existing = {};
++  try {
++    existing = JSON.parse(await fs.readFile(CONFIG_PATH, "utf8"));
++  } catch {
++    // first run
++  }
++
++  const template = await readText(TEMPLATE_PATH);
++  const config = JSON.parse(
++    template.replaceAll("{{REPO_ROOT}}", REPO_ROOT).replaceAll("{{STATE_DIR}}", STATE_DIR),
++  );
++
++  const token = existing.gateway?.auth?.token;
++  if (token && !String(token).includes("REPLACE_WITH")) {
++    config.gateway.auth = existing.gateway.auth;
++  }
++  config.gateway = {
++    ...config.gateway,
++    port: existing.gateway?.port ?? config.gateway.port,
++    controlUi: config.gateway.controlUi,
++    nodes: config.gateway.nodes,
++  };
++  if (existing.channels?.slack) {
++    config.channels.slack = {
++      ...config.channels.slack,
++      ...existing.channels.slack,
++      enabled: existing.channels.slack.enabled ?? true,
++      dmPolicy: existing.channels.slack.dmPolicy ?? "open",
++      allowFrom: existing.channels.slack.allowFrom ?? ["*"],
++    };
++  } else {
++    config.channels.slack.enabled = true;
++    config.channels.slack.dmPolicy = "open";
++    config.channels.slack.allowFrom = ["*"];
++  }
++  if (existing.plugins) {
++    config.plugins = {
++      ...config.plugins,
++      ...existing.plugins,
++      entries: { ...config.plugins?.entries, ...existing.plugins.entries },
++    };
++  }
++  if (existing.commands?.ownerAllowFrom) {
++    config.commands = { ...config.commands, ...existing.commands };
++  }
++  config.commands = {
++    ...config.commands,
++    allowFrom: {
++      slack: ["*", ...(config.commands?.ownerAllowFrom ?? [])],
++      ...config.commands?.allowFrom,
++    },
++  };
++  if (existing.meta) config.meta = existing.meta;
++
++  applyAgentIdentities(config);
++  applySkillsEntries(config);
++
++  await fs.mkdir(STATE_DIR, { recursive: true });
++  await fs.writeFile(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
++}
++
++async function main() {
++  console.log("MOR OpenClaw setup");
++  console.log(`  Repo:   ${REPO_ROOT}`);
++  console.log(`  Config: ${CONFIG_PATH}`);
++  console.log(`  State:  ${STATE_DIR}`);
++
++  for (const agent of AGENTS) {
++    await writeAgentWorkspace(agent);
++    console.log(`  ✓ workspace ${agent.id}`);
++  }
++  await writeMainWorkspace();
++  console.log("  ✓ workspace main");
++  await writeSubagentsEnv();
++  console.log("  ✓ subagents.env");
++  await writeConfig();
++  console.log("  ✓ openclaw.json");
++
++  console.log(`
++Next steps:
++  1. npm run dev
++  2. cd openclaw && npm install   # first time only (large)
++  3. openclaw doctor --generate-gateway-token   # or set token in integrations/openclaw/openclaw.json
++  4. npm run openclaw:gateway
++
++Dashboard: http://127.0.0.1:18789/
++OpenClaw source: ${path.join(REPO_ROOT, "openclaw")} (git submodule)
++`);
++}
++
++main().catch((err) => {
++  console.error(err);
++  process.exit(1);
++});
+diff --git a/scripts/test-slack-agent-identities.sh b/scripts/test-slack-agent-identities.sh
+new file mode 100755
+index 0000000..b2acd55
+--- /dev/null
++++ b/scripts/test-slack-agent-identities.sh
+@@ -0,0 +1,54 @@
++#!/usr/bin/env bash
++# Send one test message per MOR agent to your Slack DM — each with its own name + avatar.
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
++export OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-$REPO_ROOT/integrations/openclaw/openclaw.json}"
++export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-$REPO_ROOT/integrations/openclaw/state}"
++
++if [[ -f "$REPO_ROOT/integrations/openclaw/subagents.env" ]]; then
++  set -a
++  # shellcheck disable=SC1091
++  source "$REPO_ROOT/integrations/openclaw/subagents.env"
++  set +a
++fi
++if [[ -f "$REPO_ROOT/openclaw/.env" ]]; then
++  set -a
++  # shellcheck disable=SC1091
++  source "$REPO_ROOT/openclaw/.env"
++  set +a
++fi
++
++TO="${SLACK_ALERT_USER_ID:-}"
++if [[ -z "$TO" ]]; then
++  echo "Set SLACK_ALERT_USER_ID in openclaw/.env (your Slack user id, e.g. U0265N69A2W)"
++  exit 1
++fi
++
++PROMPT='Identity check: reply in one short line confirming your specialist role and current recommendation label format. Never execute trades.'
++
++run_agent() {
++  local id="$1"
++  local label="$2"
++  echo ""
++  echo "→ $label ($id)"
++  openclaw agent \
++    --agent "$id" \
++    --channel slack \
++    --to "$TO" \
++    --deliver \
++    -m "$PROMPT" || echo "  (failed — is the gateway running? npm run openclaw:gateway)"
++}
++
++echo "Sending 6 identity test messages to Slack user $TO ..."
++echo "Requires: npm run openclaw:gateway + chat:write.customize on your Slack app"
++
++run_agent main "MOR Commander"
++run_agent mor-pnl "MOR PnL Intel"
++run_agent mor-liquidity "MOR Liquidity"
++run_agent mor-dd-risk "MOR Risk Guard"
++run_agent mor-market-mode "MOR Market Mode"
++run_agent mor-capital-ladder "MOR Capital"
++
++echo ""
++echo "Done. Check your Slack DM for 6 messages with different names/avatars."
+diff --git a/server/app.ts b/server/app.ts
+index acab9cd..ebdeb38 100644
+--- a/server/app.ts
++++ b/server/app.ts
+@@ -4,6 +4,7 @@ import helmet from "helmet";
+ import { env } from "./config/env.js";
+ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+ import { billingWebhookHandler } from "./routes/billingWebhook.js";
++import { githubWebhookHandler } from "./routes/githubWebhook.js";
+ import apiRouter from "./routes/index.js";
+ 
+ export function createApp() {
+@@ -23,6 +24,12 @@ export function createApp() {
+     billingWebhookHandler
+   );
+ 
++  app.post(
++    "/api/github/webhook",
++    express.raw({ type: "application/json" }),
++    githubWebhookHandler
++  );
++
+   app.use(express.json({ limit: "1mb" }));
+ 
+   app.get("/", (_req, res) => {
+diff --git a/server/data/githubSlackWorkflows.ts b/server/data/githubSlackWorkflows.ts
+new file mode 100644
+index 0000000..3315555
+--- /dev/null
++++ b/server/data/githubSlackWorkflows.ts
+@@ -0,0 +1,71 @@
++/** Slack workflow channels for GitHub + agent integration (set channel IDs in env). */
++
++export type GithubSlackWorkflowId =
++  | "mor-agents"
++  | "mor-audit"
++  | "mor-github-events"
++  | "mor-suggestion"
++  | "mor-codefix";
++
++export type GithubSlackWorkflow = {
++  id: GithubSlackWorkflowId;
++  name: string;
++  description: string;
++  envChannelKey: string;
++  slashSkill: string;
++  promptFile: string | null;
++};
++
++export const GITHUB_SLACK_WORKFLOWS: GithubSlackWorkflow[] = [
++  {
++    id: "mor-agents",
++    name: "MOR Agents",
++    description: "Hermes and OpenClaw MOR specialists interact in a shared thread.",
++    envChannelKey: "SLACK_CHANNEL_MOR_AGENTS",
++    slashSkill: "mor-agents",
++    promptFile: "docs/agents/prompts/github-agents-collab.md",
++  },
++  {
++    id: "mor-audit",
++    name: "MOR Audit",
++    description: "Code audit reviews discussed by Hermes and MOR specialists.",
++    envChannelKey: "SLACK_CHANNEL_MOR_AUDIT",
++    slashSkill: "mor-audit",
++    promptFile: "docs/agents/prompts/github-audit.md",
++  },
++  {
++    id: "mor-github-events",
++    name: "MOR GitHub Events",
++    description: "GitHub PR, issue, and commit activity feed.",
++    envChannelKey: "SLACK_CHANNEL_MOR_GITHUB_EVENTS",
++    slashSkill: "mor-github-events",
++    promptFile: null,
++  },
++  {
++    id: "mor-suggestion",
++    name: "MOR Suggestions",
++    description: "Agents propose project improvements and engineering suggestions.",
++    envChannelKey: "SLACK_CHANNEL_MOR_SUGGESTION",
++    slashSkill: "mor-suggestion",
++    promptFile: "docs/agents/prompts/github-suggestion.md",
++  },
++  {
++    id: "mor-codefix",
++    name: "MOR Codefix",
++    description: "Agents discuss fixes and prepare PR proposals (human approval required).",
++    envChannelKey: "SLACK_CHANNEL_MOR_CODEFIX",
++    slashSkill: "mor-codefix",
++    promptFile: "docs/agents/prompts/github-codefix.md",
++  },
++];
++
++export function resolveWorkflowChannelId(workflowId: GithubSlackWorkflowId): string | null {
++  const workflow = GITHUB_SLACK_WORKFLOWS.find((row) => row.id === workflowId);
++  if (!workflow) return null;
++  const value = process.env[workflow.envChannelKey]?.trim();
++  return value && /^[CG][A-Z0-9]+$/i.test(value) ? value : null;
++}
++
++export function getGithubSlackWorkflow(workflowId: GithubSlackWorkflowId) {
++  return GITHUB_SLACK_WORKFLOWS.find((row) => row.id === workflowId) ?? null;
++}
+diff --git a/server/routes/github.ts b/server/routes/github.ts
+new file mode 100644
+index 0000000..cfabae4
+--- /dev/null
++++ b/server/routes/github.ts
+@@ -0,0 +1,22 @@
++import { Router } from "express";
++import { asyncHandler } from "../middleware/asyncHandler.js";
++import { githubWorkflowsHandler } from "./githubWebhook.js";
++import { loadGithubReviewContext } from "../services/githubCodeReviewService.js";
++
++const router = Router();
++
++router.get("/workflows", githubWorkflowsHandler);
++
++router.get(
++  "/review-context",
++  asyncHandler(async (_req, res) => {
++    const context = loadGithubReviewContext();
++    if (!context) {
++      res.status(404).json({ error: "No GitHub review context saved yet." });
++      return;
++    }
++    res.json(context);
++  }),
++);
++
++export default router;
+diff --git a/server/routes/githubWebhook.ts b/server/routes/githubWebhook.ts
+new file mode 100644
+index 0000000..f79309a
+--- /dev/null
++++ b/server/routes/githubWebhook.ts
+@@ -0,0 +1,58 @@
++import type { Request, Response } from "express";
++import { asyncHandler } from "../middleware/asyncHandler.js";
++import { HttpError } from "../middleware/errorHandler.js";
++import {
++  handleGithubWebhook,
++  verifyGithubSignature,
++} from "../services/githubWebhookService.js";
++import { GITHUB_SLACK_WORKFLOWS } from "../data/githubSlackWorkflows.js";
++import { resolveWorkflowChannelId } from "../data/githubSlackWorkflows.js";
++
++export const githubWebhookHandler = asyncHandler(async (req: Request, res: Response) => {
++  if (!Buffer.isBuffer(req.body)) {
++    throw new HttpError(400, "Webhook requires raw request body.");
++  }
++
++  const signature = req.headers["x-hub-signature-256"];
++  if (!verifyGithubSignature(req.body, typeof signature === "string" ? signature : undefined)) {
++    throw new HttpError(401, "Invalid GitHub webhook signature.");
++  }
++
++  const event = req.headers["x-github-event"];
++  if (!event || typeof event !== "string") {
++    throw new HttpError(400, "Missing X-GitHub-Event header.");
++  }
++
++  let payload: Record<string, unknown>;
++  try {
++    payload = JSON.parse(req.body.toString("utf8")) as Record<string, unknown>;
++  } catch {
++    throw new HttpError(400, "Invalid JSON payload.");
++  }
++
++  const deliveryId =
++    typeof req.headers["x-github-delivery"] === "string"
++      ? req.headers["x-github-delivery"]
++      : undefined;
++
++  const result = await handleGithubWebhook({ event, deliveryId, payload });
++  res.json(result);
++});
++
++export const githubWorkflowsHandler = asyncHandler(async (_req: Request, res: Response) => {
++  res.json({
++    workflows: GITHUB_SLACK_WORKFLOWS.map((workflow) => ({
++      ...workflow,
++      channelConfigured: Boolean(resolveWorkflowChannelId(workflow.id)),
++      channelId: resolveWorkflowChannelId(workflow.id),
++    })),
++    webhookPath: "/api/github/webhook",
++    autoTriggers: {
++      auditOnPr: process.env.GITHUB_AUTO_AUDIT_PR === "true",
++      suggestionOnPr: process.env.GITHUB_AUTO_SUGGESTION === "true",
++      suggestionOnIssue: process.env.GITHUB_AUTO_SUGGESTION_ISSUES === "true",
++      agentsOnIssue: process.env.GITHUB_AUTO_AGENTS_ISSUES === "true",
++      codefixOnMention: process.env.GITHUB_AUTO_CODEFIX === "true",
++    },
++  });
++});
+diff --git a/server/routes/index.ts b/server/routes/index.ts
+index 3f9cce1..a22ac58 100644
+--- a/server/routes/index.ts
++++ b/server/routes/index.ts
+@@ -9,6 +9,8 @@ import governanceRouter from "./governance.js";
+ import billingRouter from "./billing.js";
+ import lendingRouter from "./lending.js";
+ import arbitrageRouter from "./arbitrage.js";
++import agentsRouter from "./agents.js";
++import githubRouter from "./github.js";
+ 
+ const router = Router();
+ 
+@@ -22,5 +24,7 @@ router.use("/governance", governanceRouter);
+ router.use("/billing", billingRouter);
+ router.use("/lending", lendingRouter);
+ router.use("/arbitrage", arbitrageRouter);
++router.use("/agents", agentsRouter);
++router.use("/github", githubRouter);
+ 
+ export default router;
+diff --git a/server/services/githubCodeReviewService.ts b/server/services/githubCodeReviewService.ts
+new file mode 100644
+index 0000000..1308c00
+--- /dev/null
++++ b/server/services/githubCodeReviewService.ts
+@@ -0,0 +1,336 @@
++import { execSync } from "node:child_process";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
++const CONTEXT_DIR = path.join(REPO_ROOT, "integrations/openclaw/state");
++const CONTEXT_FILE = path.join(CONTEXT_DIR, "github-review-context.json");
++
++const MAX_DIFF_CHARS = 14_000;
++const MAX_FILE_SNIPPET_CHARS = 4_000;
++const MAX_FILES = 10;
++
++export type GithubChangedFile = {
++  path: string;
++  status: string;
++  additions?: number;
++  deletions?: number;
++};
++
++export type GithubFileSnippet = {
++  path: string;
++  content: string;
++};
++
++export type GithubReviewContext = {
++  generatedAt: string;
++  repository: string;
++  event: string;
++  action: string | null;
++  title: string;
++  url: string | null;
++  ref: string | null;
++  baseSha: string | null;
++  headSha: string | null;
++  changedFiles: GithubChangedFile[];
++  diffStat: string;
++  diffSnippet: string;
++  fileSnippets: GithubFileSnippet[];
++  source: "github-api" | "local-git" | "payload-only";
++};
++
++function truncate(text: string, max: number) {
++  if (text.length <= max) return text;
++  return `${text.slice(0, max)}\n\n… [truncated ${text.length - max} chars]`;
++}
++
++function getGithubToken() {
++  return process.env.GITHUB_TOKEN?.trim() || process.env.GH_TOKEN?.trim() || "";
++}
++
++function parseRepoFullName(fullName: string) {
++  const [owner, repo] = fullName.split("/");
++  return { owner, repo };
++}
++
++async function githubFetch(url: string, accept?: string) {
++  const token = getGithubToken();
++  const headers: Record<string, string> = {
++    Accept: accept ?? "application/vnd.github+json",
++    "User-Agent": "mor-finance-webhook",
++  };
++  if (token) headers.Authorization = `Bearer ${token}`;
++
++  const res = await fetch(url, { headers });
++  if (!res.ok) {
++    throw new Error(`GitHub API ${res.status}: ${url}`);
++  }
++  return res;
++}
++
++async function fetchPullRequestContext(
++  owner: string,
++  repo: string,
++  prNumber: number,
++  meta: { event: string; action: string | null; title: string; url: string | null },
++): Promise<GithubReviewContext> {
++  const filesRes = await githubFetch(
++    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100`,
++  );
++  const files = (await filesRes.json()) as Array<{
++    filename: string;
++    status: string;
++    additions: number;
++    deletions: number;
++    patch?: string;
++  }>;
++
++  const changedFiles: GithubChangedFile[] = files.slice(0, MAX_FILES).map((file) => ({
++    path: file.filename,
++    status: file.status,
++    additions: file.additions,
++    deletions: file.deletions,
++  }));
++
++  let diffSnippet = "";
++  try {
++    const diffRes = await githubFetch(
++      `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
++      "application/vnd.github.v3.diff",
++    );
++    diffSnippet = truncate(await diffRes.text(), MAX_DIFF_CHARS);
++  } catch {
++    diffSnippet = files
++      .filter((f) => f.patch)
++      .map((f) => `--- ${f.filename}\n${f.patch}`)
++      .join("\n\n");
++    diffSnippet = truncate(diffSnippet, MAX_DIFF_CHARS);
++  }
++
++  const fileSnippets: GithubFileSnippet[] = [];
++  for (const file of files.slice(0, 6)) {
++    if (file.patch) {
++      fileSnippets.push({
++        path: file.filename,
++        content: truncate(file.patch, MAX_FILE_SNIPPET_CHARS),
++      });
++    }
++  }
++
++  const diffStat = changedFiles
++    .map((f) => `${f.path} (+${f.additions ?? 0}/-${f.deletions ?? 0})`)
++    .join("\n");
++
++  return {
++    generatedAt: new Date().toISOString(),
++    repository: `${owner}/${repo}`,
++    event: meta.event,
++    action: meta.action,
++    title: meta.title,
++    url: meta.url,
++    ref: null,
++    baseSha: null,
++    headSha: null,
++    changedFiles,
++    diffStat,
++    diffSnippet,
++    fileSnippets,
++    source: "github-api",
++  };
++}
++
++function localGitDiff(before: string, after: string) {
++  const cwd = process.env.MOR_REPO?.trim() || REPO_ROOT;
++  try {
++    const stat = execSync(`git diff --stat ${before} ${after}`, {
++      cwd,
++      encoding: "utf8",
++      timeout: 10_000,
++    }).trim();
++    const diff = execSync(`git diff ${before} ${after}`, {
++      cwd,
++      encoding: "utf8",
++      timeout: 10_000,
++    }).trim();
++    const nameOnly = execSync(`git diff --name-status ${before} ${after}`, {
++      cwd,
++      encoding: "utf8",
++      timeout: 10_000,
++    })
++      .trim()
++      .split("\n")
++      .filter(Boolean);
++
++    const changedFiles: GithubChangedFile[] = nameOnly.slice(0, MAX_FILES).map((line) => {
++      const [status, ...rest] = line.split("\t");
++      return { path: rest.join("\t"), status: status ?? "M" };
++    });
++
++    return { diffStat: stat, diffSnippet: truncate(diff, MAX_DIFF_CHARS), changedFiles };
++  } catch {
++    return null;
++  }
++}
++
++function readLocalFileSnippets(paths: string[]) {
++  const cwd = process.env.MOR_REPO?.trim() || REPO_ROOT;
++  const snippets: GithubFileSnippet[] = [];
++  for (const rel of paths.slice(0, 6)) {
++    const abs = path.join(cwd, rel);
++    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) continue;
++    try {
++      snippets.push({
++        path: rel,
++        content: truncate(fs.readFileSync(abs, "utf8"), MAX_FILE_SNIPPET_CHARS),
++      });
++    } catch {
++      // skip unreadable
++    }
++  }
++  return snippets;
++}
++
++export async function buildGithubReviewContext(
++  event: string,
++  payload: Record<string, unknown>,
++): Promise<GithubReviewContext | null> {
++  const repo = (payload.repository as { full_name?: string } | undefined)?.full_name ?? "";
++  const action = typeof payload.action === "string" ? payload.action : null;
++
++  if (payload.pull_request) {
++    const pr = payload.pull_request as {
++      number: number;
++      title: string;
++      html_url: string;
++      base?: { sha?: string };
++      head?: { sha?: string };
++    };
++    const { owner, repo: repoName } = parseRepoFullName(repo);
++    if (!owner || !repoName) return null;
++
++    try {
++      const ctx = await fetchPullRequestContext(owner, repoName, pr.number, {
++        event,
++        action,
++        title: `PR #${pr.number}: ${pr.title}`,
++        url: pr.html_url,
++      });
++      ctx.baseSha = pr.base?.sha ?? null;
++      ctx.headSha = pr.head?.sha ?? null;
++      return ctx;
++    } catch (err) {
++      console.warn("GitHub PR context fetch failed:", err);
++    }
++  }
++
++  if (payload.commits && Array.isArray(payload.commits)) {
++    const before = String(payload.before ?? "");
++    const after = String(payload.after ?? "");
++    const ref = String(payload.ref ?? "");
++    const compare = (payload.compare as string | undefined) ?? null;
++    const branch = ref.replace(/^refs\/heads\//, "");
++    const commits = payload.commits as Array<{ id: string; message: string }>;
++    const title = `Push to ${branch} (${commits.length} commit${commits.length === 1 ? "" : "s"})`;
++
++    if (before && after && before !== "0000000000000000000000000000000000000000") {
++      const local = localGitDiff(before, after);
++      if (local) {
++        return {
++          generatedAt: new Date().toISOString(),
++          repository: repo,
++          event,
++          action,
++          title,
++          url: compare,
++          ref: branch,
++          baseSha: before,
++          headSha: after,
++          changedFiles: local.changedFiles,
++          diffStat: local.diffStat,
++          diffSnippet: local.diffSnippet,
++          fileSnippets: readLocalFileSnippets(local.changedFiles.map((f) => f.path)),
++          source: "local-git",
++        };
++      }
++    }
++
++    const changedFiles: GithubChangedFile[] = commits.slice(0, MAX_FILES).map((c) => ({
++      path: c.id.slice(0, 7),
++      status: "commit",
++    }));
++
++    return {
++      generatedAt: new Date().toISOString(),
++      repository: repo,
++      event,
++      action,
++      title,
++      url: compare,
++      ref: branch,
++      baseSha: before || null,
++      headSha: after || null,
++      changedFiles,
++      diffStat: commits.map((c) => `${c.id.slice(0, 7)} ${c.message.split("\n")[0]}`).join("\n"),
++      diffSnippet: "",
++      fileSnippets: [],
++      source: "payload-only",
++    };
++  }
++
++  return null;
++}
++
++export function saveGithubReviewContext(context: GithubReviewContext) {
++  fs.mkdirSync(CONTEXT_DIR, { recursive: true });
++  fs.writeFileSync(CONTEXT_FILE, JSON.stringify(context, null, 2), "utf8");
++  return CONTEXT_FILE;
++}
++
++export function loadGithubReviewContext(): GithubReviewContext | null {
++  if (!fs.existsSync(CONTEXT_FILE)) return null;
++  try {
++    return JSON.parse(fs.readFileSync(CONTEXT_FILE, "utf8")) as GithubReviewContext;
++  } catch {
++    return null;
++  }
++}
++
++export function formatGithubReviewContextForAgents(context: GithubReviewContext) {
++  const parts = [
++    "## GitHub code review context",
++    `Repository: ${context.repository}`,
++    `Event: ${context.event}${context.action ? ` (${context.action})` : ""}`,
++    `Title: ${context.title}`,
++    context.url ? `URL: ${context.url}` : "",
++    context.ref ? `Branch: ${context.ref}` : "",
++    context.baseSha && context.headSha
++      ? `Commits: ${context.baseSha.slice(0, 7)}…${context.headSha.slice(0, 7)}`
++      : "",
++    `Source: ${context.source}`,
++    "",
++    "### Changed files",
++    context.diffStat || "(none)",
++    "",
++    "### Unified diff (truncated)",
++    context.diffSnippet ? `\`\`\`diff\n${context.diffSnippet}\n\`\`\`` : "(diff unavailable — add GITHUB_TOKEN)",
++  ];
++
++  if (context.fileSnippets.length > 0) {
++    parts.push("", "### File snippets");
++    for (const file of context.fileSnippets) {
++      parts.push(`#### ${file.path}`, "```", file.content, "```");
++    }
++  }
++
++  parts.push(
++    "",
++    "Review the actual code above. Cite file paths and specific issues. Do not review metadata only.",
++  );
++
++  return parts.filter(Boolean).join("\n");
++}
++
++export function getGithubReviewContextPath() {
++  return CONTEXT_FILE;
++}
+diff --git a/server/services/githubWebhookService.ts b/server/services/githubWebhookService.ts
+new file mode 100644
+index 0000000..ab55d57
+--- /dev/null
++++ b/server/services/githubWebhookService.ts
+@@ -0,0 +1,295 @@
++import { createHmac, timingSafeEqual } from "node:crypto";
++import { spawn } from "node:child_process";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import type { GithubSlackWorkflowId } from "../data/githubSlackWorkflows.js";
++import { resolveWorkflowChannelId } from "../data/githubSlackWorkflows.js";
++import { postSlackMessage } from "./slackPostService.js";
++import {
++  buildGithubReviewContext,
++  formatGithubReviewContextForAgents,
++  saveGithubReviewContext,
++} from "./githubCodeReviewService.js";
++
++const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
++
++const PROCESSED_DELIVERIES = new Set<string>();
++const MAX_PROCESSED = 500;
++
++export type GithubWebhookResult = {
++  ok: true;
++  event: string;
++  action: string | null;
++  workflows: string[];
++  slackPosted: boolean;
++};
++
++function rememberDelivery(deliveryId: string) {
++  PROCESSED_DELIVERIES.add(deliveryId);
++  if (PROCESSED_DELIVERIES.size > MAX_PROCESSED) {
++    const first = PROCESSED_DELIVERIES.values().next().value;
++    if (first) PROCESSED_DELIVERIES.delete(first);
++  }
++}
++
++export function verifyGithubSignature(rawBody: Buffer, signatureHeader: string | undefined) {
++  const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
++  if (!secret) {
++    return process.env.NODE_ENV !== "production";
++  }
++  if (!signatureHeader?.startsWith("sha256=")) return false;
++
++  const digest = createHmac("sha256", secret).update(rawBody).digest("hex");
++  const expected = `sha256=${digest}`;
++  const a = Buffer.from(expected);
++  const b = Buffer.from(signatureHeader);
++  return a.length === b.length && timingSafeEqual(a, b);
++}
++
++function formatGithubEvent(payload: Record<string, unknown>) {
++  const event = String(payload.action ?? payload.ref ?? "update");
++  const repo = (payload.repository as { full_name?: string } | undefined)?.full_name ?? "unknown/repo";
++  const sender = (payload.sender as { login?: string } | undefined)?.login ?? "unknown";
++
++  if (payload.pull_request) {
++    const pr = payload.pull_request as {
++      number: number;
++      title: string;
++      html_url: string;
++      state: string;
++      user?: { login?: string };
++    };
++    return {
++      title: `PR #${pr.number}: ${pr.title}`,
++      lines: [
++        `*Repository:* ${repo}`,
++        `*Action:* ${event}`,
++        `*Author:* ${pr.user?.login ?? sender}`,
++        `*State:* ${pr.state}`,
++        `*Link:* ${pr.html_url}`,
++      ],
++      url: pr.html_url,
++      number: pr.number,
++    };
++  }
++
++  if (payload.issue && !payload.comment) {
++    const issue = payload.issue as {
++      number: number;
++      title: string;
++      html_url: string;
++      state: string;
++      user?: { login?: string };
++    };
++    return {
++      title: `Issue #${issue.number}: ${issue.title}`,
++      lines: [
++        `*Repository:* ${repo}`,
++        `*Action:* ${event}`,
++        `*Author:* ${issue.user?.login ?? sender}`,
++        `*State:* ${issue.state}`,
++        `*Link:* ${issue.html_url}`,
++      ],
++      url: issue.html_url,
++      number: issue.number,
++    };
++  }
++
++  if (payload.commits && Array.isArray(payload.commits)) {
++    const commits = payload.commits as Array<{ id: string; message: string; author?: { name?: string } }>;
++    const ref = String(payload.ref ?? "refs/heads/main");
++    const branch = ref.replace(/^refs\/heads\//, "");
++    const head = commits[0];
++    return {
++      title: `Push to ${branch} (${commits.length} commit${commits.length === 1 ? "" : "s"})`,
++      lines: [
++        `*Repository:* ${repo}`,
++        `*Pusher:* ${sender}`,
++        `*Branch:* ${branch}`,
++        head ? `*Latest:* \`${head.id.slice(0, 7)}\` ${head.message.split("\n")[0]}` : "",
++        `*Compare:* ${(payload.compare as string | undefined) ?? ""}`,
++      ].filter(Boolean),
++      url: (payload.compare as string | undefined) ?? null,
++      number: null,
++    };
++  }
++
++  return {
++    title: `GitHub ${event}`,
++    lines: [`*Repository:* ${repo}`, `*Actor:* ${sender}`],
++    url: null,
++    number: null,
++  };
++}
++
++function spawnWorkflow(
++  workflowId: GithubSlackWorkflowId,
++  message: string,
++  threadTs?: string,
++  reviewContextPath?: string,
++) {
++  const channelId = resolveWorkflowChannelId(workflowId);
++  if (!channelId) return false;
++
++  const script = path.join(REPO_ROOT, "scripts/deliver-slack-github-workflow.mjs");
++  const args = [script, "--workflow", workflowId, message];
++  args.push("--channel", channelId);
++  if (threadTs) args.push("--thread-ts", threadTs);
++  if (reviewContextPath) args.push("--review-context", reviewContextPath);
++
++  const child = spawn(process.execPath, args, {
++    cwd: REPO_ROOT,
++    env: {
++      ...process.env,
++      MOR_REPO: process.env.MOR_REPO ?? REPO_ROOT,
++      GITHUB_REVIEW_CONTEXT_PATH: reviewContextPath ?? "",
++    },
++    detached: true,
++    stdio: "ignore",
++  });
++  child.unref();
++  return true;
++}
++
++function shouldAutoReviewCode(event: string, action: string | null) {
++  if (process.env.GITHUB_AUTO_REVIEW_CODE === "false") return false;
++  if (process.env.GITHUB_AUTO_AUDIT_PR === "true") {
++    return event === "pull_request" && (action === "opened" || action === "synchronize");
++  }
++  if (process.env.GITHUB_AUTO_REVIEW_CODE === "true") {
++    if (event === "pull_request" && (action === "opened" || action === "synchronize")) return true;
++    if (event === "push") return true;
++  }
++  return false;
++}
++
++function shouldAutoAudit(event: string, action: string | null) {
++  if (process.env.GITHUB_AUTO_AUDIT_PR !== "true") return false;
++  return event === "pull_request" && (action === "opened" || action === "synchronize");
++}
++
++function shouldAutoCodefix(event: string, payload: Record<string, unknown>) {
++  if (process.env.GITHUB_AUTO_CODEFIX !== "true") return false;
++  const comment = payload.comment as { body?: string } | undefined;
++  const body = comment?.body?.toLowerCase() ?? "";
++  return event === "issue_comment" && (body.includes("@hermes") || body.includes("/mor_codefix"));
++}
++
++function shouldAutoAgentsOnIssue(event: string, action: string | null) {
++  if (process.env.GITHUB_AUTO_AGENTS_ISSUES !== "true") return false;
++  return event === "issues" && (action === "opened" || action === "reopened");
++}
++
++function shouldAutoSuggestionOnIssue(event: string, action: string | null) {
++  if (process.env.GITHUB_AUTO_SUGGESTION_ISSUES !== "true") return false;
++  return event === "issues" && (action === "opened" || action === "reopened");
++}
++
++export async function handleGithubWebhook(options: {
++  event: string;
++  deliveryId: string | undefined;
++  payload: Record<string, unknown>;
++}): Promise<GithubWebhookResult> {
++  const { event, deliveryId, payload } = options;
++  const action = typeof payload.action === "string" ? payload.action : null;
++
++  if (deliveryId) {
++    if (PROCESSED_DELIVERIES.has(deliveryId)) {
++      return { ok: true, event, action, workflows: [], slackPosted: false };
++    }
++    rememberDelivery(deliveryId);
++  }
++
++  const formatted = formatGithubEvent({ ...payload, action: action ?? event });
++  const reviewContext = await buildGithubReviewContext(event, payload);
++  let reviewContextPath: string | undefined;
++  let codeReviewBlock = "";
++
++  if (reviewContext) {
++    reviewContextPath = saveGithubReviewContext(reviewContext);
++    codeReviewBlock = formatGithubReviewContextForAgents(reviewContext);
++  }
++
++  const eventsChannel = resolveWorkflowChannelId("mor-github-events");
++
++  let slackPosted = false;
++  let threadTs: string | undefined;
++
++  if (eventsChannel) {
++    const fileSummary =
++      reviewContext && reviewContext.changedFiles.length > 0
++        ? `\n*Changed files (${reviewContext.changedFiles.length}):*\n${reviewContext.changedFiles
++            .slice(0, 8)
++            .map((f) => `• \`${f.path}\` (${f.status})`)
++            .join("\n")}`
++        : "";
++    const text = [`:github: *${formatted.title}*`, ...formatted.lines, fileSummary]
++      .filter(Boolean)
++      .join("\n");
++    const post = await postSlackMessage({
++      channel: eventsChannel,
++      text,
++      username: "MOR GitHub",
++      iconUrl: "https://ui-avatars.com/api/?name=GH&background=24292f&color=fff&size=128&bold=true",
++    });
++    threadTs = post.ts ?? undefined;
++    slackPosted = true;
++  }
++
++  const workflows: string[] = [];
++  const contextMessage = [
++    `GitHub ${event}${action ? ` (${action})` : ""}: ${formatted.title}`,
++    formatted.url ? `URL: ${formatted.url}` : "",
++    reviewContext
++      ? `Changed files: ${reviewContext.changedFiles.map((f) => f.path).join(", ") || "see context"}`
++      : "",
++    codeReviewBlock || "Review this change in the context of MOR Finance engineering standards.",
++  ]
++    .filter(Boolean)
++    .join("\n\n");
++
++  const autoReview = shouldAutoReviewCode(event, action) || shouldAutoAudit(event, action);
++
++  if (autoReview && reviewContext) {
++    if (spawnWorkflow("mor-audit", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-audit");
++    }
++  } else if (shouldAutoAudit(event, action)) {
++    if (spawnWorkflow("mor-audit", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-audit");
++    }
++  }
++
++  if (shouldAutoCodefix(event, payload)) {
++    if (spawnWorkflow("mor-codefix", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-codefix");
++    }
++  }
++
++  if (event === "pull_request" && action === "opened" && process.env.GITHUB_AUTO_SUGGESTION === "true") {
++    if (spawnWorkflow("mor-suggestion", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-suggestion");
++    }
++  }
++
++  if (shouldAutoSuggestionOnIssue(event, action)) {
++    if (spawnWorkflow("mor-suggestion", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-suggestion");
++    }
++  }
++
++  // Push with code diff → suggestion pass when enabled
++  if (event === "push" && reviewContext?.source === "local-git" && process.env.GITHUB_AUTO_REVIEW_CODE === "true") {
++    if (spawnWorkflow("mor-agents", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-agents");
++    }
++  }
++
++  if (shouldAutoAgentsOnIssue(event, action)) {
++    if (spawnWorkflow("mor-agents", contextMessage, threadTs, reviewContextPath)) {
++      workflows.push("mor-agents");
++    }
++  }
++
++  return { ok: true, event, action, workflows, slackPosted };
++}
+diff --git a/server/services/slackPostService.ts b/server/services/slackPostService.ts
+new file mode 100644
+index 0000000..b08ccf6
+--- /dev/null
++++ b/server/services/slackPostService.ts
+@@ -0,0 +1,42 @@
++type SlackPostParams = {
++  channel: string;
++  text: string;
++  threadTs?: string;
++  username?: string;
++  iconUrl?: string;
++};
++
++async function slackApi(method: string, body: Record<string, string>) {
++  const token = process.env.SLACK_BOT_TOKEN?.trim();
++  if (!token) {
++    throw new Error("SLACK_BOT_TOKEN is not configured");
++  }
++
++  const res = await fetch(`https://slack.com/api/${method}`, {
++    method: "POST",
++    headers: {
++      Authorization: `Bearer ${token}`,
++      "Content-Type": "application/x-www-form-urlencoded",
++    },
++    body: new URLSearchParams(body),
++  });
++
++  const data = (await res.json()) as { ok: boolean; error?: string; ts?: string };
++  if (!data.ok) {
++    throw new Error(`Slack ${method}: ${data.error ?? "unknown error"}`);
++  }
++  return data;
++}
++
++export async function postSlackMessage(params: SlackPostParams) {
++  const body: Record<string, string> = {
++    channel: params.channel,
++    text: params.text,
++  };
++  if (params.threadTs) body.thread_ts = params.threadTs;
++  if (params.username) body.username = params.username;
++  if (params.iconUrl) body.icon_url = params.iconUrl;
++
++  const data = await slackApi("chat.postMessage", body);
++  return { ts: data.ts ?? null };
++}
+-- 
+2.46.2
+
