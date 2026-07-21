@@ -13,7 +13,18 @@ export function createApp() {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CLIENT_ORIGIN,
+      origin(origin, callback) {
+        // Non-browser clients (curl, webhooks) send no Origin.
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        if (env.clientOrigins.includes("*") || env.clientOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true,
     })
   );

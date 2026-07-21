@@ -31,6 +31,7 @@
     "typecheck": "tsc --noEmit",
     "build:server": "tsc -p server/tsconfig.json",
     "start:server": "node server/dist/index.js",
+    "start": "node server/dist/index.js",
     "preview": "vite preview",
     "lint": "eslint .",
     "seed:admin": "tsx scripts/seed-admin.ts",
