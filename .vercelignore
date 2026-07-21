@@ -4,3 +4,6 @@ dsa contracts copy
 integrations/openclaw/state
 integrations/openclaw/openclaw.json
 integrations/openclaw/subagents.env
+server
+api
+docs
