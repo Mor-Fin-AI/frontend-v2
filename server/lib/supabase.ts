@@ -4,6 +4,9 @@ import { env } from "../config/env.js";
 export type DatabaseClient = SupabaseClient;
 
 export function createAnonClient(accessToken?: string) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    throw new Error("Supabase is not configured (missing SUPABASE_URL / SUPABASE_ANON_KEY).");
+  }
   return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     auth: {
       persistSession: false,
@@ -16,6 +19,9 @@ export function createAnonClient(accessToken?: string) {
 }
 
 export function createServiceClient() {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase service client is not configured.");
+  }
   if (!env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
   }

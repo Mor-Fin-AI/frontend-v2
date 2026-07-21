@@ -5,8 +5,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   SERVER_PORT: z.coerce.number().int().positive().default(3001),
   CLIENT_ORIGIN: z.string().default("http://localhost:5173"),
-  SUPABASE_URL: z.string().url(),
-  SUPABASE_ANON_KEY: z.string().min(1),
+  // Optional for local/dev and for serverless cold-start resilience.
+  // Endpoints that require Supabase should fail with a clear 500, not crash the process.
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
