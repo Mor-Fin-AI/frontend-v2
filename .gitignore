@@ -17,7 +17,9 @@
 /dist
 /.next/
 /out/
-# Do not gitignore /web — Vercel static-build needs it after vercel-build.
+/public
+# Do not gitignore /web — used as local preview; Vercel build recreates it.
+# /public is a build mirror for Vercel Project Settings (created by vercel-build).
 
 # misc
 .DS_Store
