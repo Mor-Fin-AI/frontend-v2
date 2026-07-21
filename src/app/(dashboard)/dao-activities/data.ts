@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Book24Regular, CheckboxChecked24Regular, CalendarLtr24Regular, Trophy24Regular, Checkmark24Regular, PeopleTeam24Regular } from '@fluentui/react-icons';
-import { BookOpenIcon } from '../../../../public/Svg/dao/BookOpenIcon';
-import { CertificateIcon } from '../../../../public/Svg/dao/CertificateIcon';
+import { BookOpenIcon } from '../../../../static-assets/Svg/dao/BookOpenIcon';
+import { CertificateIcon } from '../../../../static-assets/Svg/dao/CertificateIcon';
 
 // ─── Stat Cards ──────────────────────────────────────────────────────────────
 

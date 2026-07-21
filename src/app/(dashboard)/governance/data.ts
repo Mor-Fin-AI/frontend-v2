@@ -1,7 +1,7 @@
 import type React from 'react';
 import { DocumentText24Regular, DocumentBulletList24Regular, Vote24Regular, ArrowTrending24Regular, PeopleTeam24Regular } from '@fluentui/react-icons';
-import { FileTextIcon } from '../../../../public/Svg/governance/FileTextIcon';
-import { FileIcon } from '../../../../public/Svg/governance/FileIcon';
+import { FileTextIcon } from '../../../../static-assets/Svg/governance/FileTextIcon';
+import { FileIcon } from '../../../../static-assets/Svg/governance/FileIcon';
 
 // ─── Stat Cards 
 

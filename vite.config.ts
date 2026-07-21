@@ -4,8 +4,10 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // Vercel Project Settings use Output Directory = "public"
+  publicDir: "static-assets",
   build: {
-    outDir: "dist",
+    outDir: "public",
     emptyOutDir: true,
   },
   resolve: {

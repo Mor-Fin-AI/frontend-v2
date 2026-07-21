@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Vercel production build using the Build Output API.
- * This avoids the "No Output Directory named dist" failure that happens
- * when `dist/` is gitignored and filtered from the deploy artifact.
+ * Vercel production build.
+ * Outputs to `public/` (matches Vercel Project Settings Output Directory)
+ * and also writes Build Output API files for functions + routes.
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -10,21 +10,21 @@ import path from "node:path";
 import * as esbuild from "esbuild";
 
 const root = process.cwd();
-const distDir = path.join(root, "dist");
+const publicDir = path.join(root, "public");
 const outputDir = path.join(root, ".vercel", "output");
 const staticDir = path.join(outputDir, "static");
 const funcDir = path.join(outputDir, "functions", "api", "[...path].func");
 
 execSync("npx vite build", { stdio: "inherit", cwd: root });
 
-if (!fs.existsSync(path.join(distDir, "index.html"))) {
-  console.error("Build failed: dist/index.html was not created.");
+if (!fs.existsSync(path.join(publicDir, "index.html"))) {
+  console.error("Build failed: public/index.html was not created.");
   process.exit(1);
 }
 
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(staticDir, { recursive: true });
-fs.cpSync(distDir, staticDir, { recursive: true });
+fs.cpSync(publicDir, staticDir, { recursive: true });
 
 fs.mkdirSync(funcDir, { recursive: true });
 await esbuild.build({
@@ -72,5 +72,5 @@ fs.writeFileSync(
 );
 
 console.log(
-  `Build Output ready:\n- static: ${fs.readdirSync(staticDir).slice(0, 8).join(", ")}…\n- function: api/[...path].func`,
+  `Build ready:\n- public/index.html ✓\n- .vercel/output/static ✓\n- api/[...path].func ✓`,
 );
