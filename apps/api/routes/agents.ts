@@ -87,51 +87,38 @@ router.get(
     const chainFilter = isFlashloanChainId(req.query.chain)
       ? req.query.chain
       : undefined;
+    const forceRefresh = req.query.refresh === "1";
 
-    if (chainFilter) {
-      const arbitrage = await getArbitrageExecutions({
-        page: 1,
-        pageSize: 50,
-        sortBy: "time",
-      });
-      const liveQuotes = await scanLiveFlashloanQuotes({
-        forceRefresh: req.query.refresh === "1",
-        chains: chainFilter,
-      });
-      const smartRouter = evaluateSmartRouterFromExecutions({
-        executions: arbitrage.executions,
-        confidenceCap: null,
-        candidates: liveQuotes.candidates,
-      });
-      res.json(
-        evaluateFlashloanOpportunities({
-          smartRouter,
-          providerId,
-          dataSource: liveQuotes.candidates.length > 0 ? "live-quotes" : undefined,
-          liveQuoteScan: {
-            quotesAttempted: liveQuotes.quotesAttempted,
-            quotesSucceeded: liveQuotes.quotesSucceeded,
-            ethUsdPrice: liveQuotes.ethUsdPrice,
-            chainsScanned: liveQuotes.chainsScanned,
-            byChain: liveQuotes.byChain,
-            errors: liveQuotes.errors,
-          },
-        }),
-      );
-      return;
-    }
+    // Always scan live quotes for the dashboard/API (do not require ?chain=).
+    const arbitrage = await getArbitrageExecutions({
+      page: 1,
+      pageSize: 50,
+      sortBy: "time",
+    });
+    const liveQuotes = await scanLiveFlashloanQuotes({
+      forceRefresh,
+      chains: chainFilter,
+    });
+    const hasLive = liveQuotes.candidates.length > 0;
+    const smartRouter = evaluateSmartRouterFromExecutions({
+      executions: arbitrage.executions,
+      confidenceCap: hasLive ? null : 50,
+      candidates: hasLive ? liveQuotes.candidates : undefined,
+    });
 
-    const context = await getAgentsContextSnapshot();
-    if (!providerId) {
-      res.json(context.flashloanOpportunities);
-      return;
-    }
     res.json(
       evaluateFlashloanOpportunities({
-        smartRouter: context.smartRouter,
+        smartRouter,
         providerId,
-        dataSource: context.flashloanOpportunities.dataSource,
-        liveQuoteScan: context.flashloanOpportunities.liveQuoteScan,
+        dataSource: hasLive ? "live-quotes" : "historical-executions",
+        liveQuoteScan: {
+          quotesAttempted: liveQuotes.quotesAttempted,
+          quotesSucceeded: liveQuotes.quotesSucceeded,
+          ethUsdPrice: liveQuotes.ethUsdPrice,
+          chainsScanned: liveQuotes.chainsScanned,
+          byChain: liveQuotes.byChain,
+          errors: liveQuotes.errors,
+        },
       }),
     );
   }),

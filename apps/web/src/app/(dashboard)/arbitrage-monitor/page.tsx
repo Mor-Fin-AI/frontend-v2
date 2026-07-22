@@ -3,6 +3,7 @@ import SupportedDexStrip from "@/components/evm/SupportedDexStrip";
 import RegimeGaugeChart from "./components/RegimeGaugeChart";
 import TradeSparklineChart from "./components/TradeSparklineChart";
 import GasProfitBarChart from "./components/GasProfitBarChart";
+import OpportunitiesTable from "./components/OpportunitiesTable";
 import ExecutionLogTable from "./components/ExecutionLogTable";
 
 export default function ArbitrageMonitorPage() {
@@ -15,6 +16,7 @@ export default function ArbitrageMonitorPage() {
         <TradeSparklineChart />
       </div>
       <GasProfitBarChart />
+      <OpportunitiesTable />
       <ExecutionLogTable />
     </div>
   );

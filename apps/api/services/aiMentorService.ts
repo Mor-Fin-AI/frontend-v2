@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -7,8 +8,26 @@ import { getAgentsContextSnapshot } from "./agentsContextService.js";
 import { getOpenClawAgentsSnapshot } from "./openclawAgentsService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../../..");
-const PROMPTS_DIR = path.join(REPO_ROOT, "docs/agents/prompts");
+
+/**
+ * Resolve content root for mentor prompts.
+ * - Vercel (Root Directory = apps/api): prompts live in apps/api/docs/...
+ * - Local monorepo: prefer repo-root docs/, fall back to apps/api/docs/
+ */
+function resolveContentRoot() {
+  const apiRoot = path.resolve(__dirname, "..");
+  const apiDocs = path.join(apiRoot, "docs/agents/prompts");
+  if (fsSync.existsSync(apiDocs)) return apiRoot;
+
+  const monorepoRoot = path.resolve(apiRoot, "../..");
+  const monorepoDocs = path.join(monorepoRoot, "docs/agents/prompts");
+  if (fsSync.existsSync(monorepoDocs)) return monorepoRoot;
+
+  return apiRoot;
+}
+
+const CONTENT_ROOT = resolveContentRoot();
+const PROMPTS_DIR = path.join(CONTENT_ROOT, "docs/agents/prompts");
 
 export type MentorId = "hermes" | "claude";
 
@@ -102,11 +121,18 @@ function resolveMentor(id: string): MentorDefinition {
 }
 
 async function readPrompt(relPath: string) {
-  try {
-    return await fs.readFile(path.join(REPO_ROOT, relPath), "utf8");
-  } catch {
-    return `Mentor prompt missing at ${relPath}. Stay in recommend-only mentor mode.`;
+  const candidates = [
+    path.join(CONTENT_ROOT, relPath),
+    path.join(PROMPTS_DIR, path.basename(relPath)),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return await fs.readFile(candidate, "utf8");
+    } catch {
+      // try next
+    }
   }
+  return `Mentor prompt missing at ${relPath}. Stay in recommend-only mentor mode.`;
 }
 
 async function readSharedContext() {
@@ -194,10 +220,46 @@ export async function listMentorsForAcademy() {
 
   const authRequired = Boolean(process.env.MOR_MENTOR_API_KEY?.trim());
 
+  const llmReady = Boolean(
+    process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim(),
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     product: "developer-academy-ai-mentor",
     mode: "recommend-only" as const,
+    howToUse: {
+      summary:
+        "OpenClaw + Hermes are integrated in this MOR API. External apps only need the API base URL + MOR_MENTOR_API_KEY. They do not need a local OpenClaw gateway.",
+      baseUrlHint: "https://YOUR-API.vercel.app/api",
+      talkWithHermes: {
+        method: "POST",
+        path: "/agents/mentors/ask",
+        headers: [
+          "Content-Type: application/json",
+          "Authorization: Bearer <MOR_MENTOR_API_KEY>",
+        ],
+        body: {
+          mentorId: "hermes",
+          message: "Your question for Hermes",
+          sessionId: "optional-session-id",
+          includeLiveContext: true,
+        },
+      },
+      talkWithClaude: {
+        method: "POST",
+        path: "/agents/mentors/ask",
+        body: { mentorId: "claude", message: "Your question for Claude" },
+      },
+      note:
+        "openclaw.reachable=false on Vercel is normal. Mentor replies use server-side OPENAI_API_KEY / ANTHROPIC_API_KEY with OpenClaw agent prompts (mor-hermes / main).",
+    },
+    readiness: {
+      mentorAuthConfigured: authRequired,
+      llmConfigured: llmReady,
+      openclawGatewayRequiredForChat: false,
+      openclawGatewayReachable: openclaw.openclaw.reachable,
+    },
     integration: {
       openclaw: {
         gatewayUrl: openclaw.openclaw.gatewayUrl,
@@ -205,6 +267,8 @@ export async function listMentorsForAcademy() {
         reachable: openclaw.openclaw.reachable,
         configLoaded: openclaw.openclaw.configLoaded,
         defaultModel: openclaw.openclaw.defaultModel,
+        note:
+          "Gateway UI is optional/local. Chat with Hermes/Claude via POST /agents/mentors/ask.",
       },
       hermesAgentId: "mor-hermes",
       claudeVia: "main OpenClaw orchestrator + claude mentor prompt",
