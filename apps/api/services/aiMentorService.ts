@@ -29,7 +29,7 @@ function resolveContentRoot() {
 const CONTENT_ROOT = resolveContentRoot();
 const PROMPTS_DIR = path.join(CONTENT_ROOT, "docs/agents/prompts");
 
-export type MentorId = "hermes" | "claude";
+export type MentorId = "openclaw" | "hermes" | "claude";
 
 export type MentorDefinition = {
   id: MentorId;
@@ -45,6 +45,29 @@ export type MentorDefinition = {
 };
 
 export const MENTOR_DEFINITIONS: MentorDefinition[] = [
+  {
+    id: "openclaw",
+    openclawAgentId: "main",
+    name: "OpenClaw",
+    role: "mentor",
+    platform: "openclaw",
+    purpose:
+      "OpenClaw orchestrator — agent routing, OpenClaw platform guidance, recommend-only coordination.",
+    outputs: ["ORCHESTRATE", "ROUTE", "EXPLAIN", "HANDOFF"],
+    promptFile: "docs/agents/prompts/openclaw-mentor.md",
+    allowed: [
+      "OpenClaw agent discovery",
+      "Orchestration guidance",
+      "API integration help",
+      "Recommend-only policy explanation",
+    ],
+    denied: [
+      "Trade execution",
+      "Deployments",
+      "Production code auto-modify",
+      "Financial execution",
+    ],
+  },
   {
     id: "hermes",
     openclawAgentId: "mor-hermes",
@@ -93,7 +116,7 @@ export const MENTOR_DEFINITIONS: MentorDefinition[] = [
 ];
 
 export const mentorAskSchema = z.object({
-  mentorId: z.enum(["hermes", "claude"]).default("hermes"),
+  mentorId: z.enum(["openclaw", "hermes", "claude"]).default("openclaw"),
   message: z.string().trim().min(1).max(8000),
   sessionId: z.string().trim().min(1).max(128).optional(),
   learnerId: z.string().trim().min(1).max(128).optional(),
@@ -115,7 +138,7 @@ export type MentorAskInput = z.infer<typeof mentorAskSchema>;
 function resolveMentor(id: string): MentorDefinition {
   const mentor = MENTOR_DEFINITIONS.find((entry) => entry.id === id);
   if (!mentor) {
-    throw new HttpError(404, `Unknown mentorId "${id}". Use hermes or claude.`);
+    throw new HttpError(404, `Unknown mentorId "${id}". Use openclaw, hermes, or claude.`);
   }
   return mentor;
 }
@@ -240,6 +263,20 @@ export async function listMentorsForAcademy() {
       summary:
         "OpenClaw + Hermes are integrated in this MOR API. External apps only need the API base URL + MOR_MENTOR_API_KEY. They do not need a local OpenClaw gateway.",
       baseUrlHint: "https://YOUR-API.vercel.app/api",
+      talkWithOpenClaw: {
+        method: "POST",
+        path: "/agents/mentors/ask",
+        headers: [
+          "Content-Type: application/json",
+          "Authorization: Bearer <MOR_MENTOR_API_KEY>",
+        ],
+        body: {
+          mentorId: "openclaw",
+          message: "Your question for OpenClaw",
+          sessionId: "optional-session-id",
+          includeLiveContext: true,
+        },
+      },
       talkWithHermes: {
         method: "POST",
         path: "/agents/mentors/ask",
@@ -260,7 +297,7 @@ export async function listMentorsForAcademy() {
         body: { mentorId: "claude", message: "Your question for Claude" },
       },
       note:
-        "openclaw.reachable=false on Vercel is normal. Mentor replies use server-side OPENAI_API_KEY / ANTHROPIC_API_KEY with OpenClaw agent prompts (mor-hermes / main).",
+        "OpenClaw (mentorId=openclaw / agent main) and Hermes (mentorId=hermes / agent mor-hermes) are different. Gateway reachable=false on Vercel is normal.",
     },
     readiness: {
       mentorAuthConfigured: authRequired,
@@ -438,6 +475,8 @@ export async function askMentor(input: MentorAskInput) {
       "",
       mentor.id === "hermes"
         ? "REVIEW: I can mentor once an LLM key is configured. Boundaries remain: no production auto-modify."
+        : mentor.id === "openclaw"
+          ? "ORCHESTRATE: Set OPENAI_API_KEY on the MOR API server to enable OpenClaw mentor replies."
         : "TEACH: Set OPENAI_API_KEY or ANTHROPIC_API_KEY on the MOR API server to enable live Academy mentoring.",
       "",
       errors.length ? `Provider errors: ${errors.join(" | ")}` : "",
@@ -472,5 +511,7 @@ export async function askMentor(input: MentorAskInput) {
 }
 
 export function mentorPromptPath(mentorId: MentorId) {
-  return path.join(PROMPTS_DIR, mentorId === "hermes" ? "hermes-mentor.md" : "claude-mentor.md");
+  if (mentorId === "hermes") return path.join(PROMPTS_DIR, "hermes-mentor.md");
+  if (mentorId === "openclaw") return path.join(PROMPTS_DIR, "openclaw-mentor.md");
+  return path.join(PROMPTS_DIR, "claude-mentor.md");
 }
