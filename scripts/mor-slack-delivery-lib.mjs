@@ -194,9 +194,9 @@ export async function fetchMorContext() {
 const HERMES_REVIEW_PATHS = [
   "docs/agents/prompts",
   "docs/agents/manifest.json",
-  "server/services/agentsContextService.ts",
-  "server/services/lendingService.ts",
-  "server/services/arbitrageService.ts",
+  "apps/api/services/agentsContextService.ts",
+  "apps/api/services/lendingService.ts",
+  "apps/api/services/arbitrageService.ts",
   "scripts/mor-slack-delivery-lib.mjs",
   "scripts/deliver-slack-agent.mjs",
   "integrations/openclaw/openclaw.template.json",

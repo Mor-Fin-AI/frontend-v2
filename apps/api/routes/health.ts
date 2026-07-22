@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { getEnvDiagnostics } from "../config/envDiagnostics.js";
+import { getConfigStatus } from "../config/envStatus.js";
 
 const router = Router();
 
 router.get("/", (_req, res) => {
-  const config = getEnvDiagnostics();
+  const config = getConfigStatus();
   res.json({
     ok: true,
     service: "morfinance-api",
@@ -15,7 +15,7 @@ router.get("/", (_req, res) => {
 });
 
 router.get("/config", (_req, res) => {
-  const status = getEnvDiagnostics();
+  const status = getConfigStatus();
   res.status(status.ok ? 200 : 503).json(status);
 });
 

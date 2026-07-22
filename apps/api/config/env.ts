@@ -2,14 +2,8 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Vercel injects env at runtime — only load .env files for local dev.
-if (!process.env.VERCEL) {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const repoRoot = path.join(here, "../../..");
-  const apiRoot = path.join(here, "..");
-  dotenv.config({ path: path.join(repoRoot, ".env") });
-  dotenv.config({ path: path.join(apiRoot, ".env") });
-}
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+dotenv.config({ path: path.join(repoRoot, ".env") });
 
 export type EnvIssue = {
   path: string;

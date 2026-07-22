@@ -1,26 +1,30 @@
 #!/usr/bin/env node
 /**
- * Production build for Vercel (@vercel/static-build) and local preview.
- * Output: ./web/index.html
- *
- * Using vercel.json "builds" ignores conflicting Project Settings
- * (Output Directory / Framework Preset).
+ * Frontend production build for Vercel.
+ * Builds apps/web → apps/web/public, then mirrors to ./public
+ * so Project Settings that still require "public" also succeed.
+ * Do NOT gitignore either output directory.
  */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const root = process.cwd();
-const outDir = path.join(root, "web");
+const repoRoot = process.cwd();
+const webRoot = path.join(repoRoot, "apps/web");
+const webOut = path.join(webRoot, "public");
+const rootPublic = path.join(repoRoot, "public");
 
-execSync("npx vite build", { stdio: "inherit", cwd: root });
+execSync("npx vite build", { stdio: "inherit", cwd: webRoot });
 
-const indexPath = path.join(outDir, "index.html");
+const indexPath = path.join(webOut, "index.html");
 if (!fs.existsSync(indexPath)) {
-  console.error("Build failed: web/index.html was not created.");
+  console.error("Build failed: apps/web/public/index.html was not created.");
   process.exit(1);
 }
 
+fs.rmSync(rootPublic, { recursive: true, force: true });
+fs.cpSync(webOut, rootPublic, { recursive: true });
+
 console.log(
-  `Build ready: web/ (${fs.readdirSync(outDir).length} entries, index.html ✓)`,
+  `Build ready: apps/web/public/ + public/ (${fs.readdirSync(webOut).length} entries, index.html ✓)`,
 );

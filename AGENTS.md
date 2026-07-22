@@ -4,12 +4,28 @@ OpenClaw is included in this repo as a **git submodule** at `openclaw/`. MOR-spe
 
 → [integrations/openclaw/README.md](./integrations/openclaw/README.md)
 
-## Stack
+## Apps layout
+
+```
+apps/web   → Vite + React dashboard (Vercel)
+apps/api   → Express API (Railway / Render / Docker)
+```
+
+## Stack (local)
 
 - **API:** `http://localhost:3001/api` — `npm run dev:server`
 - **UI:** `http://localhost:5173` — `npm run dev:client`
 - **OpenClaw:** `http://127.0.0.1:18789/` — `npm run openclaw:gateway`
 - **All together:** `npm run dev:full`
+
+## Deploy (frontend ≠ server)
+
+| Piece | Host | Notes |
+| --- | --- | --- |
+| **Frontend** | Vercel (repo root) | `apps/web` → `public/`. Set `VITE_API_URL` |
+| **API** | Vercel project Root Directory `apps/api`, or Railway/Docker | Uses `apps/api/vercel.json` |
+
+See [.env.example](./.env.example).
 
 ## Setup (once)
 
