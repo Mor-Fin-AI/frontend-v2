@@ -1,18 +1,15 @@
-import { createApp } from "./app.js";
-import { env } from "./config/env.js";
+/**
+ * Local dev entry — uses the same simple test app as Vercel (api/index.ts).
+ * Full Express app in app.ts is disabled for now.
+ */
+import app from "./api/index.js";
 
-const app = createApp();
+const port = Number(process.env.PORT ?? process.env.SERVER_PORT ?? 3001);
 
-// Local / Docker: listen on a port.
-// Vercel: detects the default export and does not need listen().
 if (!process.env.VERCEL) {
-  app.listen(env.SERVER_PORT, () => {
-    console.log(
-      `[server] Morfinance API listening on http://localhost:${env.SERVER_PORT}`,
-    );
-    console.log(
-      `[server] Health check: http://localhost:${env.SERVER_PORT}/api/health`,
-    );
+  app.listen(port, () => {
+    console.log(`[test-api] http://localhost:${port}`);
+    console.log(`[test-api] health: http://localhost:${port}/api/health`);
   });
 }
 

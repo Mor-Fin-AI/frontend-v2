@@ -1,3 +1,9 @@
+/**
+ * FULL API — disabled while testing simple server in api/index.ts
+ *
+ * To re-enable: restore createApp() in index.ts and wire routes again.
+ */
+/*
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -14,7 +20,6 @@ export function createApp() {
   app.use(
     cors({
       origin(origin, callback) {
-        // Non-browser clients (curl, webhooks) send no Origin.
         if (!origin) {
           callback(null, true);
           return;
@@ -53,4 +58,11 @@ export function createApp() {
   app.use(errorHandler);
 
   return app;
+}
+*/
+
+export function createApp() {
+  throw new Error(
+    "Full API is disabled. Use the simple test server in api/index.ts.",
+  );
 }
