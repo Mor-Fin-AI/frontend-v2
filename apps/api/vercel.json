@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && npm install",
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "{../web/src/lib/contracts/deployments.arbitrum.json,../../docs/**,../../integrations/openclaw/**}"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+}

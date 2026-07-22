@@ -20,7 +20,7 @@ for (const envPath of [
 }
 
 const { FLASHLOAN_CHAIN_CONFIGS, resolveChainRpcUrl } = await import(
-  "../server/data/flashloanQuoteRoutes.ts"
+  "../apps/api/data/flashloanQuoteRoutes.ts"
 );
 
 const poolAbi = [

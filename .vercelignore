@@ -1,4 +1,4 @@
-# Frontend-only deploy (Vercel). API runs on a separate host.
+# Frontend-only deploy (Vercel). API is apps/api on a separate host.
 openclaw
 artifacts
 dsa contracts copy
@@ -6,8 +6,7 @@ integrations/openclaw/state
 integrations/openclaw/openclaw.json
 integrations/openclaw/subagents.env
 integrations/openclaw/workspaces
-server
-api
+apps/api
 docs
 scripts/deliver-*.mjs
 scripts/watch-*.mjs

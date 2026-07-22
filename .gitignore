@@ -13,14 +13,13 @@
 # testing
 /coverage
 
-# vite
+# vite / build outputs
 /dist
 /.next/
 /out/
-# IMPORTANT: do NOT gitignore /public — Vercel Project Settings use it as
-# Output Directory and will report "No Output Directory named public found"
-# if the folder is gitignored, even when the build creates it.
 /web
+# Do NOT gitignore apps/web/public — Vercel Output Directory must not be ignored
+# or deploys fail with "No Output Directory named … found".
 
 
 # misc
