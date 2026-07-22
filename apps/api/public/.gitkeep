@@ -1,0 +1,2 @@
+# Minimal static folder so Vercel has an outputDirectory.
+# The real app is the /api serverless function (bundled JS, not TypeScript).

@@ -1,9 +1,24 @@
+# Used by the FRONTEND Vercel project (repo root).
+# Do NOT ignore apps/api — a second Vercel project with Root Directory
+# apps/api needs those files. Ignoring them causes platform 404 NOT_FOUND.
 openclaw
 artifacts
 dsa contracts copy
 integrations/openclaw/state
 integrations/openclaw/openclaw.json
 integrations/openclaw/subagents.env
-server
-api
+integrations/openclaw/workspaces
 docs
+scripts/deliver-*.mjs
+scripts/watch-*.mjs
+scripts/install-*.mjs
+scripts/mor-slack-*.mjs
+scripts/github-*.mjs
+scripts/seed-*.ts
+scripts/setup-openclaw.mjs
+scripts/run-openclaw-gateway.mjs
+scripts/diagnose-*.mjs
+scripts/test-*.sh
+Dockerfile
+railway.toml
+render.yaml

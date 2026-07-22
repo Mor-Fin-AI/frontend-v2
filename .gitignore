@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+apps/**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -13,11 +14,14 @@
 # testing
 /coverage
 
-# vite
+# vite / build outputs
 /dist
 /.next/
 /out/
-# Do not gitignore /web — Vercel static-build needs it after vercel-build.
+/web
+# Do NOT gitignore apps/web/public — Vercel Output Directory must not be ignored
+# or deploys fail with "No Output Directory named … found".
+
 
 # misc
 .DS_Store
@@ -31,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
