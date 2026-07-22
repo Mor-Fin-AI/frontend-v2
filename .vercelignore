@@ -1,4 +1,6 @@
-# Frontend-only deploy (Vercel). API is apps/api on a separate host.
+# Used by the FRONTEND Vercel project (repo root).
+# Do NOT ignore apps/api — a second Vercel project with Root Directory
+# apps/api needs those files. Ignoring them causes platform 404 NOT_FOUND.
 openclaw
 artifacts
 dsa contracts copy
@@ -6,7 +8,6 @@ integrations/openclaw/state
 integrations/openclaw/openclaw.json
 integrations/openclaw/subagents.env
 integrations/openclaw/workspaces
-apps/api
 docs
 scripts/deliver-*.mjs
 scripts/watch-*.mjs

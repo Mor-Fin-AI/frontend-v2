@@ -1,0 +1,4 @@
+# API Vercel project (Root Directory = apps/api)
+node_modules
+.env
+.env.*
