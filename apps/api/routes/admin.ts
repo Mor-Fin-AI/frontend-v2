@@ -36,7 +36,7 @@ router.get(
 router.patch(
   "/users/:userId/role",
   asyncHandler(async (req, res) => {
-    const userId = req.params.userId;
+    const userId = String(req.params.userId ?? "");
     if (!userId) {
       throw new HttpError(400, "userId is required.");
     }
@@ -58,7 +58,7 @@ router.get(
 router.get(
   "/chat/sessions/:sessionId/messages",
   asyncHandler(async (req, res) => {
-    const sessionId = req.params.sessionId;
+    const sessionId = String(req.params.sessionId ?? "");
     if (!sessionId) {
       throw new HttpError(400, "sessionId is required.");
     }
@@ -71,7 +71,7 @@ router.get(
 router.post(
   "/chat/sessions/:sessionId/messages",
   asyncHandler(async (req, res) => {
-    const sessionId = req.params.sessionId;
+    const sessionId = String(req.params.sessionId ?? "");
     if (!sessionId) {
       throw new HttpError(400, "sessionId is required.");
     }

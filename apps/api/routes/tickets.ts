@@ -48,7 +48,7 @@ router.patch(
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const ticketId = req.params.ticketId;
+    const ticketId = String(req.params.ticketId ?? "");
     if (!ticketId) {
       throw new HttpError(400, "ticketId is required.");
     }

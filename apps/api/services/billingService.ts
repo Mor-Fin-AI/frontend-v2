@@ -217,14 +217,18 @@ async function syncSubscriptionFromStripe(
       ? subscription.customer
       : subscription.customer.id;
 
+  const periodEnd =
+    subscription.items.data[0]?.current_period_end ??
+    (subscription as { current_period_end?: number }).current_period_end;
+
   await upsertSubscriptionRow(userId, {
     stripe_customer_id: customerId,
     stripe_subscription_id: subscription.id,
     tier: status === "canceled" || status === "inactive" ? "free" : tier,
     billing_period: interval,
     status,
-    current_period_end: subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toISOString()
+    current_period_end: periodEnd
+      ? new Date(periodEnd * 1000).toISOString()
       : null,
     cancel_at_period_end: subscription.cancel_at_period_end,
   });

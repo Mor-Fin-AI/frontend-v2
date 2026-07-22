@@ -32,7 +32,7 @@ router.patch(
   "/:notificationId/read",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const notificationId = req.params.notificationId;
+    const notificationId = String(req.params.notificationId ?? "");
     if (!notificationId) {
       throw new HttpError(400, "notificationId is required.");
     }
