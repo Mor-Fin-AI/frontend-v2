@@ -2,8 +2,14 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-dotenv.config({ path: path.join(repoRoot, ".env") });
+// Vercel injects env at runtime — only load .env files for local dev.
+if (!process.env.VERCEL) {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const repoRoot = path.join(here, "../../..");
+  const apiRoot = path.join(here, "..");
+  dotenv.config({ path: path.join(repoRoot, ".env") });
+  dotenv.config({ path: path.join(apiRoot, ".env") });
+}
 
 export type EnvIssue = {
   path: string;
@@ -56,7 +62,9 @@ function optionalUrl(
 function loadEnv(): { config: EnvConfig; issues: EnvIssue[] } {
   const issues: EnvIssue[] = [];
 
-  const raw = {
+  // Explicit index signature so optional keys (Stripe, CLIENT_ORIGIN, etc.)
+  // are always readable — never required, never throw at startup.
+  const raw: Record<string, string | undefined> = {
     ...process.env,
     SERVER_PORT: process.env.PORT ?? process.env.SERVER_PORT ?? "3001",
     SUPABASE_URL: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL,

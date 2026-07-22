@@ -10,7 +10,10 @@ export function createAnonClient(accessToken?: string) {
   if (missing.length > 0) {
     throw new ConfigError("Supabase auth", missing);
   }
-  return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  // Guaranteed by missingEnvVars check above.
+  const url = env.SUPABASE_URL as string;
+  const anonKey = env.SUPABASE_ANON_KEY as string;
+  return createClient(url, anonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -27,7 +30,9 @@ export function createServiceClient() {
     throw new ConfigError("Supabase admin", missing);
   }
 
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  const url = env.SUPABASE_URL as string;
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY as string;
+  return createClient(url, serviceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
