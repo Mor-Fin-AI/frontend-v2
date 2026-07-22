@@ -1,14 +1,18 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Address } from "viem";
 
-// apps/api/lib → repo root
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const deploymentsPath = join(
-  repoRoot,
-  "apps/web/src/lib/contracts/deployments.arbitrum.json"
+// Prefer local copy (Vercel Root Directory = apps/api), fall back to monorepo path.
+const here = dirname(fileURLToPath(import.meta.url));
+const localDeployments = join(here, "../data/deployments.arbitrum.json");
+const monorepoDeployments = join(
+  here,
+  "../../../apps/web/src/lib/contracts/deployments.arbitrum.json",
 );
+const deploymentsPath = existsSync(localDeployments)
+  ? localDeployments
+  : monorepoDeployments;
 
 export type MorDeploymentRecord = Record<string, string | number | object>;
 
