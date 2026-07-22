@@ -1,30 +1,7 @@
 /**
- * Minimal Mor Finance API — Vercel test server.
- * Full app (routes, Supabase, etc.) is disabled until deploy works.
+ * Vercel serverless entry — uses the full Express app.
+ * Missing env vars never crash startup; see GET /api/health/config.
  */
-import express from "express";
-import cors from "cors";
+import { createApp } from "../app.js";
 
-const app = express();
-
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-
-app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "morfinance-api-test",
-    message: "Simple test server is running.",
-    endpoints: ["/api/health"],
-  });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "morfinance-api-test",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-export default app;
+export default createApp();

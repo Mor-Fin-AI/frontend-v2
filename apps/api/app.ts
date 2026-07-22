@@ -1,9 +1,3 @@
-/**
- * FULL API — disabled while testing simple server in api/index.ts
- *
- * To re-enable: restore createApp() in index.ts and wire routes again.
- */
-/*
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -28,7 +22,8 @@ export function createApp() {
           callback(null, true);
           return;
         }
-        callback(new Error(`CORS blocked for origin: ${origin}`));
+        // Do not throw — CORS rejection should not crash the server.
+        callback(null, false);
       },
       credentials: true,
     })
@@ -49,7 +44,12 @@ export function createApp() {
   app.use(express.json({ limit: "1mb" }));
 
   app.get("/", (_req, res) => {
-    res.json({ ok: true, message: "Morfinance API server" });
+    res.json({
+      ok: true,
+      message: "Morfinance API server",
+      health: "/api/health",
+      config: "/api/health/config",
+    });
   });
 
   app.use("/api", apiRouter);
@@ -58,11 +58,4 @@ export function createApp() {
   app.use(errorHandler);
 
   return app;
-}
-*/
-
-export function createApp() {
-  throw new Error(
-    "Full API is disabled. Use the simple test server in api/index.ts.",
-  );
 }

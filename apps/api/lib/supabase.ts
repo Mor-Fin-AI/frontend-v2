@@ -1,11 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "../config/env.js";
+import { missingEnvVars } from "../config/envStatus.js";
+import { ConfigError } from "../middleware/errorHandler.js";
 
 export type DatabaseClient = SupabaseClient;
 
 export function createAnonClient(accessToken?: string) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    throw new Error("Supabase is not configured (missing SUPABASE_URL / SUPABASE_ANON_KEY).");
+  const missing = missingEnvVars(["SUPABASE_URL", "SUPABASE_ANON_KEY"]);
+  if (missing.length > 0) {
+    throw new ConfigError("Supabase auth", missing);
   }
   return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     auth: {
@@ -19,11 +22,9 @@ export function createAnonClient(accessToken?: string) {
 }
 
 export function createServiceClient() {
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Supabase service client is not configured.");
-  }
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
+  const missing = missingEnvVars(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
+  if (missing.length > 0) {
+    throw new ConfigError("Supabase admin", missing);
   }
 
   return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
