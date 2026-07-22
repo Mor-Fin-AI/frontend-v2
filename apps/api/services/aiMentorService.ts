@@ -213,10 +213,18 @@ function extractLabels(text: string, allowed: string[]) {
 }
 
 export async function listMentorsForAcademy() {
-  const [openclaw, context] = await Promise.all([
-    getOpenClawAgentsSnapshot(),
-    getAgentsContextSnapshot(),
-  ]);
+  const openclaw = await getOpenClawAgentsSnapshot();
+
+  // Live context is optional for discovery — never 500 the mentor catalog.
+  let context: Awaited<ReturnType<typeof getAgentsContextSnapshot>> | null = null;
+  let contextError: string | null = null;
+  try {
+    context = await getAgentsContextSnapshot();
+  } catch (error) {
+    contextError =
+      error instanceof Error ? error.message : "Live context unavailable.";
+    console.warn("[mentors] live context failed:", contextError);
+  }
 
   const authRequired = Boolean(process.env.MOR_MENTOR_API_KEY?.trim());
 
@@ -259,6 +267,8 @@ export async function listMentorsForAcademy() {
       llmConfigured: llmReady,
       openclawGatewayRequiredForChat: false,
       openclawGatewayReachable: openclaw.openclaw.reachable,
+      liveContextAvailable: Boolean(context),
+      liveContextError: contextError,
     },
     integration: {
       openclaw: {
@@ -304,11 +314,18 @@ export async function listMentorsForAcademy() {
         },
       };
     }),
-    liveContextSummary: {
-      dataQuality: context.dataQuality,
-      recommendPaused: context.dataQuality?.recommendPaused ?? null,
-      agentFramework: context.agentFramework,
-    },
+    liveContextSummary: context
+      ? {
+          dataQuality: context.dataQuality,
+          recommendPaused: context.dataQuality?.recommendPaused ?? null,
+          agentFramework: context.agentFramework,
+        }
+      : {
+          dataQuality: null,
+          recommendPaused: null,
+          agentFramework: null,
+          error: contextError,
+        },
     docs: {
       contract: "docs/agents/AI-MENTOR-ACADEMY.md",
       hermesPrompt: "docs/agents/prompts/hermes-mentor.md",

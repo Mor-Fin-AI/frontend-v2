@@ -130,12 +130,84 @@ function buildDataQuality(
 }
 
 export async function getAgentsContextSnapshot(): Promise<AgentsContextSnapshot> {
-  const [arbitrage, lending, platform, governance] = await Promise.all([
+  const emptyArbitrage: Awaited<ReturnType<typeof getArbitrageExecutions>> = {
+    chainId: 42161,
+    chain: "arbitrum",
+    platformDsa: null,
+    executions: [],
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 1,
+    ethUsdPrice: Number(process.env.ETH_USD_PRICE ?? 2350) || 2350,
+    isLive: true,
+  };
+
+  const settled = await Promise.allSettled([
     getArbitrageExecutions({ page: 1, pageSize: 50, sortBy: "time" }),
     getLendingDischargeData(),
     getPlatformStatus(),
     getGovernanceStatus(),
   ]);
+
+  const errors: string[] = [];
+  const take = <T,>(index: number, fallback: T, label: string): T => {
+    const result = settled[index];
+    if (result && result.status === "fulfilled") return result.value as T;
+    const reason = result && result.status === "rejected" ? result.reason : "unknown";
+    const message = reason instanceof Error ? reason.message : String(reason);
+    errors.push(`${label}: ${message}`);
+    console.warn(`[agents/context] ${label} failed:`, message);
+    return fallback;
+  };
+
+  const arbitrage = take(0, emptyArbitrage, "arbitrage");
+  const lending = take(
+    1,
+    {
+      chainId: 42161,
+      chain: "arbitrum",
+      treasuryFlowPanel: null,
+      platformDsa: null,
+      metrics: null,
+      connectors: [],
+      gantt: [],
+      dischargeRows: [],
+      isLive: false,
+      error: "lending unavailable",
+    } as unknown as Awaited<ReturnType<typeof getLendingDischargeData>>,
+    "lending",
+  );
+  const platform = take(
+    2,
+    {
+      chainId: 42161,
+      chain: "arbitrum",
+      deployedAt: undefined,
+      platformDsa: null,
+      platformOwner: null,
+      platformEthBalance: "0",
+      platformEthBalanceFormatted: null,
+      platformWethBalance: "0",
+      platformWethBalanceFormatted: null,
+      treasuryWallet: null,
+      treasuryWethBalance: "0",
+      treasuryWethBalanceFormatted: null,
+      connectorCount: 0,
+      proposalThreshold: null,
+      votingDelay: null,
+      votingPeriod: null,
+      connectors: [],
+    } as unknown as Awaited<ReturnType<typeof getPlatformStatus>>,
+    "platform",
+  );
+  const governance = take(
+    3,
+    {
+      activeProposals: 0,
+    } as unknown as Awaited<ReturnType<typeof getGovernanceStatus>>,
+    "governance",
+  );
 
   const executed = arbitrage.executions.filter((row) => row.status === "Executed");
   const failed = arbitrage.executions.filter((row) => row.status === "Failed");
@@ -150,13 +222,36 @@ export async function getAgentsContextSnapshot(): Promise<AgentsContextSnapshot>
   const ltvPct = lending.metrics?.loanToValueRatio ?? null;
 
   const dataQuality = buildDataQuality(arbitrage.executions, lending);
+  if (errors.length > 0) {
+    dataQuality.flags.push("partial-agents-context");
+  }
 
-  const liveQuotes = await scanLiveFlashloanQuotes();
+  let liveQuotes: Awaited<ReturnType<typeof scanLiveFlashloanQuotes>> = {
+    generatedAt: new Date().toISOString(),
+    mode: "recommend-only",
+    dataSource: "live-quotes",
+    ethUsdPrice: Number(process.env.ETH_USD_PRICE ?? 2350) || 2350,
+    chainsScanned: [],
+    routesConfigured: 0,
+    quotesAttempted: 0,
+    quotesSucceeded: 0,
+    quotes: [],
+    candidates: [],
+    byChain: {},
+    errors: [],
+  };
+  try {
+    liveQuotes = await scanLiveFlashloanQuotes();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`flashloanQuotes: ${message}`);
+    console.warn("[agents/context] flashloan quotes failed:", message);
+  }
+
   const smartRouter =
     liveQuotes.candidates.length > 0
       ? evaluateSmartRouterFromExecutions({
           executions: arbitrage.executions,
-          // Live quotes are fresh; do not inherit stale-history confidence caps.
           confidenceCap: null,
           candidates: liveQuotes.candidates,
         })
@@ -167,17 +262,14 @@ export async function getAgentsContextSnapshot(): Promise<AgentsContextSnapshot>
   const flashloanOpportunities = evaluateFlashloanOpportunities({
     smartRouter,
     dataSource: liveQuotes.candidates.length > 0 ? "live-quotes" : undefined,
-    liveQuoteScan:
-      liveQuotes.candidates.length > 0
-        ? {
-            quotesAttempted: liveQuotes.quotesAttempted,
-            quotesSucceeded: liveQuotes.quotesSucceeded,
-            ethUsdPrice: liveQuotes.ethUsdPrice,
-            chainsScanned: liveQuotes.chainsScanned,
-            byChain: liveQuotes.byChain,
-            errors: liveQuotes.errors,
-          }
-        : undefined,
+    liveQuoteScan: {
+      quotesAttempted: liveQuotes.quotesAttempted,
+      quotesSucceeded: liveQuotes.quotesSucceeded,
+      ethUsdPrice: liveQuotes.ethUsdPrice,
+      chainsScanned: liveQuotes.chainsScanned,
+      byChain: liveQuotes.byChain,
+      errors: [...liveQuotes.errors, ...errors].slice(0, 40),
+    },
   });
 
   return {

@@ -32,7 +32,20 @@ router.get(
 router.get(
   "/context",
   asyncHandler(async (_req, res) => {
-    res.json(await getAgentsContextSnapshot());
+    try {
+      res.json(await getAgentsContextSnapshot());
+    } catch (error) {
+      console.error("[agents/context]", error);
+      res.status(200).json({
+        generatedAt: new Date().toISOString(),
+        service: "morfinance-api",
+        ok: false,
+        error:
+          error instanceof Error ? error.message : "Failed to build agents context.",
+        mode: "recommend-only",
+        summary: null,
+      });
+    }
   })
 );
 
